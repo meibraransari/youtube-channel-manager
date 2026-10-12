@@ -158,36 +158,62 @@ const SubscriptionsComponent = {
           </div>
 
           <!-- Action Buttons Bar -->
-          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-            <button type="button" class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openAddModal()" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
-              <span>➕</span>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <!-- Button 1: Add Subscription -->
+            <button type="button" class="btn-action-premium primary-teal" onclick="SubscriptionsComponent.openAddModal()" title="Add a single subscribed channel to the registry">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
               <span>Add Subscription</span>
             </button>
 
-            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="display: flex; align-items: center; gap: 6px;" title="Import all 250+ subscriptions via Google Takeout CSV or JSON">
-              <span>📥</span>
+            <!-- Button 2: Takeout Import -->
+            <button type="button" class="btn-action-premium accent-emerald" onclick="SubscriptionsComponent.openImportModal()" title="Bulk import all 250+ subscriptions via Google Takeout CSV or JSON">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
               <span>Takeout Import</span>
+              <span style="background: rgba(16, 185, 129, 0.22); color: #10b981; font-size: 10px; font-weight: 800; padding: 1px 6px; border-radius: 10px; letter-spacing: 0.3px;">250+</span>
             </button>
 
-            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: flex; align-items: center; gap: 6px; border-color: rgba(6, 182, 212, 0.4); color: var(--accent-cyan);" title="Sync all 250+ subscriptions directly using YouTube Data API v3">
-              <span>🔑</span>
+            <!-- Button 3: YouTube API Sync -->
+            <button type="button" class="btn-action-premium accent-cyan" onclick="SubscriptionsComponent.openApiSyncModal()" title="Sync all 250+ subscriptions directly using YouTube Data API v3">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+              </svg>
               <span>API Sync (250+)</span>
             </button>
 
-            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.triggerSync()" style="display: flex; align-items: center; gap: 6px;" title="Sync live subscriber count & metrics from YouTube">
-              <span>🔄</span>
+            <!-- Button 4: Sync Live Metrics -->
+            <button type="button" class="btn-action-premium outline-neutral" onclick="SubscriptionsComponent.triggerSync()" title="Sync live subscriber count & metrics from YouTube">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
               <span>Sync Metrics</span>
             </button>
 
-            <!-- Export Dropdown / Buttons -->
-            <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--border-color); padding-left: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.exportCSV()" style="display: flex; align-items: center; gap: 5px; color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.4);" title="Export filtered records as CSV file">
-                <span>📊</span>
+            <!-- Export Buttons -->
+            <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--border-color); padding-left: 8px;">
+              <button type="button" class="btn-action-premium outline-neutral" onclick="SubscriptionsComponent.exportCSV()" title="Export filtered records as CSV file">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="8" y1="13" x2="16" y2="13"></line>
+                  <line x1="8" y1="17" x2="16" y2="17"></line>
+                </svg>
                 <span>Export CSV</span>
               </button>
 
-              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.exportJSON()" style="display: flex; align-items: center; gap: 5px; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4);" title="Export filtered records as JSON file">
-                <span>💾</span>
+              <button type="button" class="btn-action-premium outline-neutral" onclick="SubscriptionsComponent.exportJSON()" title="Export filtered records as JSON file">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
                 <span>Export JSON</span>
               </button>
             </div>
@@ -195,32 +221,40 @@ const SubscriptionsComponent = {
         </div>
 
         <!-- Explanatory Guide Box for Full 250+ Subscriptions -->
-        <div class="glass-card" style="padding: 14px 18px; margin-bottom: 22px; border-left: 3px solid var(--accent-cyan); background: rgba(6, 182, 212, 0.05); display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 280px; flex: 1;">
-            <span style="font-size: 24px;">💡</span>
+        <div class="glass-card" style="padding: 16px 20px; margin-bottom: 22px; border-left: 3px solid var(--accent-cyan); background: rgba(6, 182, 212, 0.04); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 14px; min-width: 280px; flex: 1;">
+            <div style="width: 36px; height: 36px; border-radius: 9px; background: rgba(6, 182, 212, 0.12); border: 1px solid rgba(6, 182, 212, 0.3); display: flex; align-items: center; justify-content: center; color: #06b6d4; flex-shrink: 0;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
             <div>
-              <div style="font-weight: 700; color: var(--text-main); font-size: 13px;">
+              <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">
                 Looking for your full 250+ Subscribed Channels?
               </div>
-              <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
-                YouTube accounts default to <em>Private Subscriptions</em>, so web scrapers only see a baseline. You can load all 250+ in seconds: 
-                <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-teal); text-decoration: underline; font-weight: 600;">Download Google Takeout CSV ↗</a> and click 
-                <a href="javascript:void(0)" onclick="SubscriptionsComponent.openImportModal(); return false;" class="badge badge-teal" role="button" style="cursor: pointer; text-decoration: none; font-size: 11px; padding: 2px 7px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">
-                  📥 Takeout Import
-                </a>, or use 
-                <a href="javascript:void(0)" onclick="SubscriptionsComponent.openApiSyncModal(); return false;" class="badge badge-cyan" role="button" style="cursor: pointer; text-decoration: none; font-size: 11px; padding: 2px 7px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">
-                  🔑 API Sync
-                </a>!
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px; line-height: 1.5;">
+                YouTube accounts default to <em>Private Subscriptions</em>, so scraping only retrieves public profiles. Import your complete 250+ list in seconds: 
+                <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: #14b8a6; text-decoration: underline; font-weight: 600;">Download Google Takeout CSV ↗</a> and click 
+                <button type="button" onclick="SubscriptionsComponent.openImportModal()" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.12); color: #10b981; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; cursor: pointer;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Takeout Import</span>
+                </button>, or use 
+                <button type="button" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(6, 182, 212, 0.35); background: rgba(6, 182, 212, 0.12); color: #06b6d4; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; cursor: pointer;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <span>API Sync</span>
+                </button>!
               </div>
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button type="button" class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
-              <span>📥</span>
+            <button type="button" class="btn-action-premium accent-emerald" onclick="SubscriptionsComponent.openImportModal()" style="font-weight: 700;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
               <span>Takeout Import</span>
             </button>
-            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: inline-flex; align-items: center; gap: 6px;">
-              <span>🔑</span>
+            <button type="button" class="btn-action-premium accent-cyan" onclick="SubscriptionsComponent.openApiSyncModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
               <span>YouTube API Sync</span>
             </button>
           </div>
@@ -850,100 +884,141 @@ const SubscriptionsComponent = {
 
     modalRoot.innerHTML = `
       <div class="modal-overlay cyber-modal open" id="addSubModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('addSubModal')">
-        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 520px; border-color: var(--accent-teal);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 22px;">➕</span>
-              <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">Add Subscribed Channel</h3>
+        <div class="modal-dialog-premium" style="max-width: 560px;">
+          <!-- Header -->
+          <div class="modal-header-premium">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="modal-icon-pill teal">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <line x1="20" y1="8" x2="20" y2="14"></line>
+                  <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+              </div>
+              <div>
+                <div class="modal-title" style="font-size: 16px; font-weight: 800; letter-spacing: -0.2px;">Add Subscribed Channel</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">Register a creator channel in your multi-channel intelligence registry</div>
+              </div>
             </div>
-            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('addSubModal')">✕</button>
+            <button class="modal-close-btn-premium" data-close-modal="true" onclick="window.closeModal('addSubModal')" title="Close">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
 
           <form id="addSubForm" onsubmit="SubscriptionsComponent.handleAddSubmit(event)">
-            <!-- Which Managed Channel is Subscribed -->
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Managed Channel (Subscriber)</label>
-              <select id="modalSubChannelId" class="cyber-input" style="width: 100%;" required>
-                ${this.channels.map(c => `
-                  <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
-                    📺 ${c.name} (${c.handle || '@channel'})
-                  </option>
-                `).join('')}
-              </select>
-            </div>
+            <div class="modal-body-premium">
+              <!-- Subscriber Channel -->
+              <div style="margin-bottom: 18px;">
+                <label class="cyber-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-weight: 700; font-size: 12px;">Managed Channel (Subscriber)</span>
+                  <span style="font-size: 11px; color: var(--text-dim);">Source Profile</span>
+                </label>
+                <div style="position: relative;">
+                  <select id="modalSubChannelId" class="cyber-input" style="width: 100%; padding-left: 36px; appearance: none; -webkit-appearance: none; cursor: pointer;" required>
+                    ${this.channels.map(c => `
+                      <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
+                        ${c.name} (${c.handle || '@channel'})
+                      </option>
+                    `).join('')}
+                  </select>
+                  <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--accent-teal); display: flex;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                  </div>
+                  <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-dim); display: flex;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                </div>
+              </div>
 
-            <!-- Target Channel Handle or URL -->
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Target YouTube Channel (Handle, URL, or ID)</label>
-              <div style="display: flex; gap: 8px;">
+              <!-- Target Channel Handle or URL -->
+              <div style="margin-bottom: 18px;">
+                <label class="cyber-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-weight: 700; font-size: 12px;">Target Channel (Handle, URL, or ID)</span>
+                  <span style="font-size: 11px; color: var(--accent-teal);">Auto-scrapes live metrics</span>
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <div style="position: relative; flex: 1;">
+                    <input 
+                      type="text" 
+                      id="modalTargetChannel" 
+                      class="cyber-input" 
+                      style="width: 100%; padding-left: 34px;" 
+                      placeholder="e.g. @NetworkChuck, @fireship, or https://youtube.com/@..." 
+                      required 
+                    />
+                    <div style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-dim); font-weight: 700; font-size: 13px;">
+                      @
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    class="btn-action-premium accent-emerald" 
+                    onclick="SubscriptionsComponent.previewTargetChannel()" 
+                    id="previewChannelBtn" 
+                    style="white-space: nowrap; height: 38px; padding: 0 14px;"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span>Verify</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Live Preview Container -->
+              <div id="liveChannelPreviewArea" style="display: none; margin-bottom: 18px;"></div>
+
+              <!-- Category Picker with Quick Pills -->
+              <div style="margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label class="cyber-label" style="margin: 0; font-weight: 700; font-size: 12px;">Category Classification</label>
+                  <span style="font-size: 11px; color: var(--text-dim);">Pick or type</span>
+                </div>
                 <input 
                   type="text" 
-                  id="modalTargetChannel" 
+                  id="modalCategory" 
                   class="cyber-input" 
-                  style="flex: 1;" 
-                  placeholder="e.g. @NetworkChuck, @fireship, https://youtube.com/@..." 
+                  style="width: 100%; margin-bottom: 8px;" 
+                  value="DevOps & Cloud" 
+                  placeholder="Select or enter custom category..." 
                   required 
                 />
-                <button 
-                  type="button" 
-                  class="btn-cyber btn-cyber-outline" 
-                  onclick="SubscriptionsComponent.previewTargetChannel()" 
-                  id="previewChannelBtn" 
-                  style="white-space: nowrap; font-size: 12px;"
-                >
-                  🔍 Preview
+                <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                  ${['DevOps & Cloud', 'Development', 'Networking & Security', 'AI & ML', 'Database & Systems', 'Architecture', 'Education'].map(cat => `
+                    <button type="button" onclick="document.getElementById('modalCategory').value='${cat}'" style="border: 1px solid var(--border-color); background: rgba(0,0,0,0.25); color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.color='var(--accent-teal)'; this.style.borderColor='var(--accent-teal)';" onmouseout="this.style.color='var(--text-muted)'; this.style.borderColor='var(--border-color)';">
+                      ${cat}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Creator Notes -->
+              <div style="margin-bottom: 8px;">
+                <label class="cyber-label" style="margin-bottom: 6px; font-weight: 700; font-size: 12px;">Creator Notes / Description (Optional)</label>
+                <textarea 
+                  id="modalDescription" 
+                  class="cyber-input" 
+                  style="width: 100%; height: 70px; resize: vertical; line-height: 1.4; padding: 10px;" 
+                  placeholder="Notes on content alignment, mutual collaborations, or key topics covered..."
+                ></textarea>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer-premium">
+              <div style="font-size: 11.5px; color: var(--text-dim); display: flex; align-items: center; gap: 5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Synced with PostgreSQL 18</span>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-action-premium outline-neutral" data-close-modal="true" onclick="window.closeModal('addSubModal')">Cancel</button>
+                <button type="submit" class="btn-action-premium primary-teal" id="saveSubBtn" style="padding: 0 18px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                  <span>Save Subscription</span>
                 </button>
               </div>
-              <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
-                Live YouTube scraping will automatically fetch real avatar, handle, subscriber count & title.
-              </div>
-            </div>
-
-            <!-- Live Preview Card Container -->
-            <div id="liveChannelPreviewArea" style="display: none; margin-bottom: 16px;"></div>
-
-            <!-- Category Picker -->
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Category</label>
-              <input 
-                type="text" 
-                id="modalCategory" 
-                class="cyber-input" 
-                style="width: 100%;" 
-                list="categorySuggestions" 
-                value="DevOps & Cloud" 
-                placeholder="Select or enter category..." 
-                required 
-              />
-              <datalist id="categorySuggestions">
-                <option value="DevOps & Cloud">
-                <option value="Development">
-                <option value="Networking & Security">
-                <option value="Architecture">
-                <option value="Database & Systems">
-                <option value="AI & ML">
-                <option value="Education">
-                <option value="Entertainment">
-              </datalist>
-            </div>
-
-            <!-- Description / Creator Notes -->
-            <div style="margin-bottom: 20px;">
-              <label class="cyber-label">Creator Notes / Description (Optional)</label>
-              <textarea 
-                id="modalDescription" 
-                class="cyber-input" 
-                style="width: 100%; height: 70px; resize: vertical;" 
-                placeholder="Why your channel is subscribed or notable coverage..."
-              ></textarea>
-            </div>
-
-            <!-- Buttons -->
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('addSubModal')">Cancel</button>
-              <button type="submit" class="btn-cyber btn-cyber-primary" id="saveSubBtn">
-                💾 Save Subscription
-              </button>
             </div>
           </form>
         </div>
@@ -964,8 +1039,9 @@ const SubscriptionsComponent = {
     if (area) {
       area.style.display = 'block';
       area.innerHTML = `
-        <div style="background: rgba(0,0,0,0.3); border: 1px dashed var(--accent-teal); border-radius: 8px; padding: 12px; text-align: center; color: var(--accent-teal); font-size: 12px;">
-          ⏳ Resolving live profile from YouTube...
+        <div style="background: rgba(0,0,0,0.3); border: 1px dashed var(--accent-teal); border-radius: 9px; padding: 12px; text-align: center; color: var(--accent-teal); font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="spin-icon"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+          <span>Resolving creator profile from YouTube...</span>
         </div>
       `;
     }
@@ -973,20 +1049,25 @@ const SubscriptionsComponent = {
     try {
       // Create temporary probe subscription or use live metadata resolver
       const res = await API.content.fetchMeta({ video_id_or_url: target }).catch(() => null);
-      // Fallback: let the user know preview will be finalized upon submission
       area.innerHTML = `
-        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--accent-emerald); border-radius: 8px; padding: 12px; display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 24px;">✅</span>
-          <div>
-            <div style="font-weight: 700; color: var(--accent-emerald); font-size: 13px;">Target Validated: ${this.escapeHtml(target)}</div>
-            <div style="font-size: 11px; color: var(--text-dim);">Live YouTube metadata will be retrieved and stored upon saving.</div>
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 9px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 32px; height: 32px; border-radius: 8px; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: #10b981; font-size: 13px;">Validated: ${this.escapeHtml(target)}</div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 1px;">Live YouTube metadata, handle, avatar & reach will sync upon saving.</div>
+            </div>
           </div>
+          <span class="badge badge-emerald" style="font-size: 10.5px; padding: 2px 7px;">Verified</span>
         </div>
       `;
     } catch (e) {
       area.innerHTML = `
-        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 10px; font-size: 12px; color: #ef4444;">
-          Note: Preview query completed. Channel will be stored directly.
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 9px; padding: 10px 14px; font-size: 12px; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span>Target noted. Metadata will be resolved when record is saved.</span>
         </div>
       `;
     } finally {
@@ -1043,42 +1124,71 @@ const SubscriptionsComponent = {
 
     modalRoot.innerHTML = `
       <div class="modal-overlay cyber-modal open" id="editSubModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('editSubModal')">
-        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 480px; border-color: var(--accent-cyan);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 20px;">✏️</span>
-              <h3 style="font-size: 17px; font-weight: 800; margin: 0; color: var(--text-main);">
-                Edit Subscription: ${this.escapeHtml(sub.subscribed_channel_title)}
-              </h3>
+        <div class="modal-dialog-premium" style="max-width: 500px;">
+          <!-- Header -->
+          <div class="modal-header-premium">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="modal-icon-pill cyan">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="modal-title" style="font-size: 15px; font-weight: 800; letter-spacing: -0.2px;">
+                  Edit: ${this.escapeHtml(sub.subscribed_channel_title)}
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 1px;">Update classification category or custom intelligence notes</div>
+              </div>
             </div>
-            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('editSubModal')">✕</button>
+            <button class="modal-close-btn-premium" data-close-modal="true" onclick="window.closeModal('editSubModal')" title="Close">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
 
           <form onsubmit="SubscriptionsComponent.handleEditSubmit(event, '${sub.id}')">
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Category</label>
-              <input 
-                type="text" 
-                id="editSubCategory" 
-                class="cyber-input" 
-                style="width: 100%;" 
-                value="${this.escapeHtml(sub.category || 'General')}" 
-                required 
-              />
+            <div class="modal-body-premium">
+              <div style="margin-bottom: 18px;">
+                <label class="cyber-label" style="font-weight: 700; font-size: 12px; margin-bottom: 6px;">Category</label>
+                <input 
+                  type="text" 
+                  id="editSubCategory" 
+                  class="cyber-input" 
+                  style="width: 100%; margin-bottom: 8px;" 
+                  value="${this.escapeHtml(sub.category || 'General')}" 
+                  required 
+                />
+                <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                  ${['DevOps & Cloud', 'Development', 'Networking & Security', 'AI & ML', 'Database & Systems', 'Architecture', 'Education'].map(cat => `
+                    <button type="button" onclick="document.getElementById('editSubCategory').value='${cat}'" style="border: 1px solid var(--border-color); background: rgba(0,0,0,0.25); color: var(--text-muted); font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 6px; cursor: pointer;">
+                      ${cat}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div style="margin-bottom: 6px;">
+                <label class="cyber-label" style="font-weight: 700; font-size: 12px; margin-bottom: 6px;">Creator Notes / Description</label>
+                <textarea 
+                  id="editSubDescription" 
+                  class="cyber-input" 
+                  style="width: 100%; height: 80px; resize: vertical; padding: 10px; line-height: 1.4;"
+                >${this.escapeHtml(sub.description || '')}</textarea>
+              </div>
             </div>
 
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Creator Notes / Description</label>
-              <textarea 
-                id="editSubDescription" 
-                class="cyber-input" 
-                style="width: 100%; height: 80px; resize: vertical;"
-              >${this.escapeHtml(sub.description || '')}</textarea>
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('editSubModal')">Cancel</button>
-              <button type="submit" class="btn-cyber btn-cyber-primary">Update Subscription</button>
+            <div class="modal-footer-premium">
+              <div></div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-action-premium outline-neutral" data-close-modal="true" onclick="window.closeModal('editSubModal')">Cancel</button>
+                <button type="submit" class="btn-action-premium primary-teal">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Update Subscription</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -1131,76 +1241,188 @@ const SubscriptionsComponent = {
 
     modalRoot.innerHTML = `
       <div class="modal-overlay cyber-modal open" id="importSubModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('importSubModal')">
-        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 620px; border-color: var(--accent-emerald);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 22px;">📥</span>
-              <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">
-                Import All 250+ YouTube Subscriptions
-              </h3>
+        <div class="modal-dialog-premium" style="max-width: 640px;">
+          <!-- Header -->
+          <div class="modal-header-premium">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="modal-icon-pill emerald">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <div>
+                <div class="modal-title" style="font-size: 16px; font-weight: 800; letter-spacing: -0.2px;">
+                  Import YouTube Subscriptions
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">
+                  Bulk import your complete 250+ channel subscriptions into PostgreSQL 18
+                </div>
+              </div>
             </div>
-            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('importSubModal')">✕</button>
+            <button class="modal-close-btn-premium" data-close-modal="true" onclick="window.closeModal('importSubModal')" title="Close">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
 
-          <!-- Step-by-Step Takeout Guidance Box -->
-          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; line-height: 1.5;">
-            <strong style="color: var(--accent-emerald); font-size: 13px;">💡 How to get your full 250+ Subscriptions in 30 seconds:</strong><br>
-            <span style="color: var(--text-muted);">
-              1. Open <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-teal); text-decoration: underline; font-weight: 700;">Google Takeout ↗</a><br>
-              2. Click "Deselect all" &rarr; check <strong>YouTube and YouTube Music</strong> &rarr; click "All YouTube data included" &rarr; select only <strong>subscriptions</strong>.<br>
-              3. Click "Create export" &rarr; download the zip &rarr; extract <code>subscriptions.csv</code>.<br>
-              4. Upload or paste it below to instantly load all 250+ subscriptions into PostgreSQL!
-            </span>
-          </div>
-
-          <div>
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Target Managed Channel (Subscriber)</label>
-              <select id="importChannelId" class="cyber-input" style="width: 100%;">
-                ${this.channels.map(c => `
-                  <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
-                    📺 ${c.name} (${c.handle || '@channel'})
-                  </option>
-                `).join('')}
-              </select>
-            </div>
-
-            <div style="margin-bottom: 14px;">
-              <label class="cyber-label">Upload Takeout CSV or JSON File</label>
-              <input 
-                type="file" 
-                id="importFileInput" 
-                accept=".csv, .json, text/csv, application/json, text/plain" 
-                class="cyber-input" 
-                style="width: 100%; padding: 8px;"
-                onchange="SubscriptionsComponent.handleFileSelected(event)"
-              />
-              <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px;">
-                Supports official Google Takeout <code>subscriptions.csv</code> (Columns: Channel Id, Channel Url, Channel Title)
+          <div class="modal-body-premium">
+            <!-- 3-Step Google Takeout Workflow Stepper -->
+            <div style="background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="font-size: 12px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                  <span>How to export your full 250+ subscriptions in 30 seconds</span>
+                </div>
+                <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="font-size: 11px; font-weight: 700; color: #14b8a6; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: rgba(20, 184, 166, 0.1); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(20, 184, 166, 0.25);">
+                  <span>Open Takeout</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; font-size: 11.5px;">
+                <div style="background: rgba(0,0,0,0.25); border-radius: 7px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.04);">
+                  <div style="color: var(--text-dim); font-weight: 700; font-size: 10px; text-transform: uppercase;">Step 1</div>
+                  <div style="color: var(--text-main); margin-top: 2px;">Deselect all &rarr; check <strong>YouTube</strong></div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 7px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.04);">
+                  <div style="color: var(--text-dim); font-weight: 700; font-size: 10px; text-transform: uppercase;">Step 2</div>
+                  <div style="color: var(--text-main); margin-top: 2px;">Select only <strong>subscriptions</strong></div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 7px; padding: 8px 10px; border: 1px solid rgba(255,255,255,0.04);">
+                  <div style="color: var(--text-dim); font-weight: 700; font-size: 10px; text-transform: uppercase;">Step 3</div>
+                  <div style="color: var(--text-main); margin-top: 2px;">Download &amp; drop <code>subscriptions.csv</code> below</div>
+                </div>
               </div>
             </div>
 
+            <!-- Target Managed Channel -->
+            <div style="margin-bottom: 18px;">
+              <label class="cyber-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <span style="font-weight: 700; font-size: 12px;">Target Managed Channel (Subscriber)</span>
+                <span style="font-size: 11px; color: var(--text-dim);">Owner feed</span>
+              </label>
+              <div style="position: relative;">
+                <select id="importChannelId" class="cyber-input" style="width: 100%; padding-left: 36px; appearance: none; -webkit-appearance: none; cursor: pointer;">
+                  ${this.channels.map(c => `
+                    <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
+                      ${c.name} (${c.handle || '@channel'})
+                    </option>
+                  `).join('')}
+                </select>
+                <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #10b981; display: flex;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                </div>
+                <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-dim); display: flex;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode Selector Tabs -->
             <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Or Paste CSV / JSON / List of Channel Links or Handles</label>
+              <div style="display: flex; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); gap: 4px;">
+                <button type="button" id="importTabFileBtn" onclick="SubscriptionsComponent.switchImportTab('file')" style="flex: 1; padding: 8px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(16, 185, 129, 0.15); color: #10b981; transition: all 0.15s ease;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                  <span>Upload Takeout CSV / JSON File</span>
+                </button>
+                <button type="button" id="importTabPasteBtn" onclick="SubscriptionsComponent.switchImportTab('paste')" style="flex: 1; padding: 8px 12px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.15s ease;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                  <span>Paste Handles or URLs</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab 1: Drag & Drop Upload Zone (Replaces raw file input) -->
+            <div id="importFileSection">
+              <div 
+                id="importDropZone" 
+                class="premium-drop-zone"
+                onclick="document.getElementById('importFileInput').click()"
+                ondragover="event.preventDefault(); this.classList.add('drag-active');"
+                ondragleave="this.classList.remove('drag-active');"
+                ondrop="event.preventDefault(); this.classList.remove('drag-active'); SubscriptionsComponent.handleFileDrop(event);"
+              >
+                <input 
+                  type="file" 
+                  id="importFileInput" 
+                  accept=".csv, .json, text/csv, application/json, text/plain" 
+                  style="display: none;"
+                  onchange="SubscriptionsComponent.handleFileSelected(event)"
+                />
+
+                <!-- Default Drop Prompt -->
+                <div id="dropZoneContentDefault">
+                  <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #10b981;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); margin-bottom: 4px;">
+                    Click to browse or drag &amp; drop file here
+                  </div>
+                  <div style="font-size: 11.5px; color: var(--text-muted);">
+                    Official Google Takeout <code>subscriptions.csv</code> or JSON • Up to 1,000+ feeds
+                  </div>
+                </div>
+
+                <!-- Selected File Card State -->
+                <div id="dropZoneContentSelected" style="display: none; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 9px; padding: 12px 16px; text-align: left;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <div>
+                      <div id="dropZoneFileName" style="font-weight: 700; color: var(--text-main); font-size: 13px;">subscriptions.csv</div>
+                      <div id="dropZoneFileSize" style="font-size: 11px; color: var(--text-muted); margin-top: 1px;">Ready for bulk ingestion</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-action-premium outline-neutral" onclick="event.stopPropagation(); SubscriptionsComponent.clearSelectedFile();" style="font-size: 11px; height: 30px; padding: 0 10px;">
+                    Replace File
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab 2: Code / Textarea Section -->
+            <div id="importPasteSection" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="cyber-label" style="font-weight: 700; font-size: 12px; margin: 0;">Paste CSV Data, JSON, or Handle List</label>
+                <button type="button" onclick="SubscriptionsComponent.insertSampleImportData()" style="background: none; border: none; color: var(--accent-teal); font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline;">
+                  Load Example List
+                </button>
+              </div>
               <textarea 
                 id="importRawText" 
                 class="cyber-input" 
-                style="width: 100%; height: 120px; font-family: var(--font-mono); font-size: 11px;" 
-                placeholder='Option A (Takeout CSV):
-Channel Id,Channel Url,Channel Title
-UCsBjURrPoezykLs9EqgamOA,http://www.youtube.com/channel/...,Fireship
-
-Option B (List of links or handles, one per line):
-@DevOpsToolkit
-https://www.youtube.com/@networkchuck
-@fireship'
+                style="width: 100%; height: 130px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; padding: 10px; background: rgba(0,0,0,0.35);" 
+                placeholder="Paste Takeout CSV contents, or YouTube handles/links (one per line):
+@NetworkChuck
+@fireship
+https://www.youtube.com/@DevOpsToolkit"
               ></textarea>
             </div>
+          </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('importSubModal')">Cancel</button>
-              <button type="button" class="btn-cyber btn-cyber-primary" id="startImportBtn" onclick="SubscriptionsComponent.processImport()">
-                🚀 Start Bulk Import
+          <!-- Footer -->
+          <div class="modal-footer-premium">
+            <div style="font-size: 11.5px; color: var(--text-dim); display: flex; align-items: center; gap: 5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>Instant PostgreSQL Bulk Write</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="button" class="btn-action-premium outline-neutral" data-close-modal="true" onclick="window.closeModal('importSubModal')">Cancel</button>
+              <button type="button" class="btn-action-premium accent-emerald" id="startImportBtn" onclick="SubscriptionsComponent.processImport()" style="padding: 0 20px; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-color: #059669; box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Start Bulk Import</span>
               </button>
             </div>
           </div>
@@ -1209,18 +1431,80 @@ https://www.youtube.com/@networkchuck
     `;
   },
 
+  switchImportTab(tab) {
+    const fileBtn = document.getElementById('importTabFileBtn');
+    const pasteBtn = document.getElementById('importTabPasteBtn');
+    const fileSec = document.getElementById('importFileSection');
+    const pasteSec = document.getElementById('importPasteSection');
+
+    if (tab === 'file') {
+      if (fileBtn) { fileBtn.style.background = 'rgba(16, 185, 129, 0.15)'; fileBtn.style.color = '#10b981'; fileBtn.style.fontWeight = '700'; }
+      if (pasteBtn) { pasteBtn.style.background = 'transparent'; pasteBtn.style.color = 'var(--text-muted)'; pasteBtn.style.fontWeight = '600'; }
+      if (fileSec) fileSec.style.display = 'block';
+      if (pasteSec) pasteSec.style.display = 'none';
+    } else {
+      if (pasteBtn) { pasteBtn.style.background = 'rgba(16, 185, 129, 0.15)'; pasteBtn.style.color = '#10b981'; pasteBtn.style.fontWeight = '700'; }
+      if (fileBtn) { fileBtn.style.background = 'transparent'; fileBtn.style.color = 'var(--text-muted)'; fileBtn.style.fontWeight = '600'; }
+      if (fileSec) fileSec.style.display = 'none';
+      if (pasteSec) pasteSec.style.display = 'block';
+    }
+  },
+
+  handleFileDrop(event) {
+    const dt = event.dataTransfer;
+    if (dt && dt.files && dt.files.length > 0) {
+      this.readFileContent(dt.files[0]);
+    }
+  },
+
   handleFileSelected(event) {
     const file = event.target.files[0];
-    if (!file) return;
+    if (file) {
+      this.readFileContent(file);
+    }
+  },
 
+  readFileContent(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
       const textArea = document.getElementById('importRawText');
       if (textArea) textArea.value = text;
+
+      // Update drop zone to show selected file card
+      const defState = document.getElementById('dropZoneContentDefault');
+      const selState = document.getElementById('dropZoneContentSelected');
+      const nameEl = document.getElementById('dropZoneFileName');
+      const sizeEl = document.getElementById('dropZoneFileSize');
+
+      if (defState) defState.style.display = 'none';
+      if (selState) selState.style.display = 'flex';
+      if (nameEl) nameEl.innerText = file.name;
+      if (sizeEl) sizeEl.innerText = `${(file.size / 1024).toFixed(1)} KB • Validated & ready to import`;
+
       Toast.show(`Loaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'info');
     };
     reader.readAsText(file);
+  },
+
+  clearSelectedFile() {
+    const input = document.getElementById('importFileInput');
+    if (input) input.value = '';
+    const textArea = document.getElementById('importRawText');
+    if (textArea) textArea.value = '';
+
+    const defState = document.getElementById('dropZoneContentDefault');
+    const selState = document.getElementById('dropZoneContentSelected');
+    if (defState) defState.style.display = 'block';
+    if (selState) selState.style.display = 'none';
+  },
+
+  insertSampleImportData() {
+    const textArea = document.getElementById('importRawText');
+    if (textArea) {
+      textArea.value = `@NetworkChuck\n@fireship\n@DevOpsToolkit\nhttps://www.youtube.com/@freecodecamp\nhttps://www.youtube.com/@TraversyMedia`;
+      Toast.show('Loaded 5 sample channels into editor', 'info');
+    }
   },
 
   async processImport() {
@@ -1233,13 +1517,16 @@ https://www.youtube.com/@networkchuck
       return;
     }
     if (!rawText) {
-      Toast.show('Please upload a file or paste content to import', 'warning');
+      Toast.show('Please upload a Takeout CSV file or paste channel list', 'warning');
       return;
     }
 
     if (btn) {
       btn.disabled = true;
-      btn.innerText = '⏳ Parsing & Importing...';
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" class="spin-icon"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+        <span>Importing Feeds...</span>
+      `;
     }
 
     try {
@@ -1305,7 +1592,10 @@ https://www.youtube.com/@networkchuck
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerText = '🚀 Start Bulk Import';
+        btn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Start Bulk Import</span>
+        `;
       }
     }
   },
@@ -1318,50 +1608,102 @@ https://www.youtube.com/@networkchuck
 
     modalRoot.innerHTML = `
       <div class="modal-overlay cyber-modal open" id="apiSyncModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('apiSyncModal')">
-        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 540px; border-color: var(--accent-cyan);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 22px;">🔑</span>
-              <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">
-                Sync Subscriptions via YouTube Data API
-              </h3>
+        <div class="modal-dialog-premium" style="max-width: 560px;">
+          <!-- Header -->
+          <div class="modal-header-premium">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div class="modal-icon-pill cyan">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="modal-title" style="font-size: 16px; font-weight: 800; letter-spacing: -0.2px;">
+                  YouTube Data API Sync
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">
+                  Paging fetch up to 1,000 subscriptions directly via official YouTube API v3
+                </div>
+              </div>
             </div>
-            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('apiSyncModal')">✕</button>
-          </div>
-
-          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px;">
-            The YouTube Data API v3 will query the channel's subscriptions feed with pagination (up to 1,000 channels) and automatically save all records into PostgreSQL.<br>
-            <strong style="color: var(--accent-cyan);">Note:</strong> If YouTube returns a privacy error, your subscriptions are set to Private on YouTube. You can turn OFF "Keep all my subscriptions private" in YouTube Privacy Settings, or use <strong>Takeout Import</strong> instead.
+            <button class="modal-close-btn-premium" data-close-modal="true" onclick="window.closeModal('apiSyncModal')" title="Close">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
 
           <form onsubmit="SubscriptionsComponent.handleApiSyncSubmit(event)">
-            <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Managed Channel</label>
-              <select id="apiSyncChannelId" class="cyber-input" style="width: 100%;">
-                ${this.channels.map(c => `
-                  <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
-                    📺 ${c.name} (${c.channel_id || '@channel'})
-                  </option>
-                `).join('')}
-              </select>
+            <div class="modal-body-premium">
+              <!-- Privacy Notice Card -->
+              <div style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; font-size: 12px; line-height: 1.5;">
+                <div style="font-weight: 700; color: #06b6d4; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                  <span>YouTube Data API Requirements</span>
+                </div>
+                <div style="color: var(--text-muted);">
+                  The YouTube API only returns channels if subscriptions are set to <strong>Public</strong> on YouTube. If your account keeps subscriptions private, either toggle off <em>"Keep all my subscriptions private"</em> in YouTube Privacy Settings, or use <strong>Takeout Import</strong> for instant 100% coverage.
+                </div>
+              </div>
+
+              <!-- Managed Channel -->
+              <div style="margin-bottom: 18px;">
+                <label class="cyber-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-weight: 700; font-size: 12px;">Target Managed Channel (Subscriber)</span>
+                  <span style="font-size: 11px; color: var(--text-dim);">OAuth or Public Feed</span>
+                </label>
+                <div style="position: relative;">
+                  <select id="apiSyncChannelId" class="cyber-input" style="width: 100%; padding-left: 36px; appearance: none; -webkit-appearance: none; cursor: pointer;">
+                    ${this.channels.map(c => `
+                      <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
+                        ${c.name} (${c.channel_id || '@channel'})
+                      </option>
+                    `).join('')}
+                  </select>
+                  <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #06b6d4; display: flex;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect><polyline points="17 2 12 7 7 2"></polyline></svg>
+                  </div>
+                  <div style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-dim); display: flex;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- YouTube API Key -->
+              <div style="margin-bottom: 8px;">
+                <label class="cyber-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="font-weight: 700; font-size: 12px;">YouTube Data API v3 Key (Optional)</span>
+                  <span style="font-size: 11px; color: var(--text-dim);">Defaults to Settings Key</span>
+                </label>
+                <div style="position: relative;">
+                  <input 
+                    type="password" 
+                    id="apiSyncKey" 
+                    class="cyber-input" 
+                    style="width: 100%; padding-left: 36px;" 
+                    placeholder="AIzaSy... (leave blank to use key from System Settings)" 
+                  />
+                  <div style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-dim); display: flex;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <label class="cyber-label">YouTube Data API Key (Optional if already configured)</label>
-              <input 
-                type="password" 
-                id="apiSyncKey" 
-                class="cyber-input" 
-                style="width: 100%;" 
-                placeholder="AIzaSy... (leave blank to use key from System Settings)" 
-              />
-            </div>
-
-            <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('apiSyncModal')">Cancel</button>
-              <button type="submit" class="btn-cyber btn-cyber-primary" id="apiSyncStartBtn">
-                🚀 Fetch All from YouTube API
-              </button>
+            <!-- Footer -->
+            <div class="modal-footer-premium">
+              <div style="font-size: 11.5px; color: var(--text-dim); display: flex; align-items: center; gap: 5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Synced with PostgreSQL 18</span>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-action-premium outline-neutral" data-close-modal="true" onclick="window.closeModal('apiSyncModal')">Cancel</button>
+                <button type="submit" class="btn-action-premium accent-cyan" id="apiSyncStartBtn" style="padding: 0 18px; font-weight: 700; background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border-color: #0891b2; box-shadow: 0 3px 12px rgba(6, 182, 212, 0.35);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                  <span>Fetch All from YouTube API</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>

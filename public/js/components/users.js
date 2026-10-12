@@ -7,6 +7,16 @@ const UsersComponent = {
   searchQuery: '',
   roleFilter: 'all',
 
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
+
   allPermissions: [
     { key: 'can_view_content', label: 'View Content & Catalog' },
     { key: 'can_manage_content', label: 'Create, Edit & Delete Content' },

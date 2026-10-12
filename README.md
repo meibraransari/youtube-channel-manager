@@ -48,6 +48,32 @@ Operating multi-channel networks and complex content production pipelines often 
 - **Top Video Leaderboard**: Traction progress bars ranking high-engagement catalog assets.
 - **Manual Snapshot & Sync Directives**: Trigger immediate snapshot recordings with one click.
 
+### 🔔 Subscribed Channels & Multi-Channel Feed Registry (`#subscriptions`)
+- **Centralized Subscriptions Tracking**: Dedicated view (`#subscriptions`) tracking YouTube channels subscribed by your managed channels, supporting consolidated or individual channel scopes.
+- **Telemetry Overview**:
+  - **Subscribed Channels Counter**: Total active subscriptions in your registry.
+  - **Cumulative Creator Reach**: Aggregated subscriber base of all subscribed creators (e.g. `24.15M`).
+  - **Active Scope & Dominant Category**: Quick insight into distribution across tech domains.
+- **Real-Time Filtering & Search**:
+  - Instant debounce search across creator title, handle (`@...`), channel ID, description, and notes.
+  - Category filtering (`DevOps & Cloud`, `Development`, `Networking & Security`, `Architecture`, `Education`, etc.).
+  - Subscriber tier segregation: Mega (1M+), Large (100K-1M), Mid (10K-100K), and Micro (<10K).
+  - Multi-column sorting (Subscribed date, subscriber count, alphabetical).
+- **Dual Display Modes**: Toggle between an executive **Data Table View** and a futuristic **Cards Grid View**.
+- **RFC 4180 CSV & JSON Export**:
+  - 📊 **1-Click CSV Export**: Downloads standard CSV (`subscriptions_[channel]_[date].csv`) with UTF-8 BOM.
+  - 💾 **1-Click JSON Export**: Downloads structured JSON payload for external analysis.
+- **Importing Your Full 250+ YouTube Subscriptions**:
+  - *Why YouTube initially displays a baseline*: By default, all YouTube accounts have privacy setting **"Keep all my subscriptions private" ENABLED**, hiding subscriptions from public web scrapers.
+  - **Option 1: Google Takeout Import (Recommended — 30 Seconds, No API key needed)**:
+    1. Open [Google Takeout (takeout.google.com)](https://takeout.google.com/).
+    2. Deselect all &rarr; check **YouTube and YouTube Music** &rarr; select only **subscriptions**.
+    3. Click **"Create export"** and download `subscriptions.csv`.
+    4. Click **"📥 Takeout Import"** in YouTube Channel Manager and upload or paste `subscriptions.csv` to instantly load all 250+ channels into PostgreSQL 18.
+  - **Option 2: YouTube Data API v3 Sync (Paginates through 250+)**:
+    Toggle "Keep all my subscriptions private" to OFF in [YouTube Privacy Settings](https://www.youtube.com/account_privacy) and click **"🔑 API Sync (250+)"** to automatically batch through `nextPageToken` (up to 1,000 subscriptions).
+  - **Option 3: Bulk Paste Links or Handles**: Paste a newline-separated list of `@handles` or channel URLs directly into the import dialog.
+
 ### ⏱️ Automated Background Cron Scheduler
 - **Zero-Downtime Cron Sync**: Background worker periodically synchronizes views, likes, comments, and subscriber counts.
 - **Configurable Cadence**: Adjustable from System Settings (1h, 2h, 6h, 12h, 24h intervals) without restarting Docker containers.
@@ -197,11 +223,12 @@ flowchart TD
         DBEngine --> T1["channels (Multi-Channel Profiles)"]
         DBEngine --> T2["channel_snapshots (Growth & Velocity Telemetry)"]
         DBEngine --> T3["content_items (Videos, Shorts, Podcasts)"]
-        DBEngine --> T4["users (RBAC Permissions & Bcrypt Hashes)"]
-        DBEngine --> T5["system_settings (Zero-Downtime Dynamic Config)"]
-        DBEngine --> T6["audit_logs (Immutable Action Trail)"]
-        DBEngine --> T7["user_login_logs (Security Access Tracker)"]
-        DBEngine --> T8["migration_history (Dump Ingestion Records)"]
+        DBEngine --> T4["channel_subscriptions (Subscribed Channels Registry)"]
+        DBEngine --> T5["users (RBAC Permissions & Bcrypt Hashes)"]
+        DBEngine --> T6["system_settings (Zero-Downtime Dynamic Config)"]
+        DBEngine --> T7["audit_logs (Immutable Action Trail)"]
+        DBEngine --> T8["user_login_logs (Security Access Tracker)"]
+        DBEngine --> T9["migration_history (Dump Ingestion Records)"]
     end
 ```
 
@@ -242,6 +269,8 @@ youtube-channel-manager/
 │   │   ├── dashboard.routes.js       # Dynamic channel metrics & analytics
 │   │   ├── users.routes.js           # RBAC user management & passwords
 │   │   ├── settings.routes.js        # Dynamic database settings & log level
+│   │   ├── tags.routes.js            # Tag preset registry & CRUD operations
+│   │   ├── subscriptions.routes.js   # Subscribed channels registry, takeout import & API sync
 │   │   ├── audit.routes.js           # Audit trail queries & JSON export
 │   │   ├── migration.routes.js       # MySQL dump parser & ingestion
 │   │   └── health.routes.js          # /health diagnostic probe
@@ -263,8 +292,10 @@ youtube-channel-manager/
             ├── sidebar.js            # Collapsible navigation drawer
             ├── dashboard.js          # Overview metrics, green bar charts & heatmap
             ├── tracker.js            # Channel Tracker, snapshots & growth curves
+            ├── subscriptions.js      # Subscribed channels, takeout import & CSV/JSON export
             ├── content.js            # Video/Shorts tables & action delegation
-            ├── wizard.js             # 5-step Content Creator Wizard
+            ├── tagManager.js         # Centralized Tag Preset Registry overlay
+            ├── wizard.js             # 5-step Content Creator Wizard & quick tags
             ├── users.js              # RBAC user provisioning modal
             ├── audit.js              # Audit trail & login history inspector
             ├── settings.js           # Live system settings, cron & rapid ingestion
@@ -311,6 +342,9 @@ youtube-channel-manager/
 - [x] 5-Stage Content Creator Wizard with multi-channel tagging.
 - [x] 1-Click duplicate content and quick inline rename actions.
 - [x] Granular RBAC user management and immutable audit trails.
+- [x] Subscribed channels registry with Google Takeout import, YouTube API pagination sync, and RFC 4180 CSV/JSON export.
+- [x] Centralized Tag Preset Registry and fast quick-tag insertion in Content Creator Wizard.
+- [x] Production SMTP email configuration with diagnostic test transmission engine.
 - [ ] OAuth2 YouTube Data API publishing automation.
 - [ ] Direct ComfyUI / Stable Diffusion thumbnail generation sidecar.
 

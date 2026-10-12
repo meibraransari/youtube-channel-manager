@@ -33,51 +33,115 @@ const AuditComponent = {
 
           <!-- Tab Bar -->
           <div style="display: flex; gap: 10px; margin-top: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
-            <button class="btn-cyber ${this.currentTab === 'audit' ? 'btn-cyber-primary' : 'btn-cyber-outline'} btn-sm" id="tabAuditBtn" onclick="AuditComponent.switchTab('audit')">
+            <button class="btn-action-premium ${this.currentTab === 'audit' ? 'primary-teal' : 'outline-neutral'} btn-sm" id="tabAuditBtn" onclick="AuditComponent.switchTab('audit')">
               OPERATIONAL AUDIT TRAIL
             </button>
-            <button class="btn-cyber ${this.currentTab === 'logins' ? 'btn-cyber-primary' : 'btn-cyber-outline'} btn-sm" id="tabLoginsBtn" onclick="AuditComponent.switchTab('logins')">
+            <button class="btn-action-premium ${this.currentTab === 'logins' ? 'primary-teal' : 'outline-neutral'} btn-sm" id="tabLoginsBtn" onclick="AuditComponent.switchTab('logins')">
               SECURITY LOGIN HISTORY
             </button>
           </div>
 
-          <!-- Audit Filters (Visible on audit tab) -->
-          <div id="auditFiltersRow" style="display: ${this.currentTab === 'audit' ? 'flex' : 'none'}; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap;">
-            <div>
-              <label style="font-size: 10px; font-weight: 700; color: var(--text-dim);">ACTION:</label>
-              <select id="auditActionSelect" class="cyber-input" style="padding: 6px 10px; font-size: 11px; width: 140px;">
-                <option value="all">All Directives</option>
-                <option value="CREATE">CREATE</option>
-                <option value="UPDATE">UPDATE</option>
-                <option value="RENAME">RENAME</option>
-                <option value="DELETE">DELETE</option>
-                <option value="DUPLICATE">DUPLICATE</option>
-                <option value="STATUS_CHANGE">STATUS_CHANGE</option>
-                <option value="SETTINGS_CHANGE">SETTINGS_CHANGE</option>
-                <option value="MIGRATION">MIGRATION</option>
-                <option value="LOGIN">LOGIN</option>
-                <option value="LOGOUT">LOGOUT</option>
-              </select>
+          <!-- Professional Audit Filters Toolbar (Visible on audit tab) -->
+          <div id="auditFiltersRow" class="filter-toolbar-premium" style="display: ${this.currentTab === 'audit' ? 'flex' : 'none'}; margin-top: 16px; margin-bottom: 0;">
+            <div class="filter-toolbar-row">
+              <div class="filter-controls-group">
+                <!-- Action Filter Dropdown -->
+                <div class="filter-dropdown-premium">
+                  <span class="filter-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                      <polyline points="2 17 12 22 22 17"></polyline>
+                      <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                  </span>
+                  <span class="filter-prefix-label">ACTION</span>
+                  <select id="auditActionSelect">
+                    <option value="all">All Directives</option>
+                    <option value="CREATE">CREATE</option>
+                    <option value="UPDATE">UPDATE</option>
+                    <option value="RENAME">RENAME</option>
+                    <option value="DELETE">DELETE</option>
+                    <option value="DUPLICATE">DUPLICATE</option>
+                    <option value="STATUS_CHANGE">STATUS_CHANGE</option>
+                    <option value="SETTINGS_CHANGE">SETTINGS_CHANGE</option>
+                    <option value="MIGRATION">MIGRATION</option>
+                    <option value="LOGIN">LOGIN</option>
+                    <option value="LOGOUT">LOGOUT</option>
+                  </select>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Entity Filter Dropdown -->
+                <div class="filter-dropdown-premium">
+                  <span class="filter-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    </svg>
+                  </span>
+                  <span class="filter-prefix-label">ENTITY</span>
+                  <select id="auditEntitySelect">
+                    <option value="all">All Entities</option>
+                    <option value="short">Shorts</option>
+                    <option value="video">Videos</option>
+                    <option value="podcast">Podcasts</option>
+                    <option value="user">Users</option>
+                    <option value="setting">Settings</option>
+                    <option value="migration">Migrations</option>
+                    <option value="auth">Auth</option>
+                  </select>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Reset Filters Button -->
+                ${(this.actionFilter !== 'all' || this.entityFilter !== 'all') ? `
+                  <button type="button" class="filter-reset-action" onclick="AuditComponent.resetFilters()" title="Reset audit filters">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Clear Filters</span>
+                  </button>
+                ` : ''}
+
+                <div style="flex: 1;"></div>
+
+                <button class="btn-action-premium outline-neutral btn-sm" onclick="AuditComponent.loadData()" title="Refresh logs">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label style="font-size: 10px; font-weight: 700; color: var(--text-dim);">ENTITY:</label>
-              <select id="auditEntitySelect" class="cyber-input" style="padding: 6px 10px; font-size: 11px; width: 130px;">
-                <option value="all">All Entities</option>
-                <option value="short">Shorts</option>
-                <option value="video">Videos</option>
-                <option value="podcast">Podcasts</option>
-                <option value="user">Users</option>
-                <option value="setting">Settings</option>
-                <option value="migration">Migrations</option>
-                <option value="auth">Auth</option>
-              </select>
+            <!-- Fast Directive Pills -->
+            <div class="filter-pills-bar" style="margin-top: 4px;">
+              <span style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.5px;">FAST ACTION:</span>
+              <button type="button" class="filter-pill-item ${this.actionFilter === 'all' ? 'active' : ''}" onclick="AuditComponent.setActionFilter('all')">
+                <span>All</span>
+              </button>
+              <button type="button" class="filter-pill-item ${this.actionFilter === 'CREATE' ? 'active' : ''}" onclick="AuditComponent.setActionFilter('CREATE')">
+                <span>CREATE</span>
+              </button>
+              <button type="button" class="filter-pill-item ${this.actionFilter === 'UPDATE' ? 'active' : ''}" onclick="AuditComponent.setActionFilter('UPDATE')">
+                <span>UPDATE</span>
+              </button>
+              <button type="button" class="filter-pill-item ${this.actionFilter === 'DELETE' ? 'active' : ''}" onclick="AuditComponent.setActionFilter('DELETE')">
+                <span>DELETE</span>
+              </button>
+              <button type="button" class="filter-pill-item ${this.actionFilter === 'STATUS_CHANGE' ? 'active' : ''}" onclick="AuditComponent.setActionFilter('STATUS_CHANGE')">
+                <span>STATUS_CHANGE</span>
+              </button>
+              <button type="button" class="filter-pill-item ${this.actionFilter === 'LOGIN' ? 'active' : ''}" onclick="AuditComponent.setActionFilter('LOGIN')">
+                <span>LOGIN</span>
+              </button>
             </div>
-
-            <div style="flex: 1;"></div>
-            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="AuditComponent.loadData()">
-              🔄 REFRESH
-            </button>
           </div>
         </div>
 
@@ -111,6 +175,22 @@ const AuditComponent = {
     }
 
     this.loadData();
+  },
+
+  setActionFilter(action) {
+    this.actionFilter = action;
+    this.currentPage = 1;
+    this.render(document.getElementById('mainContentArea'));
+  },
+
+  resetFilters() {
+    this.actionFilter = 'all';
+    this.entityFilter = 'all';
+    this.currentPage = 1;
+    this.render(document.getElementById('mainContentArea'));
+    if (window.Toast && Toast.show) {
+      Toast.show('Audit filters reset', 'info', 1200);
+    }
   },
 
   switchTab(tab) {

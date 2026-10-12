@@ -20,7 +20,73 @@ const ContentComponent = {
       .replace(/'/g, '&#039;');
   },
 
+  initialType: 'all',
+
+  clearSearch() {
+    this.searchQuery = '';
+    const searchInput = document.getElementById('contentSearchInput');
+    if (searchInput) searchInput.value = '';
+    this.currentPage = 1;
+    this.updateActiveFiltersIndicator();
+    this.loadTableData();
+  },
+
+  updateActiveFiltersIndicator() {
+    const indicator = document.getElementById('contentActiveFiltersIndicator');
+    const isFiltered = Boolean(
+      (this.searchQuery && this.searchQuery.trim()) ||
+      this.currentStatus !== 'all' ||
+      (this.initialType === 'all' && this.currentType !== 'all')
+    );
+    if (indicator) {
+      indicator.style.display = isFiltered ? 'inline-flex' : 'none';
+    }
+    const clearSearchBtn = document.getElementById('contentClearSearchBtn');
+    if (clearSearchBtn) {
+      clearSearchBtn.style.display = (this.searchQuery && this.searchQuery.trim()) ? 'flex' : 'none';
+    }
+    // Update pills active state
+    document.querySelectorAll('.content-status-pill').forEach(pill => {
+      const s = pill.getAttribute('data-status');
+      if (s === this.currentStatus) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+  },
+
+  setStatusFilter(status) {
+    this.currentStatus = status;
+    const statusSelect = document.getElementById('contentStatusSelect');
+    if (statusSelect) statusSelect.value = status;
+    this.currentPage = 1;
+    this.updateActiveFiltersIndicator();
+    this.loadTableData();
+  },
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.currentStatus = 'all';
+    if (this.initialType === 'all') {
+      this.currentType = 'all';
+      const typeSelect = document.getElementById('contentTypeSelect');
+      if (typeSelect) typeSelect.value = 'all';
+    }
+    const searchInput = document.getElementById('contentSearchInput');
+    if (searchInput) searchInput.value = '';
+    const statusSelect = document.getElementById('contentStatusSelect');
+    if (statusSelect) statusSelect.value = 'all';
+    this.currentPage = 1;
+    this.updateActiveFiltersIndicator();
+    this.loadTableData();
+    if (window.Toast && Toast.show) {
+      Toast.show('Catalog filters cleared', 'info', 1200);
+    }
+  },
+
   async render(container, filterType = 'all') {
+    this.initialType = filterType;
     this.currentType = filterType;
     this.currentPage = 1;
 
@@ -50,54 +116,136 @@ const ContentComponent = {
             </p>
           </div>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button class="btn-cyber btn-cyber-primary" id="contentCreateNewBtn" onclick="window.navigateTo('wizard', '${this.currentType === 'all' ? 'short' : this.currentType}')">
-              <span>➕</span> Create New Content
+            <button class="btn-action-premium primary-teal" id="contentCreateNewBtn" onclick="window.navigateTo('wizard', '${this.currentType === 'all' ? 'short' : this.currentType}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Create New Content</span>
             </button>
           </div>
         </div>
 
-        <!-- Filter Controls Bar -->
-        <div class="table-toolbar" style="margin-top: 16px; margin-bottom: 0;">
-          <!-- Search Input -->
-          <div class="search-box-container">
-            <input 
-              type="text" 
-              id="contentSearchInput" 
-              class="cyber-input" 
-              placeholder="Search titles, topics, tags..." 
-              value="${this.escapeHtml(this.searchQuery)}"
-            />
-          </div>
-
-          <!-- Status Filter -->
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">STATUS:</label>
-            <select id="contentStatusSelect" class="cyber-input" style="width: 140px; padding: 7px 10px;">
-              <option value="all">All Statuses</option>
-              <option value="uploaded">Uploaded / Live</option>
-              <option value="pending">Pending</option>
-              <option value="draft">Draft</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-
-          <!-- Type Filter (if viewing All) -->
-          ${filterType === 'all' ? `
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">FORMAT:</label>
-              <select id="contentTypeSelect" class="cyber-input" style="width: 130px; padding: 7px 10px;">
-                <option value="all">All Formats</option>
-                <option value="short">Shorts / Reels</option>
-                <option value="video">Long Videos</option>
-                <option value="podcast">Podcasts</option>
-              </select>
+        <!-- Professional Filter Controls Bar -->
+        <div class="filter-toolbar-premium" style="margin-top: 18px; margin-bottom: 0;">
+          <div class="filter-toolbar-row">
+            <!-- Left: Search Box -->
+            <div class="search-box-premium">
+              <span class="search-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input 
+                type="text" 
+                id="contentSearchInput" 
+                placeholder="Search titles, topics, tags..." 
+                value="${this.escapeHtml(this.searchQuery)}"
+              />
+              <button 
+                type="button" 
+                id="contentClearSearchBtn" 
+                class="clear-icon-btn" 
+                title="Clear search" 
+                style="display: ${this.searchQuery ? 'flex' : 'none'};" 
+                onclick="ContentComponent.clearSearch()"
+              >✕</button>
             </div>
-          ` : ''}
 
-          <button class="btn-cyber btn-cyber-outline btn-sm" id="refreshContentBtn">
-            <span>🔄</span> Refresh
-          </button>
+            <!-- Filter Controls Group -->
+            <div class="filter-controls-group">
+              <!-- Status Filter Dropdown -->
+              <div class="filter-dropdown-premium">
+                <span class="filter-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                  </svg>
+                </span>
+                <span class="filter-prefix-label">STATUS</span>
+                <select id="contentStatusSelect">
+                  <option value="all">All Statuses</option>
+                  <option value="uploaded">Uploaded / Live</option>
+                  <option value="pending">Pending</option>
+                  <option value="draft">Draft</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+
+              <!-- Format Filter (if viewing All) -->
+              ${filterType === 'all' ? `
+                <div class="filter-dropdown-premium">
+                  <span class="filter-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                      <line x1="7" y1="2" x2="7" y2="22"></line>
+                      <line x1="17" y1="2" x2="17" y2="22"></line>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                    </svg>
+                  </span>
+                  <span class="filter-prefix-label">FORMAT</span>
+                  <select id="contentTypeSelect">
+                    <option value="all">All Formats</option>
+                    <option value="short">Shorts / Reels</option>
+                    <option value="video">Long Videos</option>
+                    <option value="podcast">Podcasts</option>
+                  </select>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              ` : ''}
+
+              <!-- Active Filters & Reset Action -->
+              <div id="contentActiveFiltersIndicator" class="active-filters-indicator" style="display: ${Boolean(this.searchQuery || this.currentStatus !== 'all' || (filterType === 'all' && this.currentType !== 'all')) ? 'inline-flex' : 'none'};">
+                <button type="button" class="filter-reset-action" onclick="ContentComponent.resetFilters()" title="Reset all filters">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span>Clear Filters</span>
+                </button>
+              </div>
+
+              <div style="flex: 1;"></div>
+
+              <button class="btn-action-premium outline-neutral btn-sm" id="refreshContentBtn" title="Reload data">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: Quick Status Filter Pills -->
+          <div class="filter-pills-bar" style="margin-top: 4px;">
+            <span style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.5px;">FAST FILTER:</span>
+            <button type="button" class="filter-pill-item content-status-pill ${this.currentStatus === 'all' ? 'active' : ''}" data-status="all" onclick="ContentComponent.setStatusFilter('all')">
+              <span>All Statuses</span>
+            </button>
+            <button type="button" class="filter-pill-item content-status-pill ${this.currentStatus === 'uploaded' ? 'active' : ''}" data-status="uploaded" onclick="ContentComponent.setStatusFilter('uploaded')">
+              <span>🟢 Live / Uploaded</span>
+            </button>
+            <button type="button" class="filter-pill-item content-status-pill ${this.currentStatus === 'pending' ? 'active' : ''}" data-status="pending" onclick="ContentComponent.setStatusFilter('pending')">
+              <span>🟡 Pending</span>
+            </button>
+            <button type="button" class="filter-pill-item content-status-pill ${this.currentStatus === 'scheduled' ? 'active' : ''}" data-status="scheduled" onclick="ContentComponent.setStatusFilter('scheduled')">
+              <span>🔵 Scheduled</span>
+            </button>
+            <button type="button" class="filter-pill-item content-status-pill ${this.currentStatus === 'draft' ? 'active' : ''}" data-status="draft" onclick="ContentComponent.setStatusFilter('draft')">
+              <span>⚪ Draft</span>
+            </button>
+            <button type="button" class="filter-pill-item content-status-pill ${this.currentStatus === 'archived' ? 'active' : ''}" data-status="archived" onclick="ContentComponent.setStatusFilter('archived')">
+              <span>📦 Archived</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -119,8 +267,9 @@ const ContentComponent = {
       debounceTimer = setTimeout(() => {
         this.searchQuery = e.target.value;
         this.currentPage = 1;
+        this.updateActiveFiltersIndicator();
         this.loadTableData();
-      }, 300);
+      }, 250);
     };
 
     const statusSelect = document.getElementById('contentStatusSelect');
@@ -128,6 +277,7 @@ const ContentComponent = {
     statusSelect.onchange = (e) => {
       this.currentStatus = e.target.value;
       this.currentPage = 1;
+      this.updateActiveFiltersIndicator();
       this.loadTableData();
     };
 
@@ -137,6 +287,7 @@ const ContentComponent = {
       typeSelect.onchange = (e) => {
         this.currentType = e.target.value;
         this.currentPage = 1;
+        this.updateActiveFiltersIndicator();
         this.loadTableData();
       };
     }
@@ -209,23 +360,38 @@ const ContentComponent = {
       this.itemsMap.clear();
 
       if (!data || data.length === 0) {
+        const hasFilters = Boolean(
+          (this.searchQuery && this.searchQuery.trim()) ||
+          this.currentStatus !== 'all' ||
+          (this.initialType === 'all' && this.currentType !== 'all')
+        );
         wrapper.innerHTML = `
           <div style="padding: 50px 20px; text-align: center;">
             <div style="font-size: 36px; margin-bottom: 10px;">🎬</div>
             <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);">No Content Found</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">No media matches your search query or channel filter.</p>
-            <button class="btn-cyber btn-cyber-primary" id="contentEmptyCreateBtn" style="margin-top: 14px;" onclick="window.navigateTo('wizard', '${this.currentType === 'all' ? 'short' : this.currentType}')">
-              ➕ Create New Content with Wizard
-            </button>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+              ${hasFilters ? 'No media matches your search query or filter criteria.' : 'No media items registered yet.'}
+            </p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
+              ${hasFilters ? `
+                <button type="button" class="btn-action-premium outline-neutral" onclick="ContentComponent.resetFilters()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span>Clear Filter Criteria</span>
+                </button>
+              ` : ''}
+              <button class="btn-action-premium primary-teal" id="contentEmptyCreateBtn" onclick="window.navigateTo('wizard', '${this.currentType === 'all' ? 'short' : this.currentType}')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Create New Content with Wizard</span>
+              </button>
+            </div>
           </div>
         `;
-        const emptyBtn = wrapper.querySelector('#contentEmptyCreateBtn');
-        if (emptyBtn) {
-          emptyBtn.onclick = (e) => {
-            e.preventDefault();
-            window.navigateTo('wizard', this.currentType === 'all' ? 'short' : this.currentType);
-          };
-        }
         return;
       }
 

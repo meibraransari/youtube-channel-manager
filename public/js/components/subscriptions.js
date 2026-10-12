@@ -319,69 +319,121 @@ const SubscriptionsComponent = {
         </div>
 
         <!-- Filter & Search Toolbar -->
-        <div class="glass-card" style="padding: 16px 20px; margin-bottom: 20px;">
-          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+        <div class="filter-toolbar-premium">
+          <div class="filter-toolbar-row">
             <!-- Left Filter Group -->
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; flex: 1; min-width: 300px;">
+            <div class="filter-controls-group">
               <!-- Search Box -->
-              <div style="position: relative; flex: 1; min-width: 220px; max-width: 360px;">
+              <div class="search-box-premium">
+                <span class="search-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
                 <input 
                   type="text" 
                   id="subSearchInput" 
-                  class="cyber-input" 
-                  style="width: 100%; padding-left: 32px; padding-right: 28px; height: 38px; font-size: 13px;" 
                   placeholder="Search by channel name, handle, ID..." 
                   value="${this.escapeHtml(this.searchQuery)}"
                   oninput="SubscriptionsComponent.onSearchChange(this.value)"
                 />
-                <span style="position: absolute; left: 10px; top: 10px; font-size: 14px; opacity: 0.6;">🔍</span>
                 ${this.searchQuery ? `
-                  <button type="button" onclick="SubscriptionsComponent.onSearchChange(''); document.getElementById('subSearchInput').value='';" style="position: absolute; right: 10px; top: 10px; background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 12px;">✕</button>
+                  <button type="button" class="clear-icon-btn" onclick="SubscriptionsComponent.onSearchChange(''); document.getElementById('subSearchInput').value='';" title="Clear search">✕</button>
                 ` : ''}
               </div>
 
               <!-- Channel Selector (Multi-channel) -->
-              <div style="min-width: 180px;">
-                <select id="subChannelSelect" class="cyber-input" style="height: 38px; font-size: 13px;" onchange="SubscriptionsComponent.onChannelChange(this.value)">
-                  <option value="all" ${this.activeChannelId === 'all' ? 'selected' : ''}>🌐 All Channels (Consolidated)</option>
+              <div class="filter-dropdown-premium">
+                <span class="filter-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+                    <polyline points="17 2 12 7 7 2"></polyline>
+                  </svg>
+                </span>
+                <span class="filter-prefix-label">CHANNEL</span>
+                <select id="subChannelSelect" onchange="SubscriptionsComponent.onChannelChange(this.value)">
+                  <option value="all" ${this.activeChannelId === 'all' ? 'selected' : ''}>All Channels (Consolidated)</option>
                   ${this.channels.map(c => `
                     <option value="${c.id}" ${this.activeChannelId === c.id ? 'selected' : ''}>
-                      📺 ${c.name} (${c.handle || '@channel'})
+                      ${this.escapeHtml(c.name)} (${c.handle || '@channel'})
                     </option>
                   `).join('')}
                 </select>
+                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
               </div>
 
               <!-- Category Filter -->
-              <div style="min-width: 150px;">
-                <select id="subCategorySelect" class="cyber-input" style="height: 38px; font-size: 13px;" onchange="SubscriptionsComponent.onCategoryChange(this.value)">
-                  <option value="all" ${this.selectedCategory === 'all' ? 'selected' : ''}>🏷️ All Categories</option>
+              <div class="filter-dropdown-premium">
+                <span class="filter-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                  </svg>
+                </span>
+                <span class="filter-prefix-label">CATEGORY</span>
+                <select id="subCategorySelect" onchange="SubscriptionsComponent.onCategoryChange(this.value)">
+                  <option value="all" ${this.selectedCategory === 'all' ? 'selected' : ''}>All Categories</option>
                   ${this.categories.map(cat => `
                     <option value="${cat.category.replace(/"/g, '&quot;')}" ${this.selectedCategory === cat.category ? 'selected' : ''}>
                       ${this.escapeHtml(cat.category)} (${cat.count})
                     </option>
                   `).join('')}
                 </select>
+                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
               </div>
 
               <!-- Tier Filter -->
-              <div style="min-width: 140px;">
-                <select id="subTierSelect" class="cyber-input" style="height: 38px; font-size: 13px;" onchange="SubscriptionsComponent.onTierChange(this.value)">
-                  <option value="all" ${this.selectedTier === 'all' ? 'selected' : ''}>👥 All Subscriber Tiers</option>
+              <div class="filter-dropdown-premium">
+                <span class="filter-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </span>
+                <span class="filter-prefix-label">TIER</span>
+                <select id="subTierSelect" onchange="SubscriptionsComponent.onTierChange(this.value)">
+                  <option value="all" ${this.selectedTier === 'all' ? 'selected' : ''}>All Tiers</option>
                   <option value="mega" ${this.selectedTier === 'mega' ? 'selected' : ''}>🌟 Mega (1M+)</option>
                   <option value="large" ${this.selectedTier === 'large' ? 'selected' : ''}>🔥 Large (100K-1M)</option>
                   <option value="mid" ${this.selectedTier === 'mid' ? 'selected' : ''}>⚡ Mid (10K-100K)</option>
                   <option value="micro" ${this.selectedTier === 'micro' ? 'selected' : ''}>🌱 Micro (&lt;10K)</option>
                 </select>
+                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
               </div>
+
+              <!-- Active Filter Clear Action -->
+              ${(this.searchQuery || this.selectedCategory !== 'all' || this.selectedTier !== 'all' || this.activeChannelId !== 'all') ? `
+                <button type="button" class="filter-reset-action" onclick="SubscriptionsComponent.resetFilters()" title="Reset all subscription filters">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                  <span>Clear Filters</span>
+                </button>
+              ` : ''}
             </div>
 
             <!-- Right Sort & View Controls -->
             <div style="display: flex; align-items: center; gap: 10px;">
               <!-- Sort Dropdown -->
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; font-family: var(--font-tech);">Sort:</span>
-                <select id="subSortSelect" class="cyber-input" style="height: 38px; font-size: 12px; padding-right: 24px;" onchange="SubscriptionsComponent.onSortChange(this.value)">
+              <div class="filter-dropdown-premium">
+                <span class="filter-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <polyline points="19 12 12 19 5 12"></polyline>
+                  </svg>
+                </span>
+                <span class="filter-prefix-label">SORT</span>
+                <select id="subSortSelect" onchange="SubscriptionsComponent.onSortChange(this.value)">
                   <option value="subscribed_at:DESC" ${this.sortBy === 'subscribed_at' && this.sortOrder === 'DESC' ? 'selected' : ''}>Date (Newest)</option>
                   <option value="subscribed_at:ASC" ${this.sortBy === 'subscribed_at' && this.sortOrder === 'ASC' ? 'selected' : ''}>Date (Oldest)</option>
                   <option value="subscriber_count:DESC" ${this.sortBy === 'subscriber_count' && this.sortOrder === 'DESC' ? 'selected' : ''}>Subscribers (High-Low)</option>
@@ -389,28 +441,60 @@ const SubscriptionsComponent = {
                   <option value="title:ASC" ${this.sortBy === 'title' && this.sortOrder === 'ASC' ? 'selected' : ''}>Name (A-Z)</option>
                   <option value="title:DESC" ${this.sortBy === 'title' && this.sortOrder === 'DESC' ? 'selected' : ''}>Name (Z-A)</option>
                 </select>
+                <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
               </div>
 
               <!-- View Switcher -->
-              <div style="display: flex; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px;">
+              <div style="display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 2px;">
                 <button 
-                  class="btn-cyber-outline" 
+                  type="button"
                   onclick="SubscriptionsComponent.setViewMode('table')" 
-                  style="border: none; padding: 5px 10px; border-radius: 4px; font-size: 13px; cursor: pointer; ${this.viewMode === 'table' ? 'background: var(--accent-teal); color: #000; font-weight: bold;' : 'color: var(--text-dim);'}" 
+                  style="display: inline-flex; align-items: center; gap: 5px; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s ease; ${this.viewMode === 'table' ? 'background: var(--accent-teal); color: #ffffff; font-weight: 700;' : 'background: transparent; color: var(--text-muted);'}" 
                   title="Data Table View"
                 >
-                  ☰ Table
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                  </svg>
+                  <span>Table</span>
                 </button>
                 <button 
-                  class="btn-cyber-outline" 
+                  type="button"
                   onclick="SubscriptionsComponent.setViewMode('grid')" 
-                  style="border: none; padding: 5px 10px; border-radius: 4px; font-size: 13px; cursor: pointer; ${this.viewMode === 'grid' ? 'background: var(--accent-teal); color: #000; font-weight: bold;' : 'color: var(--text-dim);'}" 
+                  style="display: inline-flex; align-items: center; gap: 5px; border: none; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s ease; ${this.viewMode === 'grid' ? 'background: var(--accent-teal); color: #ffffff; font-weight: 700;' : 'background: transparent; color: var(--text-muted);'}" 
                   title="Card Grid View"
                 >
-                  ☷ Cards
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <span>Cards</span>
                 </button>
               </div>
             </div>
+          </div>
+
+          <!-- Quick Category Fast Filter Pills -->
+          <div class="filter-pills-bar" style="margin-top: 4px;">
+            <span style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.5px;">FAST CATEGORY:</span>
+            <button type="button" class="filter-pill-item ${this.selectedCategory === 'all' ? 'active' : ''}" onclick="SubscriptionsComponent.onCategoryChange('all')">
+              <span>All Channels</span>
+              <span class="filter-pill-count">${this.subscriptions.length}</span>
+            </button>
+            ${this.categories.slice(0, 7).map(cat => `
+              <button type="button" class="filter-pill-item ${this.selectedCategory === cat.category ? 'active' : ''}" onclick="SubscriptionsComponent.onCategoryChange('${cat.category.replace(/'/g, "\\'")}')">
+                <span>${this.escapeHtml(cat.category)}</span>
+                <span class="filter-pill-count">${cat.count}</span>
+              </button>
+            `).join('')}
           </div>
         </div>
 

@@ -5,6 +5,197 @@
 const ChannelsComponent = {
   channels: [],
   channelsMap: new Map(),
+  searchQuery: '',
+  statusFilter: 'all',
+
+  getFilteredChannels() {
+    const q = (this.searchQuery || '').trim().toLowerCase();
+    const activeId = API.getActiveChannelId();
+    return this.channels.filter(c => {
+      if (this.statusFilter === 'active' && c.id !== activeId) return false;
+      if (this.statusFilter === 'custom_avatar' && !c.avatar_url) return false;
+      if (!q) return true;
+      return (
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.handle || '').toLowerCase().includes(q) ||
+        (c.author_name || '').toLowerCase().includes(q) ||
+        (c.id || '').toLowerCase().includes(q)
+      );
+    });
+  },
+
+  onSearchChange(val) {
+    this.searchQuery = val;
+    this.refreshTableRows();
+    const clearBtn = document.getElementById('channelClearSearchBtn');
+    if (clearBtn) clearBtn.style.display = val ? 'flex' : 'none';
+    const indicator = document.getElementById('channelsFilterIndicator');
+    if (indicator) indicator.style.display = (val || this.statusFilter !== 'all') ? 'inline-flex' : 'none';
+  },
+
+  onStatusFilterChange(val) {
+    this.statusFilter = val;
+    this.refreshTableRows();
+    const select = document.getElementById('channelsFilterSelect');
+    if (select) select.value = val;
+    document.querySelectorAll('.channel-status-pill').forEach(pill => {
+      if (pill.getAttribute('data-status') === val) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+    const indicator = document.getElementById('channelsFilterIndicator');
+    if (indicator) indicator.style.display = (this.searchQuery || val !== 'all') ? 'inline-flex' : 'none';
+  },
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.statusFilter = 'all';
+    const input = document.getElementById('channelsSearchInput');
+    if (input) input.value = '';
+    const select = document.getElementById('channelsFilterSelect');
+    if (select) select.value = 'all';
+    const clearBtn = document.getElementById('channelClearSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    const indicator = document.getElementById('channelsFilterIndicator');
+    if (indicator) indicator.style.display = 'none';
+    document.querySelectorAll('.channel-status-pill').forEach(pill => {
+      if (pill.getAttribute('data-status') === 'all') {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+    this.refreshTableRows();
+    if (window.Toast && Toast.show) {
+      Toast.show('Channel filters reset', 'info', 1200);
+    }
+  },
+
+  refreshTableRows() {
+    const tbody = document.getElementById('channelsTableBody');
+    if (!tbody) return;
+    const filtered = this.getFilteredChannels();
+    tbody.innerHTML = this.renderChannelsTableRowsHtml(filtered);
+  },
+
+  renderChannelsTableRowsHtml(channels) {
+    if (!channels || channels.length === 0) {
+      const isFiltered = Boolean(this.searchQuery || this.statusFilter !== 'all');
+      return `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 48px 20px; color: var(--text-dim);">
+            <div style="font-size: 40px; margin-bottom: 10px;">📺</div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--text-main);">
+              ${isFiltered ? 'No Channels Match Filter' : 'No Channels Registered'}
+            </div>
+            <div style="font-size: 12px; margin-top: 4px; margin-bottom: 18px; color: var(--text-muted);">
+              ${isFiltered ? 'Try clearing your search keyword or changing status filter.' : 'All channel profiles have been permanently flushed. Provision a channel to start managing content.'}
+            </div>
+            ${isFiltered ? `
+              <button class="btn-action-premium outline-neutral btn-sm" onclick="ChannelsComponent.resetFilters()">
+                Clear Filters
+              </button>
+            ` : `
+              <button class="btn-cyber btn-cyber-primary btn-sm" onclick="document.getElementById('addChannelBtn').click()">
+                ➕ Provision Channel
+              </button>
+            `}
+          </td>
+        </tr>
+      `;
+    }
+
+    return channels.map(c => `
+      <tr>
+        <!-- Profile -->
+        <td>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: linear-gradient(135deg, var(--accent-teal), var(--accent-indigo));">
+              ${c.avatar_url ? `
+                <img src="${this.escapeHtml(c.avatar_url)}" alt="${this.escapeHtml(c.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'" />
+              ` : `
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">${(c.name || 'YT').substring(0, 2).toUpperCase()}</span>
+              `}
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">
+                ${this.escapeHtml(c.name)}
+              </div>
+              <div style="font-size: 11px; margin-top: 2px;">
+                ${c.channel_url ? `
+                  <a href="${this.escapeHtml(c.channel_url)}" target="_blank" rel="noopener" style="color: var(--accent-teal); text-decoration: none;">
+                    YouTube ↗
+                  </a>
+                ` : '<span style="color: var(--text-dim);">No URL set</span>'}
+              </div>
+            </div>
+          </div>
+        </td>
+
+        <!-- Handle -->
+        <td>
+          <span class="badge badge-teal" style="font-family: var(--font-mono); font-size: 11px;">
+            ${this.escapeHtml(c.handle || '@channel')}
+          </span>
+        </td>
+
+        <!-- Lead / Author -->
+        <td style="font-size: 12px; color: var(--text-muted);">
+          ${this.escapeHtml(c.author_name || 'Studio')}
+        </td>
+
+        <!-- Subscribers -->
+        <td>
+          <div style="font-weight: 700; font-size: 13px; color: var(--accent-emerald);">
+            ${(parseInt(c.subscriber_count, 10) || 0).toLocaleString()}
+          </div>
+        </td>
+
+        <!-- Assets -->
+        <td>
+          <span class="badge badge-violet" style="font-size: 11px;">
+            ${(c.real_content_count || c.video_count || 0).toLocaleString()} items
+          </span>
+        </td>
+
+        <!-- Total Views -->
+        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-cyan);">
+          ${(parseInt(c.real_views_count, 10) || parseInt(c.total_views, 10) || 0).toLocaleString()}
+        </td>
+
+        <!-- Default Status -->
+        <td>
+          ${c.is_default ? `
+            <span class="badge badge-emerald" style="font-weight: 700;">⭐ DEFAULT</span>
+          ` : `
+            <button class="btn-cyber btn-cyber-outline btn-sm" data-action="set-default" data-id="${c.id}" style="font-size: 10px; padding: 2px 6px;">
+              Make Default
+            </button>
+          `}
+        </td>
+
+        <!-- Action Buttons -->
+        <td style="text-align: right;">
+          <div style="display: inline-flex; gap: 4px;">
+            <button class="btn-cyber btn-cyber-outline btn-sm" data-action="view-channel" data-id="${c.id}" title="View Channel Details">
+              👁️ View
+            </button>
+            <button class="btn-cyber btn-cyber-outline btn-sm" data-action="edit-channel" data-id="${c.id}" title="Edit Channel">
+              ✏️ Edit
+            </button>
+            <button class="btn-cyber btn-cyber-secondary btn-sm" data-action="sync-channel" data-id="${c.id}" title="Sync Metrics Now">
+              🔄 Sync
+            </button>
+            <button class="btn-cyber btn-cyber-danger btn-sm" data-action="delete-channel" data-id="${c.id}" title="Delete Channel">
+              🗑️
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  },
 
   async render(container) {
     container.innerHTML = `
@@ -131,6 +322,83 @@ const ChannelsComponent = {
             </div>
           </div>
 
+          <!-- Channel Filter Toolbar -->
+          <div class="filter-toolbar-premium" style="margin: 16px 20px 14px 20px; padding: 12px 16px;">
+            <div class="filter-toolbar-row">
+              <!-- Search Box -->
+              <div class="search-box-premium" style="max-width: 320px;">
+                <span class="search-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input 
+                  type="text" 
+                  id="channelsSearchInput" 
+                  placeholder="Search channels by name, handle, lead..." 
+                  value="${this.escapeHtml(this.searchQuery)}"
+                  oninput="ChannelsComponent.onSearchChange(this.value)"
+                />
+                <button 
+                  type="button" 
+                  id="channelClearSearchBtn" 
+                  class="clear-icon-btn" 
+                  style="display: ${this.searchQuery ? 'flex' : 'none'};" 
+                  onclick="ChannelsComponent.onSearchChange(''); document.getElementById('channelsSearchInput').value='';" 
+                  title="Clear search"
+                >✕</button>
+              </div>
+
+              <!-- Filter Controls Group -->
+              <div class="filter-controls-group" style="justify-content: flex-end;">
+                <!-- Status Filter Dropdown -->
+                <div class="filter-dropdown-premium">
+                  <span class="filter-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                  </span>
+                  <span class="filter-prefix-label">STATUS</span>
+                  <select id="channelsFilterSelect" onchange="ChannelsComponent.onStatusFilterChange(this.value)">
+                    <option value="all" ${this.statusFilter === 'all' ? 'selected' : ''}>All Channels</option>
+                    <option value="active" ${this.statusFilter === 'active' ? 'selected' : ''}>Active Default Channel</option>
+                    <option value="custom_avatar" ${this.statusFilter === 'custom_avatar' ? 'selected' : ''}>With Custom Avatar</option>
+                  </select>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Reset Filters -->
+                <div id="channelsFilterIndicator" class="active-filters-indicator" style="display: ${(this.searchQuery || this.statusFilter !== 'all') ? 'inline-flex' : 'none'};">
+                  <button type="button" class="filter-reset-action" onclick="ChannelsComponent.resetFilters()" title="Reset channel filters">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Clear Filters</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fast Status Pills -->
+            <div class="filter-pills-bar" style="margin-top: 4px;">
+              <span style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.5px;">FAST FILTER:</span>
+              <button type="button" class="filter-pill-item channel-status-pill ${this.statusFilter === 'all' ? 'active' : ''}" data-status="all" onclick="ChannelsComponent.onStatusFilterChange('all')">
+                <span>All Channels</span>
+                <span class="filter-pill-count">${this.channels.length}</span>
+              </button>
+              <button type="button" class="filter-pill-item channel-status-pill ${this.statusFilter === 'active' ? 'active' : ''}" data-status="active" onclick="ChannelsComponent.onStatusFilterChange('active')">
+                <span>⭐ Active Default</span>
+              </button>
+              <button type="button" class="filter-pill-item channel-status-pill ${this.statusFilter === 'custom_avatar' ? 'active' : ''}" data-status="custom_avatar" onclick="ChannelsComponent.onStatusFilterChange('custom_avatar')">
+                <span>🖼️ With Avatar</span>
+              </button>
+            </div>
+          </div>
+
           <div class="table-responsive">
             <table class="cyber-table">
               <thead>
@@ -146,107 +414,7 @@ const ChannelsComponent = {
                 </tr>
               </thead>
               <tbody id="channelsTableBody">
-                ${this.channels.length === 0 ? `
-                  <tr>
-                    <td colspan="8" style="text-align: center; padding: 48px 20px; color: var(--text-dim);">
-                      <div style="font-size: 40px; margin-bottom: 10px;">📺</div>
-                      <div style="font-size: 16px; font-weight: 700; color: var(--text-main);">No Channels Registered</div>
-                      <div style="font-size: 12px; margin-top: 4px; margin-bottom: 18px; color: var(--text-muted);">
-                        All channel profiles have been permanently flushed. Provision a channel to start managing content.
-                      </div>
-                      <button class="btn-cyber btn-cyber-primary btn-sm" onclick="document.getElementById('addChannelBtn').click()">
-                        ➕ Provision Channel
-                      </button>
-                    </td>
-                  </tr>
-                ` : this.channels.map(c => `
-                  <tr>
-                    <!-- Profile -->
-                    <td>
-                      <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: linear-gradient(135deg, var(--accent-teal), var(--accent-indigo));">
-                          ${c.avatar_url ? `
-                            <img src="${this.escapeHtml(c.avatar_url)}" alt="${this.escapeHtml(c.name)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'" />
-                          ` : `
-                            <span style="font-weight: 800; font-size: 15px; color: #fff;">${(c.name || 'YT').substring(0, 2).toUpperCase()}</span>
-                          `}
-                        </div>
-                        <div>
-                          <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">
-                            ${this.escapeHtml(c.name)}
-                          </div>
-                          <div style="font-size: 11px; margin-top: 2px;">
-                            ${c.channel_url ? `
-                              <a href="${this.escapeHtml(c.channel_url)}" target="_blank" rel="noopener" style="color: var(--accent-teal); text-decoration: none;">
-                                YouTube ↗
-                              </a>
-                            ` : '<span style="color: var(--text-dim);">No URL set</span>'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    <!-- Handle -->
-                    <td>
-                      <span class="badge badge-teal" style="font-family: var(--font-mono); font-size: 11px;">
-                        ${this.escapeHtml(c.handle || '@channel')}
-                      </span>
-                    </td>
-
-                    <!-- Lead / Author -->
-                    <td style="font-size: 12px; color: var(--text-muted);">
-                      ${this.escapeHtml(c.author_name || 'Studio')}
-                    </td>
-
-                    <!-- Subscribers -->
-                    <td>
-                      <div style="font-weight: 700; font-size: 13px; color: var(--accent-emerald);">
-                        ${(parseInt(c.subscriber_count, 10) || 0).toLocaleString()}
-                      </div>
-                    </td>
-
-                    <!-- Assets -->
-                    <td>
-                      <span class="badge badge-violet" style="font-size: 11px;">
-                        ${(c.real_content_count || c.video_count || 0).toLocaleString()} items
-                      </span>
-                    </td>
-
-                    <!-- Total Views -->
-                    <td style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-cyan);">
-                      ${(parseInt(c.real_views_count, 10) || parseInt(c.total_views, 10) || 0).toLocaleString()}
-                    </td>
-
-                    <!-- Default Status -->
-                    <td>
-                      ${c.is_default ? `
-                        <span class="badge badge-emerald" style="font-weight: 700;">⭐ DEFAULT</span>
-                      ` : `
-                        <button class="btn-cyber btn-cyber-outline btn-sm" data-action="set-default" data-id="${c.id}" style="font-size: 10px; padding: 2px 6px;">
-                          Make Default
-                        </button>
-                      `}
-                    </td>
-
-                    <!-- Action Buttons -->
-                    <td style="text-align: right;">
-                      <div style="display: inline-flex; gap: 4px;">
-                        <button class="btn-cyber btn-cyber-outline btn-sm" data-action="view-channel" data-id="${c.id}" title="View Channel Details">
-                          👁️ View
-                        </button>
-                        <button class="btn-cyber btn-cyber-outline btn-sm" data-action="edit-channel" data-id="${c.id}" title="Edit Channel">
-                          ✏️ Edit
-                        </button>
-                        <button class="btn-cyber btn-cyber-secondary btn-sm" data-action="sync-channel" data-id="${c.id}" title="Sync Metrics Now">
-                          🔄 Sync
-                        </button>
-                        <button class="btn-cyber btn-cyber-danger btn-sm" data-action="delete-channel" data-id="${c.id}" title="Delete Channel">
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                `).join('')}
+                ${this.renderChannelsTableRowsHtml(this.getFilteredChannels())}
               </tbody>
             </table>
           </div>

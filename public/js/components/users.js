@@ -4,6 +4,8 @@
  */
 const UsersComponent = {
   cachedUsers: [],
+  searchQuery: '',
+  roleFilter: 'all',
 
   allPermissions: [
     { key: 'can_view_content', label: 'View Content & Catalog' },
@@ -35,6 +37,202 @@ const UsersComponent = {
     return [];
   },
 
+  getFilteredUsers() {
+    const q = (this.searchQuery || '').trim().toLowerCase();
+    return (this.cachedUsers || []).filter(u => {
+      if (this.roleFilter !== 'all' && (u.role || '').toLowerCase() !== this.roleFilter.toLowerCase()) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.role || '').toLowerCase().includes(q)
+      );
+    });
+  },
+
+  onSearchChange(val) {
+    this.searchQuery = val;
+    this.refreshTableRows();
+    const clearBtn = document.getElementById('userClearSearchBtn');
+    if (clearBtn) clearBtn.style.display = val ? 'flex' : 'none';
+    const indicator = document.getElementById('usersFilterIndicator');
+    if (indicator) indicator.style.display = (val || this.roleFilter !== 'all') ? 'inline-flex' : 'none';
+  },
+
+  onRoleFilterChange(val) {
+    this.roleFilter = val;
+    this.refreshTableRows();
+    const select = document.getElementById('usersRoleFilterSelect');
+    if (select) select.value = val;
+    document.querySelectorAll('.user-role-pill').forEach(pill => {
+      if (pill.getAttribute('data-role') === val) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+    const indicator = document.getElementById('usersFilterIndicator');
+    if (indicator) indicator.style.display = (this.searchQuery || val !== 'all') ? 'inline-flex' : 'none';
+  },
+
+  resetFilters() {
+    this.searchQuery = '';
+    this.roleFilter = 'all';
+    const input = document.getElementById('usersSearchInput');
+    if (input) input.value = '';
+    const select = document.getElementById('usersRoleFilterSelect');
+    if (select) select.value = 'all';
+    const clearBtn = document.getElementById('userClearSearchBtn');
+    if (clearBtn) clearBtn.style.display = 'none';
+    const indicator = document.getElementById('usersFilterIndicator');
+    if (indicator) indicator.style.display = 'none';
+    document.querySelectorAll('.user-role-pill').forEach(pill => {
+      if (pill.getAttribute('data-role') === 'all') {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+    this.refreshTableRows();
+    if (window.Toast && Toast.show) {
+      Toast.show('User filters reset', 'info', 1200);
+    }
+  },
+
+  refreshTableRows() {
+    const tbody = document.getElementById('usersDirectoryTbody');
+    if (!tbody) return;
+    const filtered = this.getFilteredUsers();
+    tbody.innerHTML = this.renderUsersTableRowsHtml(filtered);
+  },
+
+  renderUsersTableRowsHtml(users) {
+    if (!users || users.length === 0) {
+      const isFiltered = Boolean(this.searchQuery || this.roleFilter !== 'all');
+      return `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 36px 20px; color: var(--text-dim);">
+            <div style="font-size: 32px; margin-bottom: 8px;">👥</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">
+              ${isFiltered ? 'No Operator Accounts Match Filter' : 'No operator accounts found.'}
+            </div>
+            <div style="font-size: 12px; margin-top: 4px; margin-bottom: 14px; color: var(--text-muted);">
+              ${isFiltered ? 'Try clearing your search keyword or changing the role filter.' : 'Provision a new operator to assign security permissions.'}
+            </div>
+            ${isFiltered ? `
+              <button class="btn-action-premium outline-neutral btn-sm" onclick="UsersComponent.resetFilters()">
+                Clear Filters
+              </button>
+            ` : ''}
+          </td>
+        </tr>
+      `;
+    }
+
+    return users.map(u => {
+      const uPerms = UsersComponent.safePermissions(u.permissions);
+      return `
+        <tr>
+          <!-- Username & Avatar -->
+          <td>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px;">
+                ${(u.username || 'OP').substring(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-main); font-size: 14px;">
+                  ${u.username} ${u.username === 'admin' ? '<span style="font-size: 10px; color: #f59e0b; margin-left: 4px;">(Root)</span>' : ''}
+                </div>
+                <div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">
+                  ID: ${String(u.id).substring(0, 8)}...
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Email -->
+          <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">
+            ${u.email}
+          </td>
+
+          <!-- Role Badge -->
+          <td>
+            <span class="badge ${UsersComponent.getRoleBadgeClass(u.role)}">
+              ${(u.role || 'viewer').toUpperCase()}
+            </span>
+          </td>
+
+          <!-- Permissions -->
+          <td>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap; max-width: 280px;">
+              ${uPerms.map(p => `
+                <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(13, 148, 136, 0.12); color: #14b8a6; border: 1px solid rgba(13, 148, 136, 0.25);">
+                  ${p.replace('can_', '')}
+                </span>
+              `).join('')}
+            </div>
+          </td>
+
+          <!-- Status -->
+          <td>
+            <span class="badge ${u.is_active ? 'badge-emerald' : 'badge-magenta'}">
+              ${u.is_active ? 'ACTIVE' : 'LOCKED'}
+            </span>
+          </td>
+
+          <!-- Created At -->
+          <td style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">
+            ${new Date(u.created_at).toLocaleDateString()}
+          </td>
+
+          <!-- Actions -->
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px;">
+              <!-- Edit -->
+              <button 
+                class="btn-cyber btn-cyber-outline btn-sm" 
+                data-action="edit-user" 
+                data-id="${u.id}" 
+                title="Edit Operator Profile & Role" 
+                onclick="UsersComponent.openEditUserModal('${u.id}')"
+              >
+                ✏️ Edit
+              </button>
+              <!-- Reset Password -->
+              <button 
+                class="btn-cyber btn-cyber-outline btn-sm" 
+                data-action="reset-pw" 
+                data-id="${u.id}" 
+                data-username="${u.username}" 
+                title="Reset Password" 
+                onclick="UsersComponent.openPasswordResetModal('${u.id}', '${u.username}')"
+              >
+                🔑 Password
+              </button>
+              <!-- Delete (Admin root account cannot be deleted) -->
+              ${u.username !== 'admin' ? `
+                <button 
+                  class="btn-cyber btn-cyber-danger btn-sm" 
+                  data-action="delete-user" 
+                  data-id="${u.id}" 
+                  data-username="${u.username}" 
+                  title="Delete User" 
+                  onclick="UsersComponent.openDeleteModal('${u.id}', '${u.username}')"
+                >
+                  🗑️
+                </button>
+              ` : `
+                <span style="font-size: 11px; color: var(--text-dim); padding: 4px 6px;">Root</span>
+              `}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
   async render(container) {
     const target = container || document.getElementById('mainContentArea');
     if (!target) return;
@@ -55,7 +253,7 @@ const UsersComponent = {
       target.innerHTML = `
         <div style="max-width: 1080px; margin: 0 auto;">
           <!-- Header Toolbar -->
-          <div class="glass-card" style="padding: 22px; margin-bottom: 22px;">
+          <div class="glass-card" style="padding: 22px; margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
               <div>
                 <h1 style="font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px; color: var(--text-main);">
@@ -66,10 +264,99 @@ const UsersComponent = {
                 </p>
               </div>
               <div>
-                <button id="provisionUserBtn" class="btn-cyber btn-cyber-primary" onclick="UsersComponent.openCreateUserModal()">
-                  <span>➕</span> PROVISION NEW USER
+                <button id="provisionUserBtn" class="btn-action-premium primary-teal" onclick="UsersComponent.openCreateUserModal()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <span>Provision New User</span>
                 </button>
               </div>
+            </div>
+          </div>
+
+          <!-- Professional Filter Controls Toolbar -->
+          <div class="filter-toolbar-premium">
+            <div class="filter-toolbar-row">
+              <!-- Search Box -->
+              <div class="search-box-premium" style="max-width: 320px;">
+                <span class="search-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </span>
+                <input 
+                  type="text" 
+                  id="usersSearchInput" 
+                  placeholder="Search operators by username, email..." 
+                  value="${this.escapeHtml(this.searchQuery)}"
+                  oninput="UsersComponent.onSearchChange(this.value)"
+                />
+                <button 
+                  type="button" 
+                  id="userClearSearchBtn" 
+                  class="clear-icon-btn" 
+                  style="display: ${this.searchQuery ? 'flex' : 'none'};" 
+                  onclick="UsersComponent.onSearchChange(''); document.getElementById('usersSearchInput').value='';" 
+                  title="Clear search"
+                >✕</button>
+              </div>
+
+              <!-- Filter Controls Group -->
+              <div class="filter-controls-group" style="justify-content: flex-end;">
+                <!-- Role Filter Dropdown -->
+                <div class="filter-dropdown-premium">
+                  <span class="filter-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                  </span>
+                  <span class="filter-prefix-label">ROLE</span>
+                  <select id="usersRoleFilterSelect" onchange="UsersComponent.onRoleFilterChange(this.value)">
+                    <option value="all" ${this.roleFilter === 'all' ? 'selected' : ''}>All Roles</option>
+                    <option value="admin" ${this.roleFilter === 'admin' ? 'selected' : ''}>Admin (Full Root)</option>
+                    <option value="manager" ${this.roleFilter === 'manager' ? 'selected' : ''}>Manager</option>
+                    <option value="editor" ${this.roleFilter === 'editor' ? 'selected' : ''}>Editor</option>
+                    <option value="viewer" ${this.roleFilter === 'viewer' ? 'selected' : ''}>Viewer (Read-Only)</option>
+                  </select>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Reset Filters Button -->
+                <div id="usersFilterIndicator" class="active-filters-indicator" style="display: ${(this.searchQuery || this.roleFilter !== 'all') ? 'inline-flex' : 'none'};">
+                  <button type="button" class="filter-reset-action" onclick="UsersComponent.resetFilters()" title="Reset user filters">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                    <span>Clear Filters</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Fast Role Pills -->
+            <div class="filter-pills-bar" style="margin-top: 4px;">
+              <span style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-right: 4px; letter-spacing: 0.5px;">FAST FILTER:</span>
+              <button type="button" class="filter-pill-item user-role-pill ${this.roleFilter === 'all' ? 'active' : ''}" data-role="all" onclick="UsersComponent.onRoleFilterChange('all')">
+                <span>All Operators</span>
+                <span class="filter-pill-count">${users.length}</span>
+              </button>
+              <button type="button" class="filter-pill-item user-role-pill ${this.roleFilter === 'admin' ? 'active' : ''}" data-role="admin" onclick="UsersComponent.onRoleFilterChange('admin')">
+                <span>👑 Admins</span>
+              </button>
+              <button type="button" class="filter-pill-item user-role-pill ${this.roleFilter === 'manager' ? 'active' : ''}" data-role="manager" onclick="UsersComponent.onRoleFilterChange('manager')">
+                <span>🛡️ Managers</span>
+              </button>
+              <button type="button" class="filter-pill-item user-role-pill ${this.roleFilter === 'editor' ? 'active' : ''}" data-role="editor" onclick="UsersComponent.onRoleFilterChange('editor')">
+                <span>✏️ Editors</span>
+              </button>
+              <button type="button" class="filter-pill-item user-role-pill ${this.roleFilter === 'viewer' ? 'active' : ''}" data-role="viewer" onclick="UsersComponent.onRoleFilterChange('viewer')">
+                <span>👁️ Viewers</span>
+              </button>
             </div>
           </div>
 
@@ -89,110 +376,7 @@ const UsersComponent = {
                   </tr>
                 </thead>
                 <tbody id="usersDirectoryTbody">
-                  ${users.length === 0 ? `
-                    <tr>
-                      <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-dim);">
-                        No operator accounts found.
-                      </td>
-                    </tr>
-                  ` : users.map(u => {
-                    const uPerms = UsersComponent.safePermissions(u.permissions);
-                    return `
-                      <tr>
-                        <!-- Username & Avatar -->
-                        <td>
-                          <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="user-avatar" style="width: 32px; height: 32px; font-size: 13px;">
-                              ${(u.username || 'OP').substring(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <div style="font-weight: 700; color: var(--text-main); font-size: 14px;">
-                                ${u.username} ${u.username === 'admin' ? '<span style="font-size: 10px; color: #f59e0b; margin-left: 4px;">(Root)</span>' : ''}
-                              </div>
-                              <div style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">
-                                ID: ${String(u.id).substring(0, 8)}...
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        <!-- Email -->
-                        <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);">
-                          ${u.email}
-                        </td>
-
-                        <!-- Role Badge -->
-                        <td>
-                          <span class="badge ${UsersComponent.getRoleBadgeClass(u.role)}">
-                            ${(u.role || 'viewer').toUpperCase()}
-                          </span>
-                        </td>
-
-                        <!-- Permissions -->
-                        <td>
-                          <div style="display: flex; gap: 4px; flex-wrap: wrap; max-width: 280px;">
-                            ${uPerms.map(p => `
-                              <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(13, 148, 136, 0.12); color: #14b8a6; border: 1px solid rgba(13, 148, 136, 0.25);">
-                                ${p.replace('can_', '')}
-                              </span>
-                            `).join('')}
-                          </div>
-                        </td>
-
-                        <!-- Status -->
-                        <td>
-                          <span class="badge ${u.is_active ? 'badge-emerald' : 'badge-magenta'}">
-                            ${u.is_active ? 'ACTIVE' : 'LOCKED'}
-                          </span>
-                        </td>
-
-                        <!-- Created At -->
-                        <td style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono);">
-                          ${new Date(u.created_at).toLocaleDateString()}
-                        </td>
-
-                        <!-- Actions -->
-                        <td style="text-align: right;">
-                          <div style="display: inline-flex; gap: 6px;">
-                            <!-- Edit -->
-                            <button 
-                              class="btn-cyber btn-cyber-outline btn-sm" 
-                              data-action="edit-user" 
-                              data-id="${u.id}" 
-                              title="Edit Operator Profile & Role" 
-                              onclick="UsersComponent.openEditUserModal('${u.id}')"
-                            >
-                              ✏️ Edit
-                            </button>
-                            <!-- Reset Password -->
-                            <button 
-                              class="btn-cyber btn-cyber-outline btn-sm" 
-                              data-action="reset-pw" 
-                              data-id="${u.id}" 
-                              data-username="${u.username}" 
-                              title="Reset Password" 
-                              onclick="UsersComponent.openPasswordResetModal('${u.id}', '${u.username}')"
-                            >
-                              🔑 Password
-                            </button>
-                            <!-- Delete (Admin root account cannot be deleted) -->
-                            ${u.username !== 'admin' ? `
-                              <button 
-                                class="btn-cyber btn-cyber-danger btn-sm" 
-                                data-action="delete-user" 
-                                data-id="${u.id}" 
-                                data-username="${u.username}" 
-                                title="Delete User" 
-                                onclick="UsersComponent.openDeleteModal('${u.id}', '${u.username}')"
-                              >
-                                🗑️
-                              </button>
-                            ` : ''}
-                          </div>
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
+                  ${this.renderUsersTableRowsHtml(this.getFilteredUsers())}
                 </tbody>
               </table>
             </div>

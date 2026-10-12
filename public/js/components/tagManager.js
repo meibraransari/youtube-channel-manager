@@ -147,20 +147,71 @@ const TagManagerComponent = {
             </form>
           </div>
 
-          <!-- Section 2: Preset Search & Filter Bar -->
-          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
-            <div style="font-weight: 800; font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">
-              REGISTERED TAG PRESETS (${this.presets.length})
+          <!-- Section 2: Executive Preset Search & Filter Bar -->
+          <div class="filter-toolbar-premium" style="padding: 12px 16px; margin: 0 0 14px 0;">
+            <div class="filter-toolbar-row">
+              <div style="font-weight: 800; font-size: 11.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;">
+                TAG PRESETS (${this.presets.length})
+              </div>
+
+              <div class="filter-controls-group" style="justify-content: flex-end;">
+                <!-- Category Dropdown -->
+                <div class="filter-dropdown-premium">
+                  <span class="filter-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    </svg>
+                  </span>
+                  <span class="filter-prefix-label">CATEGORY</span>
+                  <select id="tagMgrCategorySelect">
+                    <option value="all">All Categories</option>
+                    ${Array.from(new Set(this.presets.map(p => p.category || 'General').filter(Boolean))).sort().map(cat => `
+                      <option value="${this.escapeHtml(cat)}" ${this.selectedCategory === cat ? 'selected' : ''}>
+                        ${this.escapeHtml(cat)}
+                      </option>
+                    `).join('')}
+                  </select>
+                  <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+
+                <!-- Search Box -->
+                <div class="search-box-premium" style="max-width: 240px; min-width: 180px;">
+                  <span class="search-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </span>
+                  <input 
+                    type="text" 
+                    id="tagMgrSearch" 
+                    placeholder="Search presets..." 
+                    value="${this.escapeHtml(this.searchQuery)}"
+                  />
+                  ${this.searchQuery ? `
+                    <button type="button" class="clear-icon-btn" onclick="TagManagerComponent.clearSearch()" title="Clear search">✕</button>
+                  ` : ''}
+                </div>
+              </div>
             </div>
-            <div style="flex: 1; max-width: 320px;">
-              <input 
-                type="text" 
-                id="tagMgrSearch" 
-                class="cyber-input" 
-                placeholder="🔍 Filter presets by keyword..." 
-                value="${this.escapeHtml(this.searchQuery)}"
-                style="padding: 6px 12px; font-size: 12px;" 
-              />
+
+            <!-- Fast Category Pills -->
+            <div class="filter-pills-bar" style="margin-top: 4px;">
+              <button type="button" class="filter-pill-item tag-category-pill ${this.selectedCategory === 'all' ? 'active' : ''}" data-category="all" onclick="TagManagerComponent.setCategoryFilter('all')">
+                <span>All</span>
+                <span class="filter-pill-count">${this.presets.length}</span>
+              </button>
+              ${Array.from(new Set(this.presets.map(p => p.category || 'General').filter(Boolean))).sort().slice(0, 6).map(cat => {
+                const count = this.presets.filter(p => (p.category || 'General').toLowerCase() === cat.toLowerCase()).length;
+                return `
+                  <button type="button" class="filter-pill-item tag-category-pill ${this.selectedCategory === cat ? 'active' : ''}" data-category="${this.escapeHtml(cat)}" onclick="TagManagerComponent.setCategoryFilter('${this.escapeHtml(cat).replace(/'/g, "\\'")}')">
+                    <span>${this.escapeHtml(cat)}</span>
+                    <span class="filter-pill-count">${count}</span>
+                  </button>
+                `;
+              }).join('')}
             </div>
           </div>
 
@@ -171,7 +222,7 @@ const TagManagerComponent = {
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-cyber btn-cyber-primary" data-close-modal="true" onclick="window.closeModal('tagManagerModal')">
+          <button type="button" class="btn-action-premium primary-teal" data-close-modal="true" onclick="window.closeModal('tagManagerModal')">
             DONE / CLOSE
           </button>
         </div>
@@ -181,9 +232,36 @@ const TagManagerComponent = {
     this.wireModalListeners();
   },
 
+  clearSearch() {
+    this.searchQuery = '';
+    const search = document.getElementById('tagMgrSearch');
+    if (search) search.value = '';
+    const list = document.getElementById('tagPresetsListContainer');
+    if (list) list.innerHTML = this.renderPresetsCardsHtml();
+  },
+
+  setCategoryFilter(cat) {
+    this.selectedCategory = cat;
+    const catSelect = document.getElementById('tagMgrCategorySelect');
+    if (catSelect) catSelect.value = cat;
+    document.querySelectorAll('.tag-category-pill').forEach(pill => {
+      if (pill.getAttribute('data-category') === cat) {
+        pill.classList.add('active');
+      } else {
+        pill.classList.remove('active');
+      }
+    });
+    const list = document.getElementById('tagPresetsListContainer');
+    if (list) list.innerHTML = this.renderPresetsCardsHtml();
+  },
+
   renderPresetsCardsHtml() {
     const q = this.searchQuery.trim().toLowerCase();
+    const cat = this.selectedCategory || 'all';
     const filtered = this.presets.filter(p => {
+      if (cat !== 'all' && (p.category || 'General').toLowerCase() !== cat.toLowerCase()) {
+        return false;
+      }
       if (!q) return true;
       return (
         p.name.toLowerCase().includes(q) ||
@@ -195,7 +273,7 @@ const TagManagerComponent = {
     if (filtered.length === 0) {
       return `
         <div style="text-align: center; padding: 30px; color: var(--text-dim); background: rgba(0,0,0,0.15); border-radius: var(--radius-sm);">
-          No tag presets matched your search criteria.
+          No tag presets matched your filter criteria.
         </div>
       `;
     }
@@ -284,6 +362,14 @@ const TagManagerComponent = {
         this.searchQuery = e.target.value;
         const list = document.getElementById('tagPresetsListContainer');
         if (list) list.innerHTML = this.renderPresetsCardsHtml();
+      };
+    }
+
+    const catSelect = document.getElementById('tagMgrCategorySelect');
+    if (catSelect) {
+      catSelect.value = this.selectedCategory || 'all';
+      catSelect.onchange = (e) => {
+        this.setCategoryFilter(e.target.value);
       };
     }
 

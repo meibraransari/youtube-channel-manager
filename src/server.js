@@ -43,9 +43,11 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "data:"],
         imgSrc: ["'self'", "data:", "https:", "http:"],
-        connectSrc: ["'self'", "https:", "http:"]
+        connectSrc: ["'self'", "https:", "http:"],
+        upgradeInsecureRequests: null
       }
     },
+    hsts: false,
     crossOriginEmbedderPolicy: false
   })
 );

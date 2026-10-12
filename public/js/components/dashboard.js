@@ -52,7 +52,7 @@ const DashboardComponent = {
             </div>
 
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <button class="btn-cyber btn-cyber-primary" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px;">
+              <button class="btn-cyber btn-cyber-primary" id="dashDeployContentBtn" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px;">
                 <span>✨</span>
                 <span>Deploy New Content</span>
               </button>
@@ -328,6 +328,15 @@ const DashboardComponent = {
           if (dVal) DashboardComponent.switchHeatmapWindow(dVal);
         });
       });
+
+      // Direct Event Listener Binding for Deploy New Content button
+      const deployBtn = container.querySelector('#dashDeployContentBtn');
+      if (deployBtn) {
+        deployBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.navigateTo('wizard', 'short');
+        });
+      }
 
     } catch (err) {
       container.innerHTML = `

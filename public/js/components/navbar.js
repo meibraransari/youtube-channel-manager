@@ -93,7 +93,7 @@ const NavbarComponent = {
         <div class="nav-actions">
           ${currentUser ? `
             <!-- Deploy New Content CTA (matches green pill button in screenshot) -->
-            <button class="btn-cyber btn-cyber-primary btn-sm" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+            <button class="btn-cyber btn-cyber-primary btn-sm" id="navDeployContentBtn" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
               <span>✨</span>
               <span>Deploy Content</span>
             </button>
@@ -241,6 +241,15 @@ const NavbarComponent = {
         }
         API.setActiveChannelId(selectedId);
         Toast.show(`Active channel updated: ${chSelect.options[chSelect.selectedIndex].text}`, 'info', 1800);
+      };
+    }
+
+    // Direct Event Listener for Deploy Content button
+    const navDeployBtn = document.getElementById('navDeployContentBtn');
+    if (navDeployBtn) {
+      navDeployBtn.onclick = (e) => {
+        e.preventDefault();
+        window.navigateTo('wizard', 'short');
       };
     }
 

@@ -7,6 +7,8 @@ const WizardComponent = {
   channels: [],
   tagPresets: [],
   preselectedType: null,
+  returnView: 'dashboard',
+  _escBound: false,
   formData: {
     channel_id: '',
     content_type: 'short',
@@ -19,6 +21,68 @@ const WizardComponent = {
     description: '',
     status: 'pending',
     scheduled_at: null
+  },
+
+  getReturnView() {
+    let target = this.returnView;
+    if (!target || target === 'wizard') {
+      try {
+        target = sessionStorage.getItem('yt_wizard_return_view');
+      } catch (_) {}
+    }
+    if (!target || target === 'wizard') target = 'dashboard';
+    return target;
+  },
+
+  getReturnViewLabel() {
+    const v = this.getReturnView();
+    switch (v) {
+      case 'shorts': return 'Shorts';
+      case 'videos': return 'Videos';
+      case 'podcasts': return 'Podcasts';
+      case 'content': return 'Content Hub';
+      case 'subscriptions': return 'Subscriptions';
+      case 'channels': return 'Channels';
+      case 'tracker': return 'Tracker';
+      case 'settings': return 'Settings';
+      case 'users': return 'Team';
+      case 'audit': return 'Audit Logs';
+      case 'dashboard':
+      default: return 'Dashboard';
+    }
+  },
+
+  cancelWizard() {
+    this.saveCurrentStepInputs();
+    const hasData = Boolean(
+      (this.formData.title && this.formData.title.trim()) ||
+      (this.formData.topic && this.formData.topic.trim()) ||
+      (this.formData.description && this.formData.description.trim()) ||
+      (this.formData.image_prompt && this.formData.image_prompt.trim()) ||
+      (this.formData.tags && this.formData.tags.trim()) ||
+      (this.formData.video_url && this.formData.video_url.trim()) ||
+      (this.formData.image_url && this.formData.image_url.trim())
+    );
+
+    const proceedExit = () => {
+      const target = this.getReturnView();
+      Toast.show('Content Creator Wizard closed', 'info');
+      if (window.App && typeof window.App.navigateTo === 'function') {
+        window.App.navigateTo(target);
+      } else if (typeof window.navigateTo === 'function') {
+        window.navigateTo(target);
+      } else {
+        window.location.hash = target;
+      }
+    };
+
+    if (hasData) {
+      if (confirm('Discard unsaved content and exit the Content Creator Wizard?')) {
+        proceedExit();
+      }
+    } else {
+      proceedExit();
+    }
   },
 
   async initChannels() {
@@ -75,16 +139,45 @@ const WizardComponent = {
 
     if (!container) return;
 
+    if (!this._escBound) {
+      this._escBound = true;
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && window.App && window.App.currentView === 'wizard') {
+          if (document.querySelector('.modal-overlay.active')) return;
+          this.cancelWizard();
+        }
+      });
+    }
+
+    const returnLabel = this.getReturnViewLabel();
+
     container.innerHTML = `
       <div style="max-width: 860px; margin: 0 auto;">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="font-size: 22px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-main);">
-            🧙 CONTENT CREATOR WIZARD
-          </h1>
-          <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
-            Step-by-step pipeline for engineering high-CTR YouTube Shorts, Long Videos, and Podcast episodes
-          </p>
+        <!-- Header with Back & Cancel Buttons -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 14px; flex-wrap: wrap;">
+          <button type="button" class="btn-action-premium outline-neutral" onclick="WizardComponent.cancelWizard()" title="Return to ${returnLabel}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Back to ${returnLabel}</span>
+          </button>
+          
+          <div style="text-align: center; flex: 1; min-width: 220px;">
+            <h1 style="font-size: 20px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-main); margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <span>🧙</span> CONTENT CREATOR WIZARD
+            </h1>
+            <p style="color: var(--text-muted); font-size: 12.5px; margin-top: 4px; margin-bottom: 0;">
+              Step-by-step pipeline for engineering high-CTR YouTube Shorts, Long Videos, and Podcast episodes
+            </p>
+          </div>
+
+          <button type="button" class="btn-action-premium danger-subtle" onclick="WizardComponent.cancelWizard()" title="Cancel and close wizard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            <span>Cancel Wizard</span>
+          </button>
         </div>
 
         <!-- Wizard Box -->
@@ -119,14 +212,31 @@ const WizardComponent = {
           </div>
 
           <!-- Footer Buttons -->
-          <div class="modal-footer" style="padding: 18px 28px; background: rgba(0,0,0,0.15);">
-            <button class="btn-cyber btn-cyber-outline" id="wizardPrevBtn" style="display: none;">
-              ◀ PREVIOUS STEP
-            </button>
-            <div style="flex: 1;"></div>
-            <button class="btn-cyber btn-cyber-primary" id="wizardNextBtn">
-              NEXT STEP ▶
-            </button>
+          <div class="modal-footer" style="padding: 16px 24px; background: rgba(0,0,0,0.18); display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-subtle); gap: 12px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" class="btn-action-premium danger-subtle" id="wizardCancelBtn" onclick="WizardComponent.cancelWizard()" title="Cancel and exit wizard">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Cancel Wizard</span>
+              </button>
+              <button type="button" class="btn-action-premium outline-neutral" id="wizardPrevBtn" style="display: none;" title="Go to previous step">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                <span>Previous Step</span>
+              </button>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" class="btn-action-premium primary-teal" id="wizardNextBtn" title="Continue to next step">
+                <span>Next Step</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -144,6 +254,7 @@ const WizardComponent = {
     const body = document.getElementById('wizardStepBody');
     const prevBtn = document.getElementById('wizardPrevBtn');
     const nextBtn = document.getElementById('wizardNextBtn');
+    const cancelBtn = document.getElementById('wizardCancelBtn');
 
     if (!body) return;
 
@@ -156,17 +267,32 @@ const WizardComponent = {
       else if (i < this.currentStep) node.classList.add('completed');
     }
 
+    if (cancelBtn) {
+      cancelBtn.style.display = 'inline-flex';
+    }
+
     if (prevBtn) {
       prevBtn.style.display = this.currentStep > 1 ? 'inline-flex' : 'none';
     }
 
     if (nextBtn) {
       if (this.currentStep === 5) {
-        nextBtn.innerHTML = `🚀 DEPLOY DIRECTIVE`;
-        nextBtn.className = 'btn-cyber btn-cyber-primary';
+        nextBtn.innerHTML = `
+          <span>Deploy Directive</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        `;
+        nextBtn.className = 'btn-action-premium primary-teal';
       } else {
-        nextBtn.innerHTML = `NEXT STEP ▶`;
-        nextBtn.className = 'btn-cyber btn-cyber-primary';
+        nextBtn.innerHTML = `
+          <span>Next Step</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        `;
+        nextBtn.className = 'btn-action-premium primary-teal';
       }
     }
 
@@ -673,10 +799,18 @@ const WizardComponent = {
   async submitWizard() {
     this.saveCurrentStepInputs();
     const nextBtn = document.getElementById('wizardNextBtn');
+    const prevBtn = document.getElementById('wizardPrevBtn');
+    const cancelBtn = document.getElementById('wizardCancelBtn');
+
     if (nextBtn) {
       nextBtn.disabled = true;
-      nextBtn.innerHTML = `<span>⏳</span> COMMITTING TO POSTGRESQL...`;
+      nextBtn.innerHTML = `
+        <span class="spin-icon">⏳</span>
+        <span>Committing Directive...</span>
+      `;
     }
+    if (prevBtn) prevBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
 
     try {
       const payload = {
@@ -689,20 +823,30 @@ const WizardComponent = {
       const res = await API.content.create(payload);
       Toast.show(`Successfully deployed new ${payload.content_type.toUpperCase()} (#${res.data.id})!`, 'success');
       
-      // Navigate to content view
+      // Navigate to corresponding view or return view
       if (payload.content_type === 'short') {
         window.navigateTo('shorts');
       } else if (payload.content_type === 'video') {
         window.navigateTo('videos');
+      } else if (payload.content_type === 'podcast') {
+        window.navigateTo('podcasts');
       } else {
-        window.navigateTo('content');
+        window.navigateTo(this.getReturnView());
       }
     } catch (err) {
       Toast.show(`Submission failed: ${err.message}`, 'error');
       if (nextBtn) {
         nextBtn.disabled = false;
-        nextBtn.innerHTML = `🚀 DEPLOY DIRECTIVE`;
+        nextBtn.innerHTML = `
+          <span>Deploy Directive</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        `;
       }
+      if (prevBtn) prevBtn.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
     }
   }
 };

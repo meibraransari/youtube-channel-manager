@@ -86,11 +86,23 @@ const App = {
   isNavigating: false,
 
   navigateTo(view, updateHash = true, extra = null) {
-    if (view === 'wizard' && extra && window.WizardComponent) {
-      window.WizardComponent.preselectedType = extra;
+    const cleanView = String(view).replace(/^#\/?/, '') || 'dashboard';
+
+    // Track origin before navigating to wizard
+    if (cleanView === 'wizard') {
+      if (this.currentView && this.currentView !== 'wizard') {
+        if (window.WizardComponent) {
+          window.WizardComponent.returnView = this.currentView;
+        }
+        try {
+          sessionStorage.setItem('yt_wizard_return_view', this.currentView);
+        } catch (_) {}
+      }
+      if (extra && window.WizardComponent) {
+        window.WizardComponent.preselectedType = extra;
+      }
     }
 
-    const cleanView = String(view).replace(/^#\/?/, '') || 'dashboard';
     const currentHash = window.location.hash.replace(/^#\/?/, '') || 'dashboard';
 
     // If already on this view and hash matches, only re-render if extra is provided

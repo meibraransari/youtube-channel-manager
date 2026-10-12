@@ -144,6 +144,10 @@ const API = {
     flushAll: (payload) => API.request('/api/settings/flush-all', {
       method: 'POST',
       body: JSON.stringify(payload)
+    }),
+    testSmtp: (data) => API.request('/api/settings/test-smtp', {
+      method: 'POST',
+      body: JSON.stringify(data)
     })
   },
 

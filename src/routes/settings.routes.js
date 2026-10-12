@@ -4,6 +4,7 @@ const { query } = require('../config/db');
 const { authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { logger, setLogLevel } = require('../config/logger');
+const { testSmtpConnection } = require('../services/smtp.service');
 
 /**
  * GET /api/settings
@@ -131,6 +132,75 @@ router.put('/', authenticateToken, requirePermission('can_manage_settings'), asy
   } catch (err) {
     logger.error(`[SETTINGS-BULK-UPDATE-ERROR] ${err.message}`);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/settings/test-smtp
+ * Test SMTP server connectivity and optionally dispatch a live test email
+ */
+router.post('/test-smtp', authenticateToken, requirePermission('can_manage_settings'), async (req, res) => {
+  try {
+    const { 
+      smtp_host, 
+      smtp_port, 
+      smtp_encryption, 
+      smtp_auth_enabled, 
+      smtp_user, 
+      smtp_pass, 
+      smtp_from_email, 
+      smtp_from_name,
+      smtp_allow_self_signed,
+      smtp_timeout_seconds,
+      test_recipient_email 
+    } = req.body;
+
+    const recipient = (test_recipient_email || req.user.email || '').trim();
+    if (!recipient) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Recipient email address is required to dispatch a test email.' 
+      });
+    }
+
+    const testResult = await testSmtpConnection({
+      smtp_host,
+      smtp_port,
+      smtp_encryption,
+      smtp_auth_enabled,
+      smtp_user,
+      smtp_pass,
+      smtp_from_email,
+      smtp_from_name,
+      smtp_allow_self_signed,
+      smtp_timeout_seconds
+    }, recipient, req.user.username);
+
+    await recordAudit(req, {
+      action: 'SMTP_TEST',
+      entity: 'settings',
+      entityId: 'smtp',
+      details: {
+        host: testResult.host,
+        port: testResult.port,
+        recipient,
+        latencyMs: testResult.totalLatencyMs
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: `SMTP connection verified and test email delivered to ${recipient}!`,
+      details: testResult
+    });
+  } catch (err) {
+    logger.error(`[SMTP-TEST-FAILED] ${err.message}`);
+    return res.status(400).json({
+      success: false,
+      error: err.message,
+      code: err.code || 'SMTP_ERROR',
+      command: err.command || null
+    });
   }
 });
 

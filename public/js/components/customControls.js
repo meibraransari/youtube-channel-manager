@@ -267,6 +267,7 @@ window.openModal = function(modalOrId) {
   if (modal.parentElement !== document.body) {
     document.body.appendChild(modal);
   }
+  modal.style.display = 'flex';
   modal.classList.add('open');
 };
 
@@ -274,11 +275,15 @@ window.closeModal = function(modalOrId) {
   const modal = typeof modalOrId === 'string' ? document.getElementById(modalOrId) : modalOrId;
   if (modal) {
     modal.classList.remove('open');
+    modal.style.display = 'none';
   }
 };
 
 window.closeAllModals = function() {
-  document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.classList.remove('open');
+    m.style.display = 'none';
+  });
 };
 
 // Global click listener ensuring every close trigger, backdrop click, and cancel button ALWAYS works
@@ -291,6 +296,7 @@ document.addEventListener('click', (e) => {
     const modal = closeBtn.closest('.modal-overlay');
     if (modal) {
       modal.classList.remove('open');
+      modal.style.display = 'none';
     }
     return;
   }
@@ -298,6 +304,7 @@ document.addEventListener('click', (e) => {
   // 2. Click on modal overlay backdrop itself
   if (e.target.classList && e.target.classList.contains('modal-overlay')) {
     e.target.classList.remove('open');
+    e.target.style.display = 'none';
     return;
   }
 

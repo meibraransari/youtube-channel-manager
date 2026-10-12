@@ -114,9 +114,17 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_users'), asy
 
     const targetUser = findRes.rows[0];
 
-    // Prevent deactivating own account
+    // Prevent deactivating own account or root admin
     if (req.user.id === id && is_active === false) {
       return res.status(400).json({ success: false, error: 'You cannot deactivate your own account' });
+    }
+    if (targetUser.username === 'admin') {
+      if (is_active === false) {
+        return res.status(400).json({ success: false, error: 'Root administrator account cannot be deactivated' });
+      }
+      if (role && role !== 'admin') {
+        return res.status(400).json({ success: false, error: 'Root administrator account must maintain admin role' });
+      }
     }
 
     const fields = [];

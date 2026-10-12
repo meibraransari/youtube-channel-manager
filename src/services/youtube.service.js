@@ -285,6 +285,122 @@ async function getYouTubeShorts(handle) {
 }
 
 /**
+ * Concurrency limited promise runner
+ */
+async function mapConcurrent(items, limit, fn) {
+  const results = [];
+  const executing = [];
+  for (const item of items) {
+    const p = Promise.resolve().then(() => fn(item));
+    results.push(p);
+    if (limit <= items.length) {
+      const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+      executing.push(e);
+      if (executing.length >= limit) {
+        await Promise.race(executing);
+      }
+    }
+  }
+  return Promise.all(results);
+}
+
+/**
+ * Extract YouTube Video ID from any format (standard URL, short URL, youtu.be, or raw ID)
+ */
+function extractVideoId(videoIdOrUrl) {
+  if (!videoIdOrUrl) return '';
+  const str = String(videoIdOrUrl).trim();
+  const match = str.match(/(?:v=|\/shorts\/|\/watch\/|youtu\.be\/|^)([a-zA-Z0-9_-]{11})(?:[?&#]|$)/);
+  if (match) return match[1];
+  if (/^[a-zA-Z0-9_-]{11}$/.test(str)) return str;
+  return '';
+}
+
+/**
+ * Scrape full real creator video metadata from YouTube watch page:
+ * - Complete un-truncated description with links & timestamps
+ * - Real uploaded tags/keywords
+ * - Video title and exact view count
+ */
+async function fetchYouTubeVideoDetails(videoIdOrUrl) {
+  const videoId = extractVideoId(videoIdOrUrl);
+  if (!videoId) {
+    throw new Error('Invalid YouTube video ID or URL format');
+  }
+
+  const targetUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  logger.info(`[YT-SERVICE] Fetching full video details: ${targetUrl}`);
+  const html = await fetchHttp(targetUrl);
+
+  let title = '';
+  let description = '';
+  let tags = [];
+  let views = 0;
+
+  // 1. Primary extraction from ytInitialPlayerResponse
+  const playerMatch = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});(?:var|<\/script)/) ||
+                      html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
+  if (playerMatch) {
+    try {
+      const data = JSON.parse(playerMatch[1]);
+      const vd = data.videoDetails || {};
+      title = vd.title || '';
+      description = vd.shortDescription || '';
+      if (Array.isArray(vd.keywords)) {
+        tags = vd.keywords.map(k => String(k).trim()).filter(Boolean);
+      }
+      views = parseInt(vd.viewCount, 10) || 0;
+    } catch (e) {
+      logger.warn(`[YT-SERVICE] Failed parsing player JSON for ${videoId}: ${e.message}`);
+    }
+  }
+
+  // 2. Fallbacks for title, description, and keywords
+  if (!title) {
+    const titleMatch = html.match(/<meta\s+name=["']title["']\s+content=["']([^"']+)["']/i) ||
+                       html.match(/<title>([^<]+)<\/title>/i);
+    if (titleMatch) title = titleMatch[1].replace(/\s*-\s*YouTube$/i, '').trim();
+  }
+  if (!description) {
+    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i) ||
+                      html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
+    if (descMatch) description = descMatch[1].trim();
+  }
+  if (tags.length === 0) {
+    const kwMatch = html.match(/<meta\s+name=["']keywords["']\s+content=["']([^"']+)["']/i);
+    if (kwMatch) {
+      tags = kwMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+    }
+  }
+
+  // Extract hashtags from description if tags list is sparse
+  const hashMatches = (description.match(/#[a-zA-Z0-9_\u0080-\uFFFF]+/g) || [])
+    .map(h => h.replace(/^#/, ''))
+    .filter(Boolean);
+  for (const h of hashMatches) {
+    if (!tags.includes(h)) tags.push(h);
+  }
+
+  // PostgreSQL trigger check_tags_length_func enforces LENGTH(tags) <= 500
+  let tagsString = tags.join(', ');
+  if (tagsString.length > 500) {
+    const trimmed = tagsString.substring(0, 495);
+    const lastComma = trimmed.lastIndexOf(',');
+    tagsString = (lastComma > 0 ? trimmed.substring(0, lastComma) : trimmed).trim();
+  }
+
+  return {
+    videoId,
+    title,
+    description,
+    tags: tagsString,
+    tagsArray: tags,
+    views,
+    videoUrl: `https://www.youtube.com/watch?v=${videoId}`
+  };
+}
+
+/**
  * Ingest or Live Sync a YouTube Channel & All Its Real Content Assets into Database
  */
 async function syncChannelRealData(channelIdOrHandle, triggeredBy = 'system') {
@@ -316,6 +432,21 @@ async function syncChannelRealData(channelIdOrHandle, triggeredBy = 'system') {
 
   const allAssets = [...realVideos, ...realShorts];
   const calculatedTotalViews = allAssets.reduce((sum, item) => sum + (item.views || 0), 0);
+
+  // 3b. Enrich all assets with real full creator description and real YouTube tags
+  logger.info(`[YT-SERVICE] Enriching ${allAssets.length} assets with full descriptions and tags from YouTube...`);
+  await mapConcurrent(allAssets, 5, async (asset) => {
+    try {
+      const details = await fetchYouTubeVideoDetails(asset.videoId);
+      if (details) {
+        if (details.description) asset.description = details.description;
+        if (details.tags) asset.tags = details.tags;
+        if (details.title) asset.title = details.title;
+      }
+    } catch (e) {
+      logger.warn(`[YT-SERVICE] Could not scrape watch metadata for ${asset.videoId}: ${e.message}`);
+    }
+  });
 
   // 4. Update or Insert Channel Record
   if (!channel) {
@@ -396,8 +527,8 @@ async function syncChannelRealData(channelIdOrHandle, triggeredBy = 'system') {
           asset.type,
           asset.title,
           asset.title,
-          `Real YouTube ${asset.type === 'short' ? 'Short' : 'Video'} imported from ${channel.name} (${channel.handle})`,
-          `${channel.name.toLowerCase()}, ${asset.type}, devops, tutorial`,
+          asset.description || `Real YouTube ${asset.type === 'short' ? 'Short' : 'Video'} imported from ${channel.name} (${channel.handle})`,
+          asset.tags || `${channel.name.toLowerCase()}, ${asset.type}`,
           asset.url,
           asset.thumbnail,
           asset.views,
@@ -408,11 +539,27 @@ async function syncChannelRealData(channelIdOrHandle, triggeredBy = 'system') {
       );
       insertedCount++;
     } else {
-      // Update view count and ensure uploaded_at is populated
+      // Update view count, title, thumbnail, uploaded_at, and update real description & tags if available
       const oldViews = parseInt(existing.rows[0].views_count || 0, 10);
       await query(
-        'UPDATE content_items SET views_count = $1, title = $2, image_url = $3, uploaded_at = COALESCE(uploaded_at, $4), updated_at = CURRENT_TIMESTAMP WHERE id = $5',
-        [asset.views, asset.title, asset.thumbnail, asset.uploadedAt || new Date(), existing.rows[0].id]
+        `UPDATE content_items SET
+          views_count = $1,
+          title = $2,
+          image_url = $3,
+          uploaded_at = COALESCE(uploaded_at, $4),
+          description = CASE WHEN $5 != '' THEN $5 ELSE description END,
+          tags = CASE WHEN $6 != '' THEN $6 ELSE tags END,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = $7`,
+        [
+          asset.views,
+          asset.title,
+          asset.thumbnail,
+          asset.uploadedAt || new Date(),
+          asset.description || '',
+          asset.tags || '',
+          existing.rows[0].id
+        ]
       );
       if (asset.views !== oldViews) {
         updatedCount++;
@@ -493,6 +640,8 @@ module.exports = {
   fetchHttp,
   parseHumanNumber,
   normalizeHandle,
+  extractVideoId,
+  fetchYouTubeVideoDetails,
   getYouTubeChannelInfo,
   getYouTubeVideos,
   getYouTubeShorts,

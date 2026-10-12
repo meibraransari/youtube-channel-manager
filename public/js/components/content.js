@@ -514,16 +514,21 @@ const ContentComponent = {
               <input type="text" id="editTopic" class="cyber-input" value="${this.escapeHtml(item.topic || '')}" style="margin-top: 4px;" />
             </div>
 
-            <!-- Video URL -->
+            <!-- Video URL with Fetch from YouTube Button -->
             <div>
-              <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">YOUTUBE URL</label>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">YOUTUBE URL</label>
+                <button type="button" class="btn-cyber btn-cyber-outline btn-sm" id="btnFetchYTMeta" style="padding: 2px 8px; font-size: 10px; display: inline-flex; align-items: center; gap: 4px;" title="Fetch live title, full description, and tags from YouTube">
+                  <span>🔄</span> Fetch from YouTube
+                </button>
+              </div>
               <input type="url" id="editVideoUrl" class="cyber-input" value="${this.escapeHtml(item.video_url || '')}" placeholder="https://youtube.com/shorts/... or https://youtu.be/..." style="margin-top: 4px;" />
             </div>
 
             <!-- Description -->
             <div>
               <label style="font-size: 11px; font-weight: 700; color: var(--text-dim);">DESCRIPTION / NOTES</label>
-              <textarea id="editDescription" class="cyber-input" rows="4" style="margin-top: 4px; resize: vertical;">${this.escapeHtml(item.description || '')}</textarea>
+              <textarea id="editDescription" class="cyber-input" rows="6" style="margin-top: 4px; resize: vertical; max-height: 250px; font-size: 12px; line-height: 1.5;">${this.escapeHtml(item.description || '')}</textarea>
             </div>
 
             <!-- Image Prompt -->
@@ -540,7 +545,7 @@ const ContentComponent = {
                   ${(item.tags || '').length} / 500 max
                 </span>
               </div>
-              <textarea id="editTags" class="cyber-input" rows="2" style="margin-top: 4px; resize: vertical;">${this.escapeHtml(item.tags || '')}</textarea>
+              <textarea id="editTags" class="cyber-input" rows="3" style="margin-top: 4px; resize: vertical; font-size: 11px; font-family: var(--font-mono);">${this.escapeHtml(item.tags || '')}</textarea>
             </div>
           </div>
           <div class="modal-footer">
@@ -562,6 +567,50 @@ const ContentComponent = {
         tagsCounter.textContent = `${tagsArea.value.length} / 500 max`;
         tagsCounter.style.color = tagsArea.value.length > 500 ? '#ef4444' : 'var(--text-dim)';
       };
+
+      // Wire up on-demand Fetch from YouTube button
+      const btnFetchYTMeta = document.getElementById('btnFetchYTMeta');
+      if (btnFetchYTMeta) {
+        btnFetchYTMeta.onclick = async (e) => {
+          e.preventDefault();
+          const urlInput = document.getElementById('editVideoUrl');
+          const videoUrl = urlInput.value.trim();
+          if (!videoUrl) {
+            Toast.show('Please enter a YouTube video or short URL first', 'warning');
+            urlInput.focus();
+            return;
+          }
+
+          const originalText = btnFetchYTMeta.innerHTML;
+          btnFetchYTMeta.disabled = true;
+          btnFetchYTMeta.innerHTML = '<span>⏳</span> Fetching...';
+
+          try {
+            const fetchRes = await API.content.fetchMeta({ video_url: videoUrl });
+            if (fetchRes.success && fetchRes.data) {
+              const d = fetchRes.data;
+              if (d.title) {
+                document.getElementById('editTitle').value = d.title;
+              }
+              if (d.description) {
+                document.getElementById('editDescription').value = d.description;
+              }
+              if (d.tags) {
+                tagsArea.value = d.tags;
+                tagsArea.dispatchEvent(new Event('input'));
+              }
+              Toast.show('Metadata successfully fetched from YouTube!', 'success');
+            } else {
+              Toast.show(fetchRes.error || 'Failed to extract YouTube details', 'error');
+            }
+          } catch (err) {
+            Toast.show(`Fetch failed: ${err.message}`, 'error');
+          } finally {
+            btnFetchYTMeta.disabled = false;
+            btnFetchYTMeta.innerHTML = originalText;
+          }
+        };
+      }
 
       document.getElementById('saveEditModalBtn').onclick = async () => {
         const title = document.getElementById('editTitle').value.trim();

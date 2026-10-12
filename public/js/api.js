@@ -116,7 +116,9 @@ const API = {
     rename: (id, data) => API.request(`/api/content/${id}/rename`, { method: 'PATCH', body: JSON.stringify(data) }),
     setStatus: (id, status) => API.request(`/api/content/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
     duplicate: (id) => API.request(`/api/content/${id}/duplicate`, { method: 'POST' }),
-    delete: (id) => API.request(`/api/content/${id}`, { method: 'DELETE' })
+    delete: (id) => API.request(`/api/content/${id}`, { method: 'DELETE' }),
+    fetchMeta: (data) => API.request('/api/content/fetch-meta', { method: 'POST', body: JSON.stringify(data) }),
+    syncYouTube: (id) => API.request(`/api/content/${id}/sync-youtube`, { method: 'POST' })
   },
 
   // Users

@@ -462,10 +462,10 @@ window.viewContentModal = async function(id) {
           ` : ''}
         </div>
         <div class="modal-footer">
-          <button class="btn-cyber btn-cyber-secondary btn-sm" onclick="window.closeModal('contentDetailModal'); ContentComponent.duplicateItem(${item.id});">
+          <button class="btn-cyber btn-cyber-secondary btn-sm" onclick="window.duplicateContentItem(${item.id}, event);">
             📋 CLONE / DUPLICATE
           </button>
-          <button class="btn-cyber btn-cyber-outline btn-sm" onclick="window.closeModal('contentDetailModal'); ContentComponent.openEditModal(${item.id});">
+          <button class="btn-cyber btn-cyber-outline btn-sm" onclick="window.openContentEditModal(${item.id}, event);">
             ✏️ EDIT METADATA
           </button>
           <button class="btn-cyber btn-cyber-primary btn-sm" data-close-modal="true" onclick="window.closeModal('contentDetailModal')">
@@ -479,6 +479,32 @@ window.viewContentModal = async function(id) {
   } catch (err) {
     Toast.show(`Failed to load details: ${err.message}`, 'error');
   }
+};
+
+window.openContentEditModal = function(id, event) {
+  if (event) {
+    if (typeof event.preventDefault === 'function') event.preventDefault();
+    if (typeof event.stopPropagation === 'function') event.stopPropagation();
+  }
+  window.closeModal('contentDetailModal');
+  setTimeout(() => {
+    if (window.ContentComponent && typeof window.ContentComponent.openEditModal === 'function') {
+      window.ContentComponent.openEditModal(id);
+    }
+  }, 40);
+};
+
+window.duplicateContentItem = function(id, event) {
+  if (event) {
+    if (typeof event.preventDefault === 'function') event.preventDefault();
+    if (typeof event.stopPropagation === 'function') event.stopPropagation();
+  }
+  window.closeModal('contentDetailModal');
+  setTimeout(() => {
+    if (window.ContentComponent && typeof window.ContentComponent.duplicateItem === 'function') {
+      window.ContentComponent.duplicateItem(id);
+    }
+  }, 40);
 };
 
 window.navigateTo = (view) => App.navigateTo(view);

@@ -5,6 +5,7 @@ const { query } = require('../config/db');
 const { authenticateToken, requirePermission } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { logger } = require('../config/logger');
+const { fetchYouTubeVideoDetails, extractVideoId } = require('../services/youtube.service');
 
 /**
  * GET /api/content
@@ -107,6 +108,70 @@ router.get('/:id', authenticateToken, requirePermission('can_view_content'), asy
     }
     return res.json({ success: true, data: itemRes.rows[0] });
   } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/content/fetch-meta
+ * On-demand scrape of video metadata (title, full description, keywords/tags) from YouTube
+ */
+router.post('/fetch-meta', authenticateToken, requirePermission('can_view_content'), async (req, res) => {
+  try {
+    const { video_url, videoId } = req.body;
+    const target = video_url || videoId;
+    if (!target) {
+      return res.status(400).json({ success: false, error: 'video_url or videoId is required' });
+    }
+
+    const details = await fetchYouTubeVideoDetails(target);
+    return res.json({
+      success: true,
+      data: details
+    });
+  } catch (err) {
+    logger.error(`[FETCH-YT-META-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/content/:id/sync-youtube
+ * Re-sync a specific content item with YouTube live metadata
+ */
+router.post('/:id/sync-youtube', authenticateToken, requirePermission('can_manage_content'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const itemRes = await query('SELECT * FROM content_items WHERE id = $1', [id]);
+    if (itemRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Content item not found' });
+    }
+
+    const item = itemRes.rows[0];
+    const target = item.video_url || item.media_uuid;
+    if (!target) {
+      return res.status(400).json({ success: false, error: 'No YouTube URL or ID associated with this item' });
+    }
+
+    const details = await fetchYouTubeVideoDetails(target);
+    const updateRes = await query(
+      `UPDATE content_items SET
+        title = COALESCE(NULLIF($1, ''), title),
+        description = COALESCE(NULLIF($2, ''), description),
+        tags = COALESCE(NULLIF($3, ''), tags),
+        views_count = CASE WHEN $4 > 0 THEN $4 ELSE views_count END,
+        updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5
+       RETURNING *`,
+      [details.title, details.description, details.tags, details.views, id]
+    );
+
+    return res.json({
+      success: true,
+      data: updateRes.rows[0]
+    });
+  } catch (err) {
+    logger.error(`[SYNC-YT-ITEM-ERROR] ${err.message}`);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

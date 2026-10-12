@@ -168,7 +168,8 @@ const API = {
 
   // Health
   health: {
-    get: () => API.request('/health')
+    get: () => API.request('/health'),
+    ping: () => API.request('/health/ping')
   },
 
   // Tags & Presets (Tag Manager)

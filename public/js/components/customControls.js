@@ -280,7 +280,7 @@ window.closeModal = function(modalOrId) {
 };
 
 window.closeAllModals = function() {
-  document.querySelectorAll('.modal-overlay').forEach(m => {
+  document.querySelectorAll('.modal-overlay, .cyber-modal').forEach(m => {
     m.classList.remove('open');
     m.style.display = 'none';
   });
@@ -293,7 +293,7 @@ document.addEventListener('click', (e) => {
   if (closeBtn) {
     e.preventDefault();
     e.stopPropagation();
-    const modal = closeBtn.closest('.modal-overlay');
+    const modal = closeBtn.closest('.modal-overlay, .cyber-modal');
     if (modal) {
       modal.classList.remove('open');
       modal.style.display = 'none';
@@ -302,7 +302,7 @@ document.addEventListener('click', (e) => {
   }
 
   // 2. Click on modal overlay backdrop itself
-  if (e.target.classList && e.target.classList.contains('modal-overlay')) {
+  if (e.target.classList && (e.target.classList.contains('modal-overlay') || e.target.classList.contains('cyber-modal'))) {
     e.target.classList.remove('open');
     e.target.style.display = 'none';
     return;

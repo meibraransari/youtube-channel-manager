@@ -558,7 +558,8 @@ a.nav-pill-item,
 /* ==============================================================================
    MODALS
    ============================================================================== */
-.modal-overlay {
+.modal-overlay,
+.cyber-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -574,7 +575,8 @@ a.nav-pill-item,
   z-index: 99999;
 }
 
-.modal-overlay.open {
+.modal-overlay.open,
+.cyber-modal.open {
   display: flex;
 }
 

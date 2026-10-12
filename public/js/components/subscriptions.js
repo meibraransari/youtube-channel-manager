@@ -159,34 +159,34 @@ const SubscriptionsComponent = {
 
           <!-- Action Buttons Bar -->
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-            <button class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openAddModal()" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+            <button type="button" class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openAddModal()" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
               <span>➕</span>
               <span>Add Subscription</span>
             </button>
 
-            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="display: flex; align-items: center; gap: 6px;" title="Import all 250+ subscriptions via Google Takeout CSV or JSON">
+            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="display: flex; align-items: center; gap: 6px;" title="Import all 250+ subscriptions via Google Takeout CSV or JSON">
               <span>📥</span>
               <span>Takeout Import</span>
             </button>
 
-            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: flex; align-items: center; gap: 6px; border-color: rgba(6, 182, 212, 0.4); color: var(--accent-cyan);" title="Sync all 250+ subscriptions directly using YouTube Data API v3">
+            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: flex; align-items: center; gap: 6px; border-color: rgba(6, 182, 212, 0.4); color: var(--accent-cyan);" title="Sync all 250+ subscriptions directly using YouTube Data API v3">
               <span>🔑</span>
               <span>API Sync (250+)</span>
             </button>
 
-            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.triggerSync()" style="display: flex; align-items: center; gap: 6px;" title="Sync live subscriber count & metrics from YouTube">
+            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.triggerSync()" style="display: flex; align-items: center; gap: 6px;" title="Sync live subscriber count & metrics from YouTube">
               <span>🔄</span>
               <span>Sync Metrics</span>
             </button>
 
             <!-- Export Dropdown / Buttons -->
             <div style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--border-color); padding-left: 10px;">
-              <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.exportCSV()" style="display: flex; align-items: center; gap: 5px; color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.4);" title="Export filtered records as CSV file">
+              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.exportCSV()" style="display: flex; align-items: center; gap: 5px; color: var(--accent-emerald); border-color: rgba(16, 185, 129, 0.4);" title="Export filtered records as CSV file">
                 <span>📊</span>
                 <span>Export CSV</span>
               </button>
 
-              <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.exportJSON()" style="display: flex; align-items: center; gap: 5px; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4);" title="Export filtered records as JSON file">
+              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.exportJSON()" style="display: flex; align-items: center; gap: 5px; color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4);" title="Export filtered records as JSON file">
                 <span>💾</span>
                 <span>Export JSON</span>
               </button>
@@ -202,18 +202,26 @@ const SubscriptionsComponent = {
               <div style="font-weight: 700; color: var(--text-main); font-size: 13px;">
                 Looking for your full 250+ Subscribed Channels?
               </div>
-              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5;">
                 YouTube accounts default to <em>Private Subscriptions</em>, so web scrapers only see a baseline. You can load all 250+ in seconds: 
-                <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-teal); text-decoration: underline;">Download Google Takeout CSV</a> and click <strong>Takeout Import</strong>, or use <strong>API Sync</strong>!
+                <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-teal); text-decoration: underline; font-weight: 600;">Download Google Takeout CSV ↗</a> and click 
+                <a href="javascript:void(0)" onclick="SubscriptionsComponent.openImportModal(); return false;" class="badge badge-teal" role="button" style="cursor: pointer; text-decoration: none; font-size: 11px; padding: 2px 7px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">
+                  📥 Takeout Import
+                </a>, or use 
+                <a href="javascript:void(0)" onclick="SubscriptionsComponent.openApiSyncModal(); return false;" class="badge badge-cyan" role="button" style="cursor: pointer; text-decoration: none; font-size: 11px; padding: 2px 7px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">
+                  🔑 API Sync
+                </a>!
               </div>
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="font-weight: 700;">
-              📥 Takeout Import
+            <button type="button" class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+              <span>📥</span>
+              <span>Takeout Import</span>
             </button>
-            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()">
-              🔑 YouTube API Sync
+            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: inline-flex; align-items: center; gap: 6px;">
+              <span>🔑</span>
+              <span>YouTube API Sync</span>
             </button>
           </div>
         </div>
@@ -841,14 +849,14 @@ const SubscriptionsComponent = {
     const defaultChannelId = this.activeChannelId !== 'all' ? this.activeChannelId : (this.channels[0]?.id || '');
 
     modalRoot.innerHTML = `
-      <div class="cyber-modal open" id="addSubModal" onclick="if(event.target===this) window.closeModal('addSubModal')">
-        <div class="glass-card cyber-modal-card" style="max-width: 520px; border-color: var(--accent-teal);">
+      <div class="modal-overlay cyber-modal open" id="addSubModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('addSubModal')">
+        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 520px; border-color: var(--accent-teal);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 22px;">➕</span>
               <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">Add Subscribed Channel</h3>
             </div>
-            <button class="modal-close-btn" onclick="window.closeModal('addSubModal')">✕</button>
+            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('addSubModal')">✕</button>
           </div>
 
           <form id="addSubForm" onsubmit="SubscriptionsComponent.handleAddSubmit(event)">
@@ -932,7 +940,7 @@ const SubscriptionsComponent = {
 
             <!-- Buttons -->
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" onclick="window.closeModal('addSubModal')">Cancel</button>
+              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('addSubModal')">Cancel</button>
               <button type="submit" class="btn-cyber btn-cyber-primary" id="saveSubBtn">
                 💾 Save Subscription
               </button>
@@ -1034,8 +1042,8 @@ const SubscriptionsComponent = {
     if (!modalRoot) return;
 
     modalRoot.innerHTML = `
-      <div class="cyber-modal open" id="editSubModal" onclick="if(event.target===this) window.closeModal('editSubModal')">
-        <div class="glass-card cyber-modal-card" style="max-width: 480px; border-color: var(--accent-cyan);">
+      <div class="modal-overlay cyber-modal open" id="editSubModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('editSubModal')">
+        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 480px; border-color: var(--accent-cyan);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 20px;">✏️</span>
@@ -1043,7 +1051,7 @@ const SubscriptionsComponent = {
                 Edit Subscription: ${this.escapeHtml(sub.subscribed_channel_title)}
               </h3>
             </div>
-            <button class="modal-close-btn" onclick="window.closeModal('editSubModal')">✕</button>
+            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('editSubModal')">✕</button>
           </div>
 
           <form onsubmit="SubscriptionsComponent.handleEditSubmit(event, '${sub.id}')">
@@ -1069,7 +1077,7 @@ const SubscriptionsComponent = {
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" onclick="window.closeModal('editSubModal')">Cancel</button>
+              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('editSubModal')">Cancel</button>
               <button type="submit" class="btn-cyber btn-cyber-primary">Update Subscription</button>
             </div>
           </form>
@@ -1122,8 +1130,8 @@ const SubscriptionsComponent = {
     const defaultChannelId = this.activeChannelId !== 'all' ? this.activeChannelId : (this.channels[0]?.id || '');
 
     modalRoot.innerHTML = `
-      <div class="cyber-modal open" id="importSubModal" onclick="if(event.target===this) window.closeModal('importSubModal')">
-        <div class="glass-card cyber-modal-card" style="max-width: 620px; border-color: var(--accent-emerald);">
+      <div class="modal-overlay cyber-modal open" id="importSubModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('importSubModal')">
+        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 620px; border-color: var(--accent-emerald);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 22px;">📥</span>
@@ -1131,7 +1139,7 @@ const SubscriptionsComponent = {
                 Import All 250+ YouTube Subscriptions
               </h3>
             </div>
-            <button class="modal-close-btn" onclick="window.closeModal('importSubModal')">✕</button>
+            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('importSubModal')">✕</button>
           </div>
 
           <!-- Step-by-Step Takeout Guidance Box -->
@@ -1190,7 +1198,7 @@ https://www.youtube.com/@networkchuck
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" onclick="window.closeModal('importSubModal')">Cancel</button>
+              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('importSubModal')">Cancel</button>
               <button type="button" class="btn-cyber btn-cyber-primary" id="startImportBtn" onclick="SubscriptionsComponent.processImport()">
                 🚀 Start Bulk Import
               </button>
@@ -1309,8 +1317,8 @@ https://www.youtube.com/@networkchuck
     const defaultChannelId = this.activeChannelId !== 'all' ? this.activeChannelId : (this.channels[0]?.id || '');
 
     modalRoot.innerHTML = `
-      <div class="cyber-modal open" id="apiSyncModal" onclick="if(event.target===this) window.closeModal('apiSyncModal')">
-        <div class="glass-card cyber-modal-card" style="max-width: 540px; border-color: var(--accent-cyan);">
+      <div class="modal-overlay cyber-modal open" id="apiSyncModal" style="display: flex;" onclick="if(event.target===this) window.closeModal('apiSyncModal')">
+        <div class="modal-dialog glass-card cyber-modal-card" style="max-width: 540px; border-color: var(--accent-cyan);">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 22px;">🔑</span>
@@ -1318,7 +1326,7 @@ https://www.youtube.com/@networkchuck
                 Sync Subscriptions via YouTube Data API
               </h3>
             </div>
-            <button class="modal-close-btn" onclick="window.closeModal('apiSyncModal')">✕</button>
+            <button class="modal-close-btn" data-close-modal="true" onclick="window.closeModal('apiSyncModal')">✕</button>
           </div>
 
           <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px;">
@@ -1350,7 +1358,7 @@ https://www.youtube.com/@networkchuck
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 10px;">
-              <button type="button" class="btn-cyber btn-cyber-outline" onclick="window.closeModal('apiSyncModal')">Cancel</button>
+              <button type="button" class="btn-cyber btn-cyber-outline" data-close-modal="true" onclick="window.closeModal('apiSyncModal')">Cancel</button>
               <button type="submit" class="btn-cyber btn-cyber-primary" id="apiSyncStartBtn">
                 🚀 Fetch All from YouTube API
               </button>

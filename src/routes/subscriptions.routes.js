@@ -580,6 +580,123 @@ router.post('/import', authenticateToken, requirePermission('can_manage_content'
 });
 
 /**
+ * POST /api/subscriptions/fetch-youtube-api
+ * Fetch all subscriptions directly from YouTube Data API v3 with pagination
+ */
+router.post('/fetch-youtube-api', authenticateToken, requirePermission('can_manage_content'), async (req, res) => {
+  try {
+    const { channel_id, api_key } = req.body;
+
+    if (!channel_id) {
+      return res.status(400).json({ success: false, error: 'Managed channel_id is required' });
+    }
+
+    // Retrieve channel from DB
+    const chRes = await query('SELECT * FROM channels WHERE id = $1', [channel_id]);
+    if (chRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Channel not found' });
+    }
+    const channel = chRes.rows[0];
+
+    // Determine API Key
+    let key = api_key;
+    if (!key) {
+      const keySetting = await query("SELECT value FROM system_settings WHERE key = 'youtube_api_key'");
+      if (keySetting.rows.length > 0) {
+        let val = keySetting.rows[0].value;
+        if (typeof val === 'string') {
+          try { val = JSON.parse(val); } catch {}
+        }
+        key = val;
+      }
+    }
+
+    if (!key || String(key).trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'YouTube Data API key is required. Please provide an API key or configure it in Settings.' 
+      });
+    }
+
+    const externalChannelId = channel.channel_id;
+    if (!externalChannelId || !externalChannelId.startsWith('UC')) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Channel does not have a valid YouTube external Channel ID (found: "${externalChannelId}"). Please update the channel in Channel Manager.` 
+      });
+    }
+
+    logger.info(`[YT-API-SUBS] Fetching all subscriptions for ${channel.name} (${externalChannelId}) via YouTube Data API v3...`);
+
+    let pageToken = '';
+    let totalImported = 0;
+    let pageCount = 0;
+
+    do {
+      pageCount++;
+      const url = `https://www.googleapis.com/youtube/v3/subscriptions?part=snippet,contentDetails&channelId=${encodeURIComponent(externalChannelId)}&maxResults=50${pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : ''}&key=${encodeURIComponent(key.trim())}`;
+      
+      const apiResponse = await fetch(url);
+      const data = await apiResponse.json();
+
+      if (!apiResponse.ok) {
+        const errMsg = data.error?.message || `YouTube API returned status ${apiResponse.status}`;
+        if (errMsg.includes('disabled subscriptions visibility') || errMsg.includes('subscriptions are private')) {
+          return res.status(400).json({
+            success: false,
+            error: 'YouTube Privacy Restriction: Subscriptions for this channel are set to Private on YouTube. To allow API sync, open YouTube -> Settings -> Privacy and turn OFF "Keep all my subscriptions private", OR use Google Takeout import to load all 250+ subscriptions without changing privacy settings.'
+          });
+        }
+        return res.status(400).json({ success: false, error: errMsg });
+      }
+
+      const items = data.items || [];
+      for (const item of items) {
+        const targetChId = item.snippet?.resourceId?.channelId;
+        const title = item.snippet?.title || 'Unknown Channel';
+        const description = item.snippet?.description || '';
+        const avatar = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.default?.url || null;
+        const targetUrl = `https://www.youtube.com/channel/${targetChId}`;
+        const subscribedAt = item.snippet?.publishedAt ? new Date(item.snippet.publishedAt) : new Date();
+
+        if (targetChId) {
+          await query(`
+            INSERT INTO channel_subscriptions
+            (channel_id, subscribed_channel_id, subscribed_channel_title, subscribed_channel_url, subscribed_channel_avatar, description, category, subscribed_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (channel_id, subscribed_channel_id) DO UPDATE SET
+              subscribed_channel_title = EXCLUDED.subscribed_channel_title,
+              subscribed_channel_url = EXCLUDED.subscribed_channel_url,
+              subscribed_channel_avatar = COALESCE(EXCLUDED.subscribed_channel_avatar, channel_subscriptions.subscribed_channel_avatar),
+              description = COALESCE(EXCLUDED.description, channel_subscriptions.description),
+              updated_at = CURRENT_TIMESTAMP
+          `, [channel.id, targetChId, title, targetUrl, avatar, description, 'YouTube API Sync', subscribedAt]);
+          totalImported++;
+        }
+      }
+
+      pageToken = data.nextPageToken || null;
+    } while (pageToken && pageCount < 20);
+
+    await recordAudit(req, {
+      action: 'MIGRATION',
+      entity: 'subscription',
+      details: { channel: channel.name, totalImported, pages: pageCount }
+    });
+
+    return res.json({
+      success: true,
+      message: `Successfully fetched and synchronized ${totalImported} subscriptions from YouTube Data API v3 across ${pageCount} pages!`,
+      totalImported,
+      pages: pageCount
+    });
+  } catch (err) {
+    logger.error(`[YT-API-SUBS-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * GET /api/subscriptions/export
  * Server-side export to CSV or JSON format
  */

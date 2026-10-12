@@ -164,9 +164,14 @@ const SubscriptionsComponent = {
               <span>Add Subscription</span>
             </button>
 
-            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="display: flex; align-items: center; gap: 6px;" title="Import Takeout CSV or JSON">
+            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="display: flex; align-items: center; gap: 6px;" title="Import all 250+ subscriptions via Google Takeout CSV or JSON">
               <span>📥</span>
               <span>Takeout Import</span>
+            </button>
+
+            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()" style="display: flex; align-items: center; gap: 6px; border-color: rgba(6, 182, 212, 0.4); color: var(--accent-cyan);" title="Sync all 250+ subscriptions directly using YouTube Data API v3">
+              <span>🔑</span>
+              <span>API Sync (250+)</span>
             </button>
 
             <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.triggerSync()" style="display: flex; align-items: center; gap: 6px;" title="Sync live subscriber count & metrics from YouTube">
@@ -186,6 +191,30 @@ const SubscriptionsComponent = {
                 <span>Export JSON</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- Explanatory Guide Box for Full 250+ Subscriptions -->
+        <div class="glass-card" style="padding: 14px 18px; margin-bottom: 22px; border-left: 3px solid var(--accent-cyan); background: rgba(6, 182, 212, 0.05); display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 280px; flex: 1;">
+            <span style="font-size: 24px;">💡</span>
+            <div>
+              <div style="font-weight: 700; color: var(--text-main); font-size: 13px;">
+                Looking for your full 250+ Subscribed Channels?
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
+                YouTube accounts default to <em>Private Subscriptions</em>, so web scrapers only see a baseline. You can load all 250+ in seconds: 
+                <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-teal); text-decoration: underline;">Download Google Takeout CSV</a> and click <strong>Takeout Import</strong>, or use <strong>API Sync</strong>!
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-cyber btn-cyber-primary btn-sm" onclick="SubscriptionsComponent.openImportModal()" style="font-weight: 700;">
+              📥 Takeout Import
+            </button>
+            <button class="btn-cyber btn-cyber-outline btn-sm" onclick="SubscriptionsComponent.openApiSyncModal()">
+              🔑 YouTube API Sync
+            </button>
           </div>
         </div>
 
@@ -1094,20 +1123,31 @@ const SubscriptionsComponent = {
 
     modalRoot.innerHTML = `
       <div class="cyber-modal open" id="importSubModal" onclick="if(event.target===this) window.closeModal('importSubModal')">
-        <div class="glass-card cyber-modal-card" style="max-width: 580px; border-color: var(--accent-emerald);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+        <div class="glass-card cyber-modal-card" style="max-width: 620px; border-color: var(--accent-emerald);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 22px;">📥</span>
               <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">
-                Import YouTube Takeout / CSV / JSON
+                Import All 250+ YouTube Subscriptions
               </h3>
             </div>
             <button class="modal-close-btn" onclick="window.closeModal('importSubModal')">✕</button>
           </div>
 
+          <!-- Step-by-Step Takeout Guidance Box -->
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; line-height: 1.5;">
+            <strong style="color: var(--accent-emerald); font-size: 13px;">💡 How to get your full 250+ Subscriptions in 30 seconds:</strong><br>
+            <span style="color: var(--text-muted);">
+              1. Open <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style="color: var(--accent-teal); text-decoration: underline; font-weight: 700;">Google Takeout ↗</a><br>
+              2. Click "Deselect all" &rarr; check <strong>YouTube and YouTube Music</strong> &rarr; click "All YouTube data included" &rarr; select only <strong>subscriptions</strong>.<br>
+              3. Click "Create export" &rarr; download the zip &rarr; extract <code>subscriptions.csv</code>.<br>
+              4. Upload or paste it below to instantly load all 250+ subscriptions into PostgreSQL!
+            </span>
+          </div>
+
           <div>
             <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Target Managed Channel</label>
+              <label class="cyber-label">Target Managed Channel (Subscriber)</label>
               <select id="importChannelId" class="cyber-input" style="width: 100%;">
                 ${this.channels.map(c => `
                   <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
@@ -1118,11 +1158,11 @@ const SubscriptionsComponent = {
             </div>
 
             <div style="margin-bottom: 14px;">
-              <label class="cyber-label">Upload CSV or JSON file</label>
+              <label class="cyber-label">Upload Takeout CSV or JSON File</label>
               <input 
                 type="file" 
                 id="importFileInput" 
-                accept=".csv, .json, text/csv, application/json" 
+                accept=".csv, .json, text/csv, application/json, text/plain" 
                 class="cyber-input" 
                 style="width: 100%; padding: 8px;"
                 onchange="SubscriptionsComponent.handleFileSelected(event)"
@@ -1133,12 +1173,19 @@ const SubscriptionsComponent = {
             </div>
 
             <div style="margin-bottom: 16px;">
-              <label class="cyber-label">Or Paste CSV / JSON Content Directly</label>
+              <label class="cyber-label">Or Paste CSV / JSON / List of Channel Links or Handles</label>
               <textarea 
                 id="importRawText" 
                 class="cyber-input" 
-                style="width: 100%; height: 110px; font-family: var(--font-mono); font-size: 11px;" 
-                placeholder='Channel Id,Channel Url,Channel Title\nUCsBjURrPoezykLs9EqgamOA,https://www.youtube.com/channel/...,Fireship'
+                style="width: 100%; height: 120px; font-family: var(--font-mono); font-size: 11px;" 
+                placeholder='Option A (Takeout CSV):
+Channel Id,Channel Url,Channel Title
+UCsBjURrPoezykLs9EqgamOA,http://www.youtube.com/channel/...,Fireship
+
+Option B (List of links or handles, one per line):
+@DevOpsToolkit
+https://www.youtube.com/@networkchuck
+@fireship'
               ></textarea>
             </div>
 
@@ -1163,6 +1210,7 @@ const SubscriptionsComponent = {
       const text = e.target.result;
       const textArea = document.getElementById('importRawText');
       if (textArea) textArea.value = text;
+      Toast.show(`Loaded ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, 'info');
     };
     reader.readAsText(file);
   },
@@ -1194,29 +1242,46 @@ const SubscriptionsComponent = {
         const parsed = JSON.parse(rawText);
         items = Array.isArray(parsed) ? parsed : [parsed];
       } else {
-        // Parse CSV
-        const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
+        // Parse CSV or line-by-line list
+        const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length > 0) {
-          const headerLine = lines[0];
-          const headers = headerLine.split(',').map(h => h.replace(/["\r]/g, '').trim());
-          
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i];
-            // Split respecting quotes
-            const parts = line.match(/(?:[^\s,"]+|"[^"]*")+/g) || line.split(',');
-            if (parts.length >= 2) {
-              const row = {};
-              headers.forEach((h, idx) => {
-                row[h] = parts[idx] ? parts[idx].replace(/^"|"$/g, '').trim() : '';
+          const firstLine = lines[0];
+          if (firstLine.includes(',')) {
+            // Standard CSV parsing (supports Google Takeout subscriptions.csv)
+            const headers = firstLine.split(',').map(h => h.replace(/["\r]/g, '').trim());
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i];
+              const parts = line.match(/(?:[^\s,"]+|"[^"]*")+/g) || line.split(',');
+              if (parts.length >= 2) {
+                const row = {};
+                headers.forEach((h, idx) => {
+                  row[h] = parts[idx] ? parts[idx].replace(/^"|"$/g, '').trim() : '';
+                });
+                items.push(row);
+              }
+            }
+          } else {
+            // Line-by-line list of handles or URLs
+            for (const line of lines) {
+              const clean = line.replace(/^[0-9]+[.)]\s*/, '').trim();
+              if (!clean) continue;
+              const isUrl = clean.startsWith('http');
+              const isHandle = clean.startsWith('@');
+              const handle = isHandle ? clean : (clean.includes('/@') ? `@${clean.split('/@')[1].split('/')[0]}` : null);
+              const title = handle ? handle.replace(/^@/, '') : clean.replace(/^https?:\/\/(?:www\.)?youtube\.com\/(?:channel\/|c\/)?/, '');
+              items.push({
+                subscribed_channel_id: clean.startsWith('UC') ? clean : `UC_imp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                title: title,
+                handle: handle,
+                url: isUrl ? clean : (isHandle ? `https://www.youtube.com/${clean}` : `https://www.youtube.com/@${clean}`)
               });
-              items.push(row);
             }
           }
         }
       }
 
       if (items.length === 0) {
-        throw new Error('No valid records found in import content');
+        throw new Error('No valid channel records found in import content');
       }
 
       const res = await API.subscriptions.import(channelId, items);
@@ -1233,6 +1298,97 @@ const SubscriptionsComponent = {
       if (btn) {
         btn.disabled = false;
         btn.innerText = '🚀 Start Bulk Import';
+      }
+    }
+  },
+
+  openApiSyncModal() {
+    const modalRoot = document.getElementById('modalRoot');
+    if (!modalRoot) return;
+
+    const defaultChannelId = this.activeChannelId !== 'all' ? this.activeChannelId : (this.channels[0]?.id || '');
+
+    modalRoot.innerHTML = `
+      <div class="cyber-modal open" id="apiSyncModal" onclick="if(event.target===this) window.closeModal('apiSyncModal')">
+        <div class="glass-card cyber-modal-card" style="max-width: 540px; border-color: var(--accent-cyan);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 22px;">🔑</span>
+              <h3 style="font-size: 18px; font-weight: 800; margin: 0; color: var(--text-main);">
+                Sync Subscriptions via YouTube Data API
+              </h3>
+            </div>
+            <button class="modal-close-btn" onclick="window.closeModal('apiSyncModal')">✕</button>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px;">
+            The YouTube Data API v3 will query the channel's subscriptions feed with pagination (up to 1,000 channels) and automatically save all records into PostgreSQL.<br>
+            <strong style="color: var(--accent-cyan);">Note:</strong> If YouTube returns a privacy error, your subscriptions are set to Private on YouTube. You can turn OFF "Keep all my subscriptions private" in YouTube Privacy Settings, or use <strong>Takeout Import</strong> instead.
+          </div>
+
+          <form onsubmit="SubscriptionsComponent.handleApiSyncSubmit(event)">
+            <div style="margin-bottom: 16px;">
+              <label class="cyber-label">Managed Channel</label>
+              <select id="apiSyncChannelId" class="cyber-input" style="width: 100%;">
+                ${this.channels.map(c => `
+                  <option value="${c.id}" ${c.id === defaultChannelId ? 'selected' : ''}>
+                    📺 ${c.name} (${c.channel_id || '@channel'})
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <label class="cyber-label">YouTube Data API Key (Optional if already configured)</label>
+              <input 
+                type="password" 
+                id="apiSyncKey" 
+                class="cyber-input" 
+                style="width: 100%;" 
+                placeholder="AIzaSy... (leave blank to use key from System Settings)" 
+              />
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+              <button type="button" class="btn-cyber btn-cyber-outline" onclick="window.closeModal('apiSyncModal')">Cancel</button>
+              <button type="submit" class="btn-cyber btn-cyber-primary" id="apiSyncStartBtn">
+                🚀 Fetch All from YouTube API
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+  },
+
+  async handleApiSyncSubmit(e) {
+    e.preventDefault();
+    const channelId = document.getElementById('apiSyncChannelId')?.value;
+    const apiKey = document.getElementById('apiSyncKey')?.value?.trim();
+    const btn = document.getElementById('apiSyncStartBtn');
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = '⏳ Paging YouTube API...';
+    }
+
+    try {
+      const res = await API.subscriptions.fetchYouTubeApi(channelId, apiKey);
+      if (res.success) {
+        Toast.show(res.message, 'success');
+        if (window.closeModal) window.closeModal('apiSyncModal');
+        await this.loadData();
+        const container = document.getElementById('mainContentArea');
+        if (container) this.renderView(container);
+      } else {
+        Toast.show(res.error || 'Failed to fetch from YouTube API', 'error');
+      }
+    } catch (err) {
+      Toast.show(err.message, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerText = '🚀 Fetch All from YouTube API';
       }
     }
   },

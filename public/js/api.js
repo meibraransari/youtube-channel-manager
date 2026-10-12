@@ -190,6 +190,7 @@ const API = {
     update: (id, data) => API.request(`/api/subscriptions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id) => API.request(`/api/subscriptions/${id}`, { method: 'DELETE' }),
     sync: (channelId) => API.request('/api/subscriptions/sync', { method: 'POST', body: JSON.stringify({ channel_id: channelId }) }),
+    fetchYouTubeApi: (channelId, apiKey) => API.request('/api/subscriptions/fetch-youtube-api', { method: 'POST', body: JSON.stringify({ channel_id: channelId, api_key: apiKey }) }),
     import: (channelId, items) => API.request('/api/subscriptions/import', { method: 'POST', body: JSON.stringify({ channel_id: channelId, items }) }),
     getExportUrl: (format = 'csv', params = {}) => {
       const q = new URLSearchParams({ format, ...params }).toString();

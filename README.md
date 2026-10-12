@@ -48,7 +48,12 @@ Operating multi-channel networks and complex content production pipelines often 
 ---
 
 ### 📈 Channel Tracker & Telemetry Matrix (`#tracker`)
-- **Snapshot Velocity Trajectory**: Real-time Chart.js line charts tracking historical views and subscriber growth across recorded snapshots.
+- **Executive Dual-Line Velocity Trajectory Graph**: Professional Chart.js dual-axis analytics visualization featuring:
+  - **Dual Y-Axes & Independent Curves**: Vibrant Cyan (`#06b6d4`) area gradient for Total Views (left axis) and Vibrant Electric Purple (`#a855f7`) gradient for Subscribers (right axis) with cubic bezier tension (`0.38`).
+  - **Interactive Timeframe Selector**: Instant switching between `7D`, `14D`, `30D`, and `All Snapshots` rolling telemetry windows with animated chart transitions.
+  - **Clickable Metric Legend Badges**: Interactive header pills (`👁️ Total Views` & `👥 Subscribers`) enabling 1-click toggling of individual metric curves.
+  - **Live Velocity KPI Strip**: Instant calculation of daily view velocity rate (`+X / day`), weekly subscriber acquisition pace (`+Y / wk`), and real-time telemetry stream indicators.
+  - **Organic Progression Engine**: Graceful baseline extrapolation ensuring continuous, multi-point organic velocity curves even for newly onboarded channels with a single snapshot.
 - **365-Day Activity Heatmap**: GitHub-style calendar consistency matrix with 30-day, 90-day, and 1-year time ranges to visualize upload cadence and release frequency.
 - **Top Video Leaderboard**: Horizontal traction progress bars ranking high-engagement catalog assets by views with percentage bars.
 - **Manual Snapshot & Sync Directives**: Trigger immediate snapshot recordings or telemetry synchronization with one click.

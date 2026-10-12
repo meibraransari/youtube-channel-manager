@@ -1390,4 +1390,172 @@ a.nav-pill-item,
 }
 
 
+/* ==============================================================================
+   SUBSCRIBER & VIEW VELOCITY TRAJECTORY CHART (DUAL-AXIS EXECUTIVE GRAPH)
+   ============================================================================== */
+.tracker-trajectory-card {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
 
+.tracker-trajectory-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #06b6d4 0%, #3b82f6 50%, #a855f7 100%);
+  opacity: 0.9;
+}
+
+.trajectory-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trajectory-timeframe-pills {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.trajectory-timeframe-pills .nav-pill-item {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.trajectory-timeframe-pills .nav-pill-item:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.trajectory-timeframe-pills .nav-pill-item.active {
+  background: #0d9488;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(13, 148, 136, 0.4);
+}
+
+.trajectory-kpi-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.trajectory-legend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  user-select: none;
+}
+
+.trajectory-legend-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.trajectory-legend-btn.active-cyan {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.45);
+  color: #f0fdfa;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.15);
+}
+
+.trajectory-legend-btn.active-cyan .legend-val {
+  color: #06b6d4;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.trajectory-legend-btn.active-purple {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.45);
+  color: #faf5ff;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.15);
+}
+
+.trajectory-legend-btn.active-purple .legend-val {
+  color: #c084fc;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.trajectory-legend-btn.dimmed {
+  opacity: 0.38;
+  border-style: dashed;
+  filter: grayscale(0.6);
+}
+
+.legend-color-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legend-color-indicator.cyan-dot {
+  background: #06b6d4;
+  box-shadow: 0 0 8px #06b6d4;
+}
+
+.legend-color-indicator.purple-dot {
+  background: #a855f7;
+  box-shadow: 0 0 8px #a855f7;
+}
+
+.trajectory-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 3px 9px;
+  border-radius: 12px;
+}
+
+.live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: liveTelemetryPulse 2s infinite ease-in-out;
+}
+
+@keyframes liveTelemetryPulse {
+  0% { transform: scale(0.9); opacity: 0.5; box-shadow: 0 0 4px #10b981; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 10px #10b981; }
+  100% { transform: scale(0.9); opacity: 0.5; box-shadow: 0 0 4px #10b981; }
+}

@@ -121,80 +121,84 @@ const App = {
       return;
     }
 
-    let mainArea = document.getElementById('mainContentArea');
-    if (!mainArea || !document.getElementById('navbarContainer') || !document.getElementById('sidebarContainer')) {
-      appRoot.innerHTML = `
-        <div id="navbarContainer"></div>
-        <div class="app-layout">
-          <div id="sidebarContainer"></div>
-          <main class="main-wrapper" id="mainContentArea">
-            <!-- Active view component renders here -->
-          </main>
-        </div>
-      `;
-      mainArea = document.getElementById('mainContentArea');
-    }
+    try {
+      let mainArea = document.getElementById('mainContentArea');
+      if (!mainArea || !document.getElementById('navbarContainer') || !document.getElementById('sidebarContainer')) {
+        appRoot.innerHTML = `
+          <div id="navbarContainer"></div>
+          <div class="app-layout">
+            <div id="sidebarContainer"></div>
+            <main class="main-wrapper" id="mainContentArea">
+              <!-- Active view component renders here -->
+            </main>
+          </div>
+        `;
+        mainArea = document.getElementById('mainContentArea');
+      }
 
-    // Render Navbar & Sidebar
-    NavbarComponent.render(document.getElementById('navbarContainer'), this.currentUser);
-    SidebarComponent.render(document.getElementById('sidebarContainer'), this.currentView);
+      // Render Navbar & Sidebar
+      NavbarComponent.render(document.getElementById('navbarContainer'), this.currentUser);
+      SidebarComponent.render(document.getElementById('sidebarContainer'), this.currentView);
 
-    // Apply sidebar state
-    const sidebar = document.getElementById('appSidebar');
-    if (sidebar && this.sidebarCollapsed) {
-      sidebar.classList.add('collapsed');
-    }
+      // Apply sidebar state
+      const sidebar = document.getElementById('appSidebar');
+      if (sidebar && this.sidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+      }
 
-    // Render active view
-    const mainArea = document.getElementById('mainContentArea');
-    switch (this.currentView) {
-      case 'dashboard':
-        DashboardComponent.render(mainArea);
-        break;
-      case 'content':
-        ContentComponent.render(mainArea, 'all');
-        break;
-      case 'shorts':
-        ContentComponent.render(mainArea, 'short');
-        break;
-      case 'videos':
-        ContentComponent.render(mainArea, 'video');
-        break;
-      case 'podcasts':
-        ContentComponent.render(mainArea, 'podcast');
-        break;
-      case 'wizard':
-        WizardComponent.render(mainArea);
-        break;
-      case 'channels':
-        ChannelsComponent.render(mainArea);
-        break;
-      case 'tracker':
-        TrackerComponent.render(mainArea);
-        break;
-      case 'secret-migration':
-      case 'migration':
-        if (this.currentUser && this.currentUser.role === 'admin') {
-          MigrationComponent.render(mainArea);
-        } else {
-          Toast.show('Access Denied: Confidential migration portal is restricted to administrator only.', 'error');
-          this.navigateTo('dashboard');
-        }
-        break;
-      case 'users':
-        UsersComponent.render(mainArea);
-        break;
-      case 'audit':
-        AuditComponent.render(mainArea);
-        break;
-      case 'settings':
-        SettingsComponent.render(mainArea);
-        break;
-      case 'health':
-        this.renderHealthView(mainArea);
-        break;
-      default:
-        DashboardComponent.render(mainArea);
+      // Render active view
+      switch (this.currentView) {
+        case 'dashboard':
+          DashboardComponent.render(mainArea);
+          break;
+        case 'content':
+          ContentComponent.render(mainArea, 'all');
+          break;
+        case 'shorts':
+          ContentComponent.render(mainArea, 'short');
+          break;
+        case 'videos':
+          ContentComponent.render(mainArea, 'video');
+          break;
+        case 'podcasts':
+          ContentComponent.render(mainArea, 'podcast');
+          break;
+        case 'wizard':
+          WizardComponent.render(mainArea);
+          break;
+        case 'channels':
+          ChannelsComponent.render(mainArea);
+          break;
+        case 'tracker':
+          TrackerComponent.render(mainArea);
+          break;
+        case 'secret-migration':
+        case 'migration':
+          if (this.currentUser && this.currentUser.role === 'admin') {
+            MigrationComponent.render(mainArea);
+          } else {
+            Toast.show('Access Denied: Confidential migration portal is restricted to administrator only.', 'error');
+            this.navigateTo('dashboard');
+          }
+          break;
+        case 'users':
+          UsersComponent.render(mainArea);
+          break;
+        case 'audit':
+          AuditComponent.render(mainArea);
+          break;
+        case 'settings':
+          SettingsComponent.render(mainArea);
+          break;
+        case 'health':
+          this.renderHealthView(mainArea);
+          break;
+        default:
+          DashboardComponent.render(mainArea);
+      }
+    } catch (err) {
+      console.error('Render error:', err);
+      Toast.show('Error loading view: ' + err.message, 'error');
     }
   },
 
@@ -278,31 +282,39 @@ const App = {
       </div>
     `;
 
-    document.getElementById('themeSwitchBtn').onclick = () => this.toggleTheme();
+    const themeBtn = document.getElementById('themeSwitchBtn');
+    if (themeBtn) themeBtn.onclick = () => this.toggleTheme();
 
-    document.getElementById('loginForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('loginSubmitBtn');
-      const u = document.getElementById('loginUsername').value.trim();
-      const p = document.getElementById('loginPassword').value;
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('loginSubmitBtn');
+        const u = (document.getElementById('loginUsername')?.value || '').trim();
+        const p = document.getElementById('loginPassword')?.value || '';
 
-      btn.disabled = true;
-      btn.innerHTML = `<span>⏳</span> VERIFYING CREDENTIALS...`;
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = `<span>⏳</span> VERIFYING CREDENTIALS...`;
+        }
 
-      try {
-        const res = await API.auth.login({ username: u, password: p });
-        API.setToken(res.token);
-        API.setUser(res.user);
-        this.currentUser = res.user;
-        Toast.show(`Authentication successful! Welcome, ${res.user.username}.`, 'success');
-        this.currentView = 'dashboard';
-        this.render();
-      } catch (err) {
-        Toast.show(err.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = `<span>⚡</span> INITIATE SECURE SESSION`;
-      }
-    };
+        try {
+          const res = await API.auth.login({ username: u, password: p });
+          API.setToken(res.token);
+          API.setUser(res.user);
+          this.currentUser = res.user;
+          Toast.show(`Authentication successful! Welcome, ${res.user.username}.`, 'success');
+          this.currentView = 'dashboard';
+          this.render();
+        } catch (err) {
+          Toast.show(err.message, 'error');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<span>⚡</span> INITIATE SECURE SESSION`;
+          }
+        }
+      };
+    }
   },
 
   logout() {

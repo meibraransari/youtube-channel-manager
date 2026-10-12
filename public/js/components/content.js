@@ -50,7 +50,7 @@ const ContentComponent = {
             </p>
           </div>
           <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <button class="btn-cyber btn-cyber-primary" onclick="window.navigateTo('wizard')">
+            <button class="btn-cyber btn-cyber-primary" onclick="window.navigateTo('wizard', '${this.currentType === 'all' ? 'short' : this.currentType}')">
               <span>➕</span> Create New Content
             </button>
           </div>
@@ -206,7 +206,7 @@ const ContentComponent = {
             <div style="font-size: 36px; margin-bottom: 10px;">🎬</div>
             <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);">No Content Found</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">No media matches your search query or channel filter.</p>
-            <button class="btn-cyber btn-cyber-primary" style="margin-top: 14px;" onclick="window.navigateTo('wizard')">
+            <button class="btn-cyber btn-cyber-primary" style="margin-top: 14px;" onclick="window.navigateTo('wizard', '${this.currentType === 'all' ? 'short' : this.currentType}')">
               ➕ Create New Content with Wizard
             </button>
           </div>

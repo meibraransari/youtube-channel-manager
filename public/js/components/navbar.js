@@ -93,7 +93,7 @@ const NavbarComponent = {
         <div class="nav-actions">
           ${currentUser ? `
             <!-- Deploy New Content CTA (matches green pill button in screenshot) -->
-            <button class="btn-cyber btn-cyber-primary btn-sm" onclick="window.navigateTo('wizard')" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
+            <button class="btn-cyber btn-cyber-primary btn-sm" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
               <span>✨</span>
               <span>Deploy Content</span>
             </button>

@@ -52,7 +52,7 @@ const DashboardComponent = {
             </div>
 
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <button class="btn-cyber btn-cyber-primary" onclick="window.navigateTo('wizard')" style="display: flex; align-items: center; gap: 6px;">
+              <button class="btn-cyber btn-cyber-primary" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px;">
                 <span>✨</span>
                 <span>Deploy New Content</span>
               </button>

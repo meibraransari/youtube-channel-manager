@@ -40,12 +40,15 @@ const App = {
     });
 
     // 5. Initial Route
-    const hash = window.location.hash.replace('#', '') || 'dashboard';
+    const hash = window.location.hash.replace(/^#\/?/, '') || 'dashboard';
     this.currentView = hash;
 
     window.addEventListener('hashchange', () => {
-      const h = window.location.hash.replace('#', '') || 'dashboard';
-      this.navigateTo(h, false);
+      if (this.isNavigating) return;
+      const h = window.location.hash.replace(/^#\/?/, '') || 'dashboard';
+      if (this.currentView !== h) {
+        this.navigateTo(h, false);
+      }
     });
 
     // Render interface
@@ -80,16 +83,37 @@ const App = {
     }
   },
 
-  navigateTo(view, updateHash = true) {
-    this.currentView = view;
-    if (updateHash) {
-      window.location.hash = view;
+  isNavigating: false,
+
+  navigateTo(view, updateHash = true, extra = null) {
+    if (view === 'wizard' && extra && window.WizardComponent) {
+      window.WizardComponent.preselectedType = extra;
     }
+
+    const cleanView = String(view).replace(/^#\/?/, '') || 'dashboard';
+    const currentHash = window.location.hash.replace(/^#\/?/, '') || 'dashboard';
+
+    // If already on this view and hash matches, only re-render if extra is provided
+    if (this.currentView === cleanView && currentHash === cleanView && !extra) {
+      return;
+    }
+
+    this.currentView = cleanView;
+
+    if (updateHash && currentHash !== cleanView) {
+      this.isNavigating = true;
+      window.location.hash = cleanView;
+      setTimeout(() => {
+        this.isNavigating = false;
+      }, 100);
+    }
+
     this.render();
   },
 
   render() {
     const appRoot = document.getElementById('appRoot');
+    if (!appRoot) return;
 
     if (!this.currentUser) {
       // Render Futuristic Login Screen
@@ -97,16 +121,19 @@ const App = {
       return;
     }
 
-    // Render Authenticated Dashboard Layout
-    appRoot.innerHTML = `
-      <div id="navbarContainer"></div>
-      <div class="app-layout">
-        <div id="sidebarContainer"></div>
-        <main class="main-wrapper" id="mainContentArea">
-          <!-- Active view component renders here -->
-        </main>
-      </div>
-    `;
+    let mainArea = document.getElementById('mainContentArea');
+    if (!mainArea || !document.getElementById('navbarContainer') || !document.getElementById('sidebarContainer')) {
+      appRoot.innerHTML = `
+        <div id="navbarContainer"></div>
+        <div class="app-layout">
+          <div id="sidebarContainer"></div>
+          <main class="main-wrapper" id="mainContentArea">
+            <!-- Active view component renders here -->
+          </main>
+        </div>
+      `;
+      mainArea = document.getElementById('mainContentArea');
+    }
 
     // Render Navbar & Sidebar
     NavbarComponent.render(document.getElementById('navbarContainer'), this.currentUser);
@@ -504,7 +531,8 @@ window.duplicateContentItem = function(id, event) {
   }, 40);
 };
 
-window.navigateTo = (view) => App.navigateTo(view);
+window.navigateTo = (view, extra) => App.navigateTo(view, true, extra);
+window.navigateToWizard = (type = 'short') => App.navigateTo('wizard', true, type);
 window.toggleTheme = () => App.toggleTheme();
 window.setTheme = (theme) => App.setTheme(theme);
 window.toggleSidebar = () => App.toggleSidebar();

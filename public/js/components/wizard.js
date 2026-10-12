@@ -5,6 +5,7 @@
 const WizardComponent = {
   currentStep: 1,
   channels: [],
+  preselectedType: null,
   formData: {
     channel_id: '',
     content_type: 'short',
@@ -38,9 +39,11 @@ const WizardComponent = {
 
   async render(container) {
     this.currentStep = 1;
+    const initialType = this.preselectedType || 'short';
+    this.preselectedType = null;
     this.formData = {
       channel_id: '',
-      content_type: 'short',
+      content_type: initialType,
       topic: '',
       title: '',
       image_prompt: '',
@@ -53,6 +56,8 @@ const WizardComponent = {
     };
 
     await this.initChannels();
+
+    if (!container) return;
 
     container.innerHTML = `
       <div style="max-width: 860px; margin: 0 auto;">
@@ -111,8 +116,10 @@ const WizardComponent = {
       </div>
     `;
 
-    document.getElementById('wizardPrevBtn').onclick = () => this.prevStep();
-    document.getElementById('wizardNextBtn').onclick = () => this.nextStep();
+    const prevBtn = container.querySelector('#wizardPrevBtn');
+    const nextBtn = container.querySelector('#wizardNextBtn');
+    if (prevBtn) prevBtn.onclick = () => this.prevStep();
+    if (nextBtn) nextBtn.onclick = () => this.nextStep();
 
     this.renderCurrentStep();
   },
@@ -122,7 +129,7 @@ const WizardComponent = {
     const prevBtn = document.getElementById('wizardPrevBtn');
     const nextBtn = document.getElementById('wizardNextBtn');
 
-    if (!body || !prevBtn || !nextBtn) return;
+    if (!body) return;
 
     // Update stepper node status
     for (let i = 1; i <= 5; i++) {
@@ -133,14 +140,18 @@ const WizardComponent = {
       else if (i < this.currentStep) node.classList.add('completed');
     }
 
-    prevBtn.style.display = this.currentStep > 1 ? 'inline-flex' : 'none';
+    if (prevBtn) {
+      prevBtn.style.display = this.currentStep > 1 ? 'inline-flex' : 'none';
+    }
 
-    if (this.currentStep === 5) {
-      nextBtn.innerHTML = `🚀 DEPLOY DIRECTIVE`;
-      nextBtn.className = 'btn-cyber btn-cyber-primary';
-    } else {
-      nextBtn.innerHTML = `NEXT STEP ▶`;
-      nextBtn.className = 'btn-cyber btn-cyber-primary';
+    if (nextBtn) {
+      if (this.currentStep === 5) {
+        nextBtn.innerHTML = `🚀 DEPLOY DIRECTIVE`;
+        nextBtn.className = 'btn-cyber btn-cyber-primary';
+      } else {
+        nextBtn.innerHTML = `NEXT STEP ▶`;
+        nextBtn.className = 'btn-cyber btn-cyber-primary';
+      }
     }
 
     if (this.currentStep === 1) {

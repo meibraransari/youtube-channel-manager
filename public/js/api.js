@@ -1,0 +1,169 @@
+/**
+ * Futuristic API Client with JWT Bearer management and unified response handling
+ */
+const API = {
+  getToken() {
+    return localStorage.getItem('yt_auth_token');
+  },
+
+  setToken(token) {
+    if (token) localStorage.setItem('yt_auth_token', token);
+    else localStorage.removeItem('yt_auth_token');
+  },
+
+  getUser() {
+    try {
+      const u = localStorage.getItem('yt_auth_user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  setUser(user) {
+    if (user) localStorage.setItem('yt_auth_user', JSON.stringify(user));
+    else localStorage.removeItem('yt_auth_user');
+  },
+
+  getActiveChannelId() {
+    return localStorage.getItem('yt_active_channel_id') || 'all';
+  },
+
+  setActiveChannelId(channelId) {
+    if (channelId) localStorage.setItem('yt_active_channel_id', channelId);
+    else localStorage.removeItem('yt_active_channel_id');
+    window.dispatchEvent(new CustomEvent('channel:changed', { detail: { channelId } }));
+  },
+
+  async request(endpoint, options = {}) {
+    const url = endpoint.startsWith('http') ? endpoint : endpoint;
+    const headers = options.headers || {};
+
+    const token = this.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers
+      });
+
+      if (response.status === 401 && !endpoint.includes('/api/auth/login')) {
+        // Token expired
+        this.setToken(null);
+        this.setUser(null);
+        window.dispatchEvent(new CustomEvent('auth:expired'));
+        throw new Error('Session expired. Please log in again.');
+      }
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `HTTP ${response.status}: Request failed`);
+      }
+
+      return data;
+    } catch (err) {
+      console.error(`[API Error] ${endpoint}:`, err.message);
+      throw err;
+    }
+  },
+
+  // Auth
+  auth: {
+    login: (credentials) => API.request('/api/auth/login', { method: 'POST', body: JSON.stringify(credentials) }),
+    me: () => API.request('/api/auth/me'),
+    logout: () => API.request('/api/auth/logout', { method: 'POST' }),
+    getLoginHistory: () => API.request('/api/auth/login-history')
+  },
+
+  // Channels (Multi-Channel Management & Ingestion)
+  channels: {
+    list: () => API.request('/api/channels'),
+    get: (id) => API.request(`/api/channels/${id}`),
+    create: (data) => API.request('/api/channels', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => API.request(`/api/channels/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    setDefault: (id) => API.request(`/api/channels/${id}/set-default`, { method: 'POST' }),
+    delete: (id) => API.request(`/api/channels/${id}`, { method: 'DELETE' }),
+    getSnapshots: (id, limit = 30) => API.request(`/api/channels/${id}/snapshots?limit=${limit}`),
+    sync: (id) => API.request(`/api/channels/${id}/sync`, { method: 'POST' }),
+    importYouTube: (data) => API.request('/api/channels/import-youtube', { method: 'POST', body: JSON.stringify(data) })
+  },
+
+  // Dashboard
+  dashboard: {
+    getStats: (channelId) => {
+      const q = channelId && channelId !== 'all' ? `?channel_id=${channelId}` : '';
+      return API.request(`/api/dashboard/stats${q}`);
+    }
+  },
+
+  // Content
+  content: {
+    list: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return API.request(`/api/content?${query}`);
+    },
+    get: (id) => API.request(`/api/content/${id}`),
+    create: (data) => API.request('/api/content', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => API.request(`/api/content/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    rename: (id, data) => API.request(`/api/content/${id}/rename`, { method: 'PATCH', body: JSON.stringify(data) }),
+    setStatus: (id, status) => API.request(`/api/content/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    duplicate: (id) => API.request(`/api/content/${id}/duplicate`, { method: 'POST' }),
+    delete: (id) => API.request(`/api/content/${id}`, { method: 'DELETE' })
+  },
+
+  // Users
+  users: {
+    list: () => API.request('/api/users'),
+    create: (data) => API.request('/api/users', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => API.request(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    resetPassword: (id, newPassword) => API.request(`/api/users/${id}/password`, { method: 'PUT', body: JSON.stringify({ new_password: newPassword }) }),
+    delete: (id) => API.request(`/api/users/${id}`, { method: 'DELETE' })
+  },
+
+  // Settings
+  settings: {
+    get: () => API.request('/api/settings'),
+    updateKey: (key, value, description) => API.request(`/api/settings/${encodeURIComponent(key)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value, description })
+    }),
+    bulkUpdate: (settings) => API.request('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings })
+    }),
+    flushAll: (payload) => API.request('/api/settings/flush-all', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
+  },
+
+  // Migration
+  migration: {
+    getStatus: () => API.request('/api/migration/status'),
+    runReference: () => API.request('/api/migration/run-reference', { method: 'POST' }),
+    upload: (formData) => API.request('/api/migration/upload', { method: 'POST', body: formData })
+  },
+
+  // Audit
+  audit: {
+    list: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return API.request(`/api/audit?${query}`);
+    }
+  },
+
+  // Health
+  health: {
+    get: () => API.request('/health')
+  }
+};
+
+window.API = API;

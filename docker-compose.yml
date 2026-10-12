@@ -1,0 +1,69 @@
+# ==============================================================================
+# YouTube Channel Manager - Production Docker Compose Architecture
+# Multi-Color Futuristic YouTube Content Management Platform
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 18 Database Engine
+  # ----------------------------------------------------------------------------
+  postgres18:
+    image: postgres:18-alpine
+    container_name: postgres18
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_pass_123}
+      POSTGRES_DB: ${POSTGRES_DB:-youtube_channel_manager_db}
+    ports:
+      - "${POSTGRES_EXTERNAL_PORT:-5432}:${POSTGRES_PORT:-5432}"
+    volumes:
+      - postgres18_data:/var/lib/postgresql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-youtube_channel_manager_db}"]
+      interval: 4s
+      timeout: 5s
+      retries: 10
+      start_period: 6s
+    networks:
+      - yt_manager_net
+
+  # ----------------------------------------------------------------------------
+  # YouTube Channel Manager (Frontend + Backend in Single Container)
+  # ----------------------------------------------------------------------------
+  yt-manager:
+    image: ibraransaridocker/yt-manager-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yt-manager
+    restart: always
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      HOST: ${HOST:-0.0.0.0}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secure_pass_123}@postgres18:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-youtube_channel_manager_db}}
+      JWT_SECRET: ${JWT_SECRET:-b69813b7a1314525b72b44496f823649115e3ae13fcf2ba24ec9a93a63006953}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME:-admin}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-Admin@2026}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-admin@ytstudio.local}
+    ports:
+      - "${APP_PORT:-3000}:${PORT:-3000}"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    depends_on:
+      postgres18:
+        condition: service_healthy
+    networks:
+      - yt_manager_net
+
+networks:
+  yt_manager_net:
+    driver: bridge
+
+volumes:
+  postgres18_data:
+    driver: local

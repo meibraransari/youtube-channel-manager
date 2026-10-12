@@ -1,0 +1,211 @@
+const express = require('express');
+const router = express.Router();
+const { query } = require('../config/db');
+const { authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
+const { recordAudit } = require('../middleware/audit');
+const { logger, setLogLevel } = require('../config/logger');
+
+/**
+ * GET /api/settings
+ * List all settings
+ */
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const settingsRes = await query('SELECT key, value, category, description, updated_at FROM system_settings ORDER BY category, key');
+    
+    // Format into map and array
+    const settingsMap = {};
+    settingsRes.rows.forEach(row => {
+      let val = row.value;
+      settingsMap[row.key] = val;
+    });
+
+    return res.json({
+      success: true,
+      settings: settingsMap,
+      details: settingsRes.rows,
+      activeLogLevel: logger.level
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * PUT /api/settings/:key
+ * Update a single setting
+ */
+router.put('/:key', authenticateToken, requirePermission('can_manage_settings'), async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value, description } = req.body;
+
+    if (value === undefined) {
+      return res.status(400).json({ success: false, error: 'Setting value is required' });
+    }
+
+    // Special handler for dynamic console log level
+    if (key === 'console_log_level') {
+      const cleanLevel = typeof value === 'string' ? value.toLowerCase() : String(value).toLowerCase();
+      setLogLevel(cleanLevel);
+    }
+
+    const updateRes = await query(
+      `INSERT INTO system_settings (key, value, description, updated_at, updated_by)
+       VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4)
+       ON CONFLICT (key) DO UPDATE SET
+        value = EXCLUDED.value,
+        description = COALESCE(EXCLUDED.description, system_settings.description),
+        updated_at = CURRENT_TIMESTAMP,
+        updated_by = EXCLUDED.updated_by
+       RETURNING *`,
+      [
+        key,
+        JSON.stringify(value),
+        description || null,
+        req.user.id
+      ]
+    );
+
+    await recordAudit(req, {
+      action: 'SETTINGS_CHANGE',
+      entity: 'setting',
+      entityId: key,
+      details: { key, newValue: value }
+    });
+
+    return res.json({
+      success: true,
+      setting: updateRes.rows[0],
+      activeLogLevel: logger.level
+    });
+  } catch (err) {
+    logger.error(`[SETTINGS-UPDATE-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * PUT /api/settings
+ * Bulk update settings
+ */
+router.put('/', authenticateToken, requirePermission('can_manage_settings'), async (req, res) => {
+  try {
+    const { settings } = req.body; // { key: value, ... }
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({ success: false, error: 'Settings object is required' });
+    }
+
+    const updatedKeys = [];
+
+    for (const [key, value] of Object.entries(settings)) {
+      if (key === 'console_log_level') {
+        setLogLevel(String(value).toLowerCase());
+      }
+
+      await query(
+        `INSERT INTO system_settings (key, value, updated_at, updated_by)
+         VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+         ON CONFLICT (key) DO UPDATE SET
+          value = EXCLUDED.value,
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = EXCLUDED.updated_by`,
+        [key, JSON.stringify(value), req.user.id]
+      );
+      updatedKeys.push(key);
+    }
+
+    await recordAudit(req, {
+      action: 'SETTINGS_CHANGE',
+      entity: 'setting',
+      entityId: 'bulk',
+      details: { updatedKeys }
+    });
+
+    return res.json({
+      success: true,
+      message: `Updated ${updatedKeys.length} settings successfully`,
+      activeLogLevel: logger.level
+    });
+  } catch (err) {
+    logger.error(`[SETTINGS-BULK-UPDATE-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/settings/flush-all
+ * DANGER ZONE: Purges all content assets, channel metrics, snapshots, audit history,
+ * login records, and non-admin users. Restores a clean, zero-data operational baseline.
+ */
+router.post('/flush-all', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { answer, expected, confirmed } = req.body;
+
+    if (!confirmed) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Mandatory confirmation checkbox was not checked.' 
+      });
+    }
+
+    if (answer === undefined || expected === undefined || parseInt(answer, 10) !== parseInt(expected, 10)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Verification math answer is incorrect. System flush aborted.' 
+      });
+    }
+
+    logger.warn(`[DANGER-ZONE] FLUSH ALL DATA initiated by root admin: ${req.user.username} (${req.user.id})`);
+
+    // 1. Delete all channel snapshots
+    await query('DELETE FROM channel_snapshots');
+
+    // 2. Delete all content items
+    await query('DELETE FROM content_items');
+
+    // 3. Reset content items serial ID sequence to clean 1
+    await query("SELECT setval('content_items_id_seq', 1, false)");
+
+    // 4. Completely purge all channels (0 channels baseline)
+    await query('DELETE FROM channels');
+
+    // 5. Delete migration history
+    await query('DELETE FROM migration_history');
+
+    // 6. Delete user login logs
+    await query('DELETE FROM user_login_logs');
+
+    // 7. Delete all server configs
+    await query('DELETE FROM server_configs');
+
+    // 8. Delete all users except root admin
+    await query("DELETE FROM users WHERE username != 'admin'");
+
+    // 9. Reset channel branding in system_settings
+    await query(`
+      UPDATE system_settings SET value = '""'::jsonb 
+      WHERE key IN ('channel_name', 'channel_handle', 'channel_url', 'author_name', 'youtube_api_key')
+    `);
+
+    // 10. Clear previous audit logs and insert single clean audit event
+    await query('DELETE FROM audit_logs');
+    await query(`
+      INSERT INTO audit_logs (user_id, username, action, entity, entity_id, details)
+      VALUES ($1, $2, 'FLUSH_ALL', 'system', 'system', '{"message": "Complete system data flush executed: all channels, content assets, snapshots, and logs purged"}')
+    `, [req.user.id, req.user.username]);
+
+    logger.info(`[DANGER-ZONE] FLUSH ALL DATA completed successfully by ${req.user.username}`);
+
+    return res.json({
+      success: true,
+      message: 'All content assets, channels, historical snapshots, telemetry logs, and extra accounts have been permanently purged.'
+    });
+  } catch (err) {
+    logger.error(`[FLUSH-ALL-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+module.exports = router;

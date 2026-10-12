@@ -287,31 +287,18 @@ const App = {
           <form id="loginForm" style="display: flex; flex-direction: column; gap: 16px;">
             <div>
               <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Operator Username or Email</label>
-              <input type="text" id="loginUsername" class="cyber-input" placeholder="admin" value="admin" required style="margin-top: 6px;" />
+              <input type="text" id="loginUsername" class="cyber-input" placeholder="Enter username or email" required style="margin-top: 6px;" />
             </div>
 
             <div>
               <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Secure Password</label>
-              <input type="password" id="loginPassword" class="cyber-input" placeholder="••••••••••••" value="Admin@2026" required style="margin-top: 6px;" />
+              <input type="password" id="loginPassword" class="cyber-input" placeholder="Enter password" required style="margin-top: 6px;" />
             </div>
 
             <button type="submit" class="btn-cyber btn-cyber-primary" id="loginSubmitBtn" style="padding: 12px; margin-top: 8px;">
               <span>⚡</span> INITIATE SECURE SESSION
             </button>
           </form>
-
-          <!-- Quick Test Auto-fill -->
-          <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border-subtle); text-align: center;">
-            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; font-weight: 700;">DEFAULT SEEDED CREDENTIALS:</div>
-            <div style="display: flex; gap: 6px; justify-content: center;">
-              <button class="btn-cyber btn-cyber-outline btn-sm" onclick="document.getElementById('loginUsername').value='admin'; document.getElementById('loginPassword').value='Admin@2026';">
-                Admin: admin
-              </button>
-              <button class="btn-cyber btn-cyber-outline btn-sm" onclick="document.getElementById('loginUsername').value='ibrar'; document.getElementById('loginPassword').value='Admin@2026';">
-                Manager: ibrar
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     `;

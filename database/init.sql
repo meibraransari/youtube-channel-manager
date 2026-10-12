@@ -217,7 +217,7 @@ VALUES
         'a0000000-0000-0000-0000-000000000001',
         'admin',
         'admin@ytstudio.local',
-        '$2a$10$LgdonhtRjZz6W8e8hiYTSe9KgPqU1DhUqM9ugJq/ZDqSihU9w2lpC',
+        '$2a$10$FnkdSfWY8YkOgHDdVvP6Puz9Bt9yEIjy9dy1SowIjKkk6aq6OjEEi',
         'admin',
         '["can_view_content","can_manage_content","can_manage_users","can_manage_settings","can_view_audit_logs","can_export_data","can_migrate_data"]',
         TRUE

@@ -284,16 +284,14 @@ YOUTUBE_API_KEY=
 
 ## 🔐 Operator Accounts & Roles
 
-On initial deployment, the database seeds default administrative accounts:
+On initial deployment, the database seeds the default administrative root account:
 
 | Username | Default Password | Role | Access Scope |
 | :--- | :--- | :--- | :--- |
 | **`admin`** | `Admin@2026` | Administrator | Full Directives, System Settings, Diagnostics & Migration |
-| **`ibrar`** | `Admin@2026` | Manager | Content Operations, Audit Trail & Exports |
-| **`editor`** | `Admin@2026` | Editor | Content Catalog, Creator Wizard & Editing |
 
 > [!IMPORTANT]
-> Change the default password upon initial production login in the **Users & RBAC** tab.
+> Change the default password upon initial production login in the **Users & RBAC** tab. Additional operator accounts (Managers, Editors, Viewers) can be provisioned on-demand via the **Users & RBAC** management console.
 
 ---
 

@@ -24,7 +24,6 @@ RUN npm install --omit=dev --ignore-scripts && npm cache clean --force
 COPY src/ ./src/
 COPY public/ ./public/
 COPY database/ ./database/
-COPY sql11-10-2026_data.sql ./
 
 # Create non-root node user for enhanced cyber security
 USER node

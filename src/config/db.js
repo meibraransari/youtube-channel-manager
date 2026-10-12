@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
 // Determine connection parameters
 const connectionString = process.env.DATABASE_URL || 
@@ -92,6 +93,33 @@ async function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_subs_created_at ON channel_subscriptions(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_subs_title ON channel_subscriptions(subscribed_channel_title);
       `);
+
+      // Ensure initial Administrator user exists with correct password hash
+      const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin';
+      const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@2026';
+      const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@ytstudio.local';
+
+      try {
+        const adminCheck = await pool.query('SELECT id, password_hash FROM users WHERE username = $1', [adminUsername]);
+        if (adminCheck.rows.length === 0) {
+          const hash = bcrypt.hashSync(adminPassword, 10);
+          await pool.query(`
+            INSERT INTO users (username, email, password_hash, role, permissions, is_active)
+            VALUES ($1, $2, $3, 'admin', '["can_view_content","can_manage_content","can_manage_users","can_manage_settings","can_view_audit_logs","can_export_data","can_migrate_data"]', TRUE)
+          `, [adminUsername, adminEmail, hash]);
+          console.log(`[DB] Successfully created initial administrator account: ${adminUsername}`);
+        } else {
+          const currentHash = adminCheck.rows[0].password_hash;
+          // If current password hash does not match configured adminPassword, heal it
+          if (!bcrypt.compareSync(adminPassword, currentHash) && (currentHash.includes('LgdonhtRjZz6W8e8hiYTSe9KgPqU1DhUqM9ugJq') || adminCheck.rows[0].id === 'a0000000-0000-0000-0000-000000000001')) {
+            const hash = bcrypt.hashSync(adminPassword, 10);
+            await pool.query('UPDATE users SET password_hash = $1, is_active = TRUE WHERE username = $2', [hash, adminUsername]);
+            console.log(`[DB] Synchronized password hash for default administrator: ${adminUsername}`);
+          }
+        }
+      } catch (userErr) {
+        console.warn('[DB] Non-critical warning verifying administrator account:', userErr.message);
+      }
 
       return true;
     } catch (err) {

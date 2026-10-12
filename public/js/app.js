@@ -465,9 +465,6 @@ window.viewContentModal = async function(id) {
           <button class="btn-cyber btn-cyber-secondary btn-sm" onclick="window.duplicateContentItem(${item.id}, event);">
             📋 CLONE / DUPLICATE
           </button>
-          <button class="btn-cyber btn-cyber-outline btn-sm" onclick="window.openContentEditModal(${item.id}, event);">
-            ✏️ EDIT METADATA
-          </button>
           <button class="btn-cyber btn-cyber-primary btn-sm" data-close-modal="true" onclick="window.closeModal('contentDetailModal')">
             CLOSE
           </button>

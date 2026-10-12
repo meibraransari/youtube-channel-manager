@@ -304,7 +304,7 @@ const ContentComponent = {
                       <button class="btn-cyber btn-cyber-outline btn-sm" data-action="view" data-id="${item.id}" title="View Details">
                         👁️ View
                       </button>
-                      <button class="btn-cyber btn-cyber-outline btn-sm" data-action="edit" data-id="${item.id}" title="Edit Metadata">
+                      <button class="btn-cyber btn-cyber-outline btn-sm" data-action="edit" data-id="${item.id}" title="Edit">
                         ✏️ Edit
                       </button>
                       <button class="btn-cyber btn-cyber-outline btn-sm" data-action="rename" data-id="${item.id}" title="Quick Rename">

@@ -71,7 +71,7 @@ Operating multi-channel networks and complex content production pipelines often 
 
 ### 🔒 Secret Admin Migration Portal (`#secret-migration`)
 - **Admin-Only Ingestion Console**: Hidden, confidential tool accessible exclusively to the administrator at `#secret-migration`.
-- **Bundled Reference Ingestion**: 1-click test migration from `sql11-10-2026_data.sql` with real-time feedback.
+- **Flexible SQL Ingestion**: 1-click test migration from custom SQL dumps with real-time feedback.
 - **Custom SQL Upload**: Drag-and-drop or upload custom `.sql` dumps to migrate MariaDB/MySQL tables (`youtube_topics`) into PostgreSQL 18.
 - **Clean Zero-Data Baseline**: Initial setup starts with zero content items and a single admin user so creators have a clean slate to test manual ingestion.
 
@@ -181,30 +181,28 @@ On initial deployment, the database seeds default administrative accounts:
 
 ```mermaid
 flowchart TD
-    Client["🌐 Web Browser / Studio Operator"] -->|HTTP / REST (Port 3000)| AppContainer["📦 yt-manager Container (Node.js 20 LTS)"]
-    
-    subgraph AppContainer ["App Container (yt-manager)"]
-        SPA["🎨 Executive SaaS Client (Vanilla JS + Chart.js)"]
-        APIRoutes["⚙️ Express REST API Routes"]
-        CronService["⏱️ Background Telemetry Cron Scheduler"]
-        SwaggerDoc["📖 Swagger OpenAPI 3.0 (/api/docs)"]
-        WinstonLog["📡 Dynamic Winston Logging Engine"]
+    Client["🌐 Web Browser / Studio Operator"] -->|"HTTP / REST Port 3000"| SPA["🎨 Executive SaaS Client (Vanilla JS + Chart.js)"]
+
+    subgraph AppService ["App Container (yt-manager)"]
+        SPA --> APIRoutes["⚙️ Express REST API Routes"]
+        APIRoutes --> SwaggerDoc["📖 Swagger OpenAPI 3.0 (/api/docs)"]
+        APIRoutes --> WinstonLog["📡 Dynamic Winston Logging Engine"]
+        APIRoutes --> CronService["⏱️ Background Telemetry Cron Scheduler"]
     end
 
-    AppContainer -->|PostgreSQL Connection Pool| DBContainer["🐘 postgres18 Container (PostgreSQL 18 Alpine)"]
+    APIRoutes -->|"PostgreSQL Connection Pool Port 5432"| DBEngine[("🐘 PostgreSQL 18 Alpine DB")]
+    CronService -->|"Automated Metric Telemetry Sync"| DBEngine
 
-    subgraph DBContainer ["Database Engine (postgres18)"]
-        T1["channels (Multi-Channel Profiles)"]
-        T2["channel_snapshots (Growth & Velocity Telemetry)"]
-        T3["content_items (Videos, Shorts, Podcasts)"]
-        T4["users (RBAC Permissions & Bcrypt Hashes)"]
-        T5["system_settings (Zero-Downtime Dynamic Config)"]
-        T6["audit_logs (Immutable Action Trail)"]
-        T7["user_login_logs (Security Access Tracker)"]
-        T8["migration_history (Dump Ingestion Records)"]
+    subgraph DBService ["Database Engine (postgres18)"]
+        DBEngine --> T1["channels (Multi-Channel Profiles)"]
+        DBEngine --> T2["channel_snapshots (Growth & Velocity Telemetry)"]
+        DBEngine --> T3["content_items (Videos, Shorts, Podcasts)"]
+        DBEngine --> T4["users (RBAC Permissions & Bcrypt Hashes)"]
+        DBEngine --> T5["system_settings (Zero-Downtime Dynamic Config)"]
+        DBEngine --> T6["audit_logs (Immutable Action Trail)"]
+        DBEngine --> T7["user_login_logs (Security Access Tracker)"]
+        DBEngine --> T8["migration_history (Dump Ingestion Records)"]
     end
-
-    AppContainer -.->|Reference Ingestion| SQLFile["📄 sql11-10-2026_data.sql"]
 ```
 
 ---
@@ -221,7 +219,6 @@ youtube-channel-manager/
 ├── README.md                         # Comprehensive platform documentation
 ├── FEATURES.md                       # Complete feature index
 ├── LICENSE                           # MIT License
-├── sql11-10-2026_data.sql            # Bundled MySQL reference dataset (90 items)
 ├── tests/
 │   └── verify.ps1                    # Automated E2E verification test suite
 ├── database/

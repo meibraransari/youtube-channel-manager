@@ -50,12 +50,11 @@
 ## 🔒 Secret Admin Migration Portal (`#secret-migration`)
 - **Admin-Only Confidential Portal**: Hidden from public sidebar and content navigation, accessible only by navigating to `#secret-migration` as root administrator.
 - **MySQL to PostgreSQL 18 Translation**:
-  - Automatically translates `sql11-10-2026_data.sql` schema and 90 records into PostgreSQL 18 best practices.
+  - Automatically translates MySQL / MariaDB schema and records into PostgreSQL 18 best practices.
   - Translates `media_uuid` into unique constraints.
   - Enforces database triggers for 500 characters max limit on tags.
   - Classifies content into vertical 9:16 Shorts/Reels vs 16:9 Long-Form videos based on prompt resolution and YouTube URL structure.
 - **Interactive Migration Console**:
-  - One-click reference file migration (`sql11-10-2026_data.sql`) with real-time status and feedback.
   - Custom file dropzone supporting any `.sql` dump.
   - Idempotent `ON CONFLICT (media_uuid) DO UPDATE` to prevent duplicate errors.
   - Dedicated `migration_history` ledger tracking execution status and records counts.

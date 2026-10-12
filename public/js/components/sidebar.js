@@ -56,6 +56,12 @@ const SidebarComponent = {
             <span class="sidebar-badge badge badge-emerald" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">NEW</span>
           </a>
 
+          <a href="javascript:void(0)" class="sidebar-link" id="sidebarManageTagsLink" onclick="window.openTagManager(); return false;" title="Open Tag Manager & Preset Registry">
+            <i>🏷️</i>
+            <span class="sidebar-text">Manage Tags</span>
+            <span class="sidebar-badge badge badge-teal" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">PRESETS</span>
+          </a>
+
           <!-- Operations & Data Section -->
           <div class="sidebar-section-title">OPERATIONS & DATA</div>
 

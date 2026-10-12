@@ -478,3 +478,6 @@ const TagManagerComponent = {
 };
 
 window.TagManagerComponent = TagManagerComponent;
+window.openTagManager = function(onSelect) {
+  TagManagerComponent.openModal(onSelect);
+};

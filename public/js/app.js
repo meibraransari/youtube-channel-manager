@@ -549,6 +549,11 @@ window.toggleTheme = () => App.toggleTheme();
 window.setTheme = (theme) => App.setTheme(theme);
 window.toggleSidebar = () => App.toggleSidebar();
 window.logout = () => App.logout();
+window.openTagManager = (onSelect) => {
+  if (window.TagManagerComponent) {
+    window.TagManagerComponent.openModal(onSelect);
+  }
+};
 
 // Bootstrap application on DOM ready
 document.addEventListener('DOMContentLoaded', () => {

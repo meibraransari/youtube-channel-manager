@@ -151,6 +151,28 @@ CREATE TABLE IF NOT EXISTS server_configs (
 );
 
 -- ------------------------------------------------------------------------------
+-- 10. Channel Subscriptions Table (Track Channels Subscribed By Managed Channels)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS channel_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    channel_id UUID NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    subscribed_channel_id VARCHAR(100) NOT NULL,
+    subscribed_channel_title VARCHAR(255) NOT NULL,
+    subscribed_channel_handle VARCHAR(150),
+    subscribed_channel_url VARCHAR(500),
+    subscribed_channel_avatar VARCHAR(1000),
+    description TEXT,
+    subscriber_count BIGINT DEFAULT 0,
+    video_count INT DEFAULT 0,
+    category VARCHAR(100) DEFAULT 'DevOps & Cloud',
+    subscribed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_channel_subscribed UNIQUE (channel_id, subscribed_channel_id)
+);
+
+-- ------------------------------------------------------------------------------
 -- Triggers and Validation Functions
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_tags_length_func()
@@ -181,6 +203,10 @@ CREATE INDEX IF NOT EXISTS idx_content_created_at ON content_items(created_at DE
 CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_login_created_at ON user_login_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_snapshots_channel_date ON channel_snapshots(channel_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_subs_channel_id ON channel_subscriptions(channel_id);
+CREATE INDEX IF NOT EXISTS idx_subs_subscribed_id ON channel_subscriptions(subscribed_channel_id);
+CREATE INDEX IF NOT EXISTS idx_subs_created_at ON channel_subscriptions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_subs_title ON channel_subscriptions(subscribed_channel_title);
 
 -- ------------------------------------------------------------------------------
 -- Seed Initial SINGLE Admin User (admin / Admin@2026)

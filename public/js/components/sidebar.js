@@ -25,6 +25,12 @@ const SidebarComponent = {
             <span class="sidebar-badge badge badge-emerald" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">LIVE</span>
           </a>
 
+          <a href="#subscriptions" class="sidebar-link ${currentView === 'subscriptions' ? 'active' : ''}" onclick="window.navigateTo('subscriptions'); return false;" title="Subscribed Channels & Feeds">
+            <i>🔔</i>
+            <span class="sidebar-text">Subscribed Channels</span>
+            <span class="sidebar-badge badge badge-teal" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">SUBS</span>
+          </a>
+
           <!-- Content Studio Section -->
           <div class="sidebar-section-title">CONTENT STUDIO</div>
 

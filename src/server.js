@@ -22,6 +22,7 @@ const migrationRoutes = require('./routes/migration.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const channelsRoutes = require('./routes/channels.routes');
 const tagsRoutes = require('./routes/tags.routes');
+const subscriptionsRoutes = require('./routes/subscriptions.routes');
 const { initCronScheduler } = require('./services/cronSync');
 
 const app = express();
@@ -96,6 +97,7 @@ app.use('/api/migration', migrationRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/channels', channelsRoutes);
 app.use('/api/tags', tagsRoutes);
+app.use('/api/subscriptions', subscriptionsRoutes);
 
 // Static frontend assets with zero-cache headers to prevent stale browser caching
 const publicDir = path.join(__dirname, '../public');

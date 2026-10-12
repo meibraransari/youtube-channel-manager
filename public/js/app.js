@@ -172,6 +172,9 @@ const App = {
         case 'tracker':
           TrackerComponent.render(mainArea);
           break;
+        case 'subscriptions':
+          SubscriptionsComponent.render(mainArea);
+          break;
         case 'secret-migration':
         case 'migration':
           if (this.currentUser && this.currentUser.role === 'admin') {

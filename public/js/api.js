@@ -178,6 +178,23 @@ const API = {
     updatePreset: (id, data) => API.request(`/api/tags/presets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deletePreset: (id) => API.request(`/api/tags/presets/${id}`, { method: 'DELETE' }),
     resetPresets: () => API.request('/api/tags/presets/reset', { method: 'POST' })
+  },
+
+  // Subscribed Channels
+  subscriptions: {
+    list: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return API.request(`/api/subscriptions?${query}`);
+    },
+    create: (data) => API.request('/api/subscriptions', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id, data) => API.request(`/api/subscriptions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id) => API.request(`/api/subscriptions/${id}`, { method: 'DELETE' }),
+    sync: (channelId) => API.request('/api/subscriptions/sync', { method: 'POST', body: JSON.stringify({ channel_id: channelId }) }),
+    import: (channelId, items) => API.request('/api/subscriptions/import', { method: 'POST', body: JSON.stringify({ channel_id: channelId, items }) }),
+    getExportUrl: (format = 'csv', params = {}) => {
+      const q = new URLSearchParams({ format, ...params }).toString();
+      return `/api/subscriptions/export?${q}`;
+    }
   }
 };
 

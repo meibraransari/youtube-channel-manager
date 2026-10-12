@@ -169,6 +169,15 @@ const API = {
   // Health
   health: {
     get: () => API.request('/health')
+  },
+
+  // Tags & Presets (Tag Manager)
+  tags: {
+    getPresets: () => API.request('/api/tags/presets'),
+    createPreset: (data) => API.request('/api/tags/presets', { method: 'POST', body: JSON.stringify(data) }),
+    updatePreset: (id, data) => API.request(`/api/tags/presets/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deletePreset: (id) => API.request(`/api/tags/presets/${id}`, { method: 'DELETE' }),
+    resetPresets: () => API.request('/api/tags/presets/reset', { method: 'POST' })
   }
 };
 

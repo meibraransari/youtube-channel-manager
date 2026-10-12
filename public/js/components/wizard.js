@@ -5,6 +5,7 @@
 const WizardComponent = {
   currentStep: 1,
   channels: [],
+  tagPresets: [],
   preselectedType: null,
   formData: {
     channel_id: '',
@@ -37,6 +38,20 @@ const WizardComponent = {
     }
   },
 
+  async initTagPresets() {
+    try {
+      if (window.TagManagerComponent) {
+        this.tagPresets = await window.TagManagerComponent.loadPresets();
+      } else {
+        const res = await API.tags.getPresets();
+        this.tagPresets = res.presets || [];
+      }
+    } catch (err) {
+      console.warn('Failed to load tag presets for wizard:', err.message);
+      this.tagPresets = [];
+    }
+  },
+
   async render(container) {
     this.currentStep = 1;
     const initialType = this.preselectedType || 'short';
@@ -56,6 +71,7 @@ const WizardComponent = {
     };
 
     await this.initChannels();
+    await this.initTagPresets();
 
     if (!container) return;
 
@@ -263,13 +279,49 @@ const WizardComponent = {
           <textarea id="wizTags" class="cyber-input" rows="3" style="margin-top: 6px; resize: vertical;" placeholder="cloud, postgresql, nodejs, devops, architecture, engineering">${this.formData.tags}</textarea>
         </div>
 
-        <!-- Tag helper chips -->
-        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px;">
-          <span style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center;">Quick Tags:</span>
-          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="WizardComponent.appendTag('postgresql, database, pg18')">+ PostgreSQL</button>
-          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="WizardComponent.appendTag('kubernetes, containers, devops')">+ Kubernetes</button>
-          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="WizardComponent.appendTag('docker, docker compose, microservices')">+ Docker</button>
-          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" onclick="WizardComponent.appendTag('ai, automation, production')">+ Automation</button>
+        <!-- Quick Tags & Tag Manager Section -->
+        <div class="glass-card" style="padding: 14px 16px; margin-bottom: 18px; border-color: var(--accent-teal); background: rgba(13, 148, 136, 0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 14px;">⚡</span>
+              <span style="font-size: 11px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Quick Tags & Preset Registry:</span>
+            </div>
+            <button type="button" class="btn-cyber btn-cyber-outline btn-sm" id="wizOpenTagManagerBtn" style="padding: 3px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 6px;">
+              <span>🏷️</span>
+              <span>MANAGE TAGS</span>
+            </button>
+          </div>
+
+          <!-- Dropdown Selector + Insert Button -->
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+            <select id="wizQuickTagsDropdown" class="cyber-input" style="flex: 1; min-width: 240px; font-size: 12px; font-weight: 600;">
+              <option value="">⚡ Select Tag Preset from Registry to Append...</option>
+              ${(this.tagPresets || []).map(p => `
+                <option value="${p.id}" data-tags="${encodeURIComponent(p.tags)}" data-name="${encodeURIComponent(p.name)}">
+                  📁 [${p.category || 'General'}] ${p.name} (${p.tags.split(',').length} tags • ${p.tags.length} chars)
+                </option>
+              `).join('')}
+            </select>
+            <button type="button" class="btn-cyber btn-cyber-primary btn-sm" id="wizAppendDropdownTagBtn" style="white-space: nowrap; font-weight: 700;">
+              <span>+</span>
+              <span>APPEND TAGS</span>
+            </button>
+          </div>
+
+          <!-- Quick Pill Chips for 1-Click Access -->
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="wizQuickTagChipsContainer">
+            <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Fast Chips:</span>
+            ${(this.tagPresets || []).slice(0, 6).map(p => `
+              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="WizardComponent.appendTag('${p.tags.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')">
+                + ${p.name}
+              </button>
+            `).join('')}
+            ${(this.tagPresets || []).length > 6 ? `
+              <button type="button" class="btn-cyber btn-cyber-secondary btn-sm" style="font-size: 10px; padding: 2px 8px;" onclick="WizardComponent.openTagManager()">
+                +${(this.tagPresets || []).length - 6} more in Tag Manager ↗
+              </button>
+            ` : ''}
+          </div>
         </div>
 
         <!-- Description -->
@@ -285,6 +337,47 @@ const WizardComponent = {
         tagsInput.oninput = () => {
           counter.textContent = `${tagsInput.value.length} / 500 max`;
           counter.style.color = tagsInput.value.length > 500 ? '#ef4444' : 'var(--text-dim)';
+        };
+      }
+
+      // Quick Tags Dropdown & Manager Event Handlers
+      const tagsDropdown = document.getElementById('wizQuickTagsDropdown');
+      const appendDropdownBtn = document.getElementById('wizAppendDropdownTagBtn');
+      const openTagMgrBtn = document.getElementById('wizOpenTagManagerBtn');
+
+      if (tagsDropdown) {
+        tagsDropdown.onchange = (e) => {
+          const selectedOption = e.target.options[e.target.selectedIndex];
+          if (!selectedOption || !selectedOption.value) return;
+          const tags = decodeURIComponent(selectedOption.getAttribute('data-tags') || '');
+          const name = decodeURIComponent(selectedOption.getAttribute('data-name') || '');
+          if (tags) {
+            WizardComponent.appendTag(tags, name);
+            tagsDropdown.value = '';
+          }
+        };
+      }
+
+      if (appendDropdownBtn) {
+        appendDropdownBtn.onclick = () => {
+          if (!tagsDropdown || !tagsDropdown.value) {
+            Toast.show('Please select a tag preset from the dropdown first.', 'info');
+            tagsDropdown?.focus();
+            return;
+          }
+          const selectedOption = tagsDropdown.options[tagsDropdown.selectedIndex];
+          const tags = decodeURIComponent(selectedOption.getAttribute('data-tags') || '');
+          const name = decodeURIComponent(selectedOption.getAttribute('data-name') || '');
+          if (tags) {
+            WizardComponent.appendTag(tags, name);
+            tagsDropdown.value = '';
+          }
+        };
+      }
+
+      if (openTagMgrBtn) {
+        openTagMgrBtn.onclick = () => {
+          WizardComponent.openTagManager();
         };
       }
     } else if (this.currentStep === 4) {
@@ -481,16 +574,89 @@ const WizardComponent = {
     Toast.show('AI prompt suggestion applied', 'info', 1500);
   },
 
-  appendTag(tagStr) {
+  appendTag(tagStr, presetName = '') {
     const tElem = document.getElementById('wizTags');
-    const current = (tElem ? tElem.value : this.formData.tags).trim();
-    const updated = current ? `${current}, ${tagStr}` : tagStr;
+    const currentVal = (tElem ? tElem.value : this.formData.tags).trim();
+
+    // Split existing tags and new incoming tags
+    const currentTags = currentVal ? currentVal.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const newTags = tagStr ? tagStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    // Deduplicate (case-insensitive)
+    const existingLower = new Set(currentTags.map(s => s.toLowerCase()));
+    const toAdd = [];
+    for (const tag of newTags) {
+      if (!existingLower.has(tag.toLowerCase())) {
+        toAdd.push(tag);
+        existingLower.add(tag.toLowerCase());
+      }
+    }
+
+    if (toAdd.length === 0 && newTags.length > 0) {
+      Toast.show(`All tags from "${presetName || 'preset'}" are already in your list!`, 'info', 2000);
+      return;
+    }
+
+    const mergedList = [...currentTags, ...toAdd];
+    let updated = mergedList.join(', ');
+
+    // Enforce 500 characters limit
+    if (updated.length > 500) {
+      Toast.show(`Warning: Tags exceed 500 characters (${updated.length}/500). Please trim tags before submitting.`, 'warning', 3500);
+    } else {
+      Toast.show(`Added ${toAdd.length} tag${toAdd.length === 1 ? '' : 's'}${presetName ? ` from "${presetName}"` : ''} (${updated.length}/500 chars)`, 'success', 2500);
+    }
+
     if (tElem) tElem.value = updated;
     this.formData.tags = updated;
     const counter = document.getElementById('wizTagsCounter');
     if (counter) {
       counter.textContent = `${updated.length} / 500 max`;
-      if (updated.length > 500) counter.style.color = '#ef4444';
+      counter.style.color = updated.length > 500 ? '#ef4444' : 'var(--text-dim)';
+    }
+  },
+
+  openTagManager() {
+    this.saveCurrentStepInputs();
+    if (window.TagManagerComponent) {
+      TagManagerComponent.openModal((preset) => {
+        this.appendTag(preset.tags, preset.name);
+      });
+    } else {
+      Toast.show('Opening Tag Manager...', 'info');
+    }
+  },
+
+  refreshQuickTagsUI() {
+    const dropdown = document.getElementById('wizQuickTagsDropdown');
+    const chipsContainer = document.getElementById('wizQuickTagChipsContainer');
+
+    if (dropdown) {
+      const currentSelected = dropdown.value;
+      dropdown.innerHTML = `
+        <option value="">⚡ Select Tag Preset from Registry to Append...</option>
+        ${(this.tagPresets || []).map(p => `
+          <option value="${p.id}" data-tags="${encodeURIComponent(p.tags)}" data-name="${encodeURIComponent(p.name)}" ${currentSelected === p.id ? 'selected' : ''}>
+            📁 [${p.category || 'General'}] ${p.name} (${p.tags.split(',').length} tags • ${p.tags.length} chars)
+          </option>
+        `).join('')}
+      `;
+    }
+
+    if (chipsContainer) {
+      chipsContainer.innerHTML = `
+        <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Fast Chips:</span>
+        ${(this.tagPresets || []).slice(0, 6).map(p => `
+          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="WizardComponent.appendTag('${p.tags.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')">
+            + ${p.name}
+          </button>
+        `).join('')}
+        ${(this.tagPresets || []).length > 6 ? `
+          <button type="button" class="btn-cyber btn-cyber-secondary btn-sm" style="font-size: 10px; padding: 2px 8px;" onclick="WizardComponent.openTagManager()">
+            +${(this.tagPresets || []).length - 6} more in Tag Manager ↗
+          </button>
+        ` : ''}
+      `;
     }
   },
 
@@ -542,3 +708,13 @@ const WizardComponent = {
 };
 
 window.WizardComponent = WizardComponent;
+
+// Listen for global tag presets updates to refresh Wizard dropdown in real time
+window.addEventListener('tags:updated', (e) => {
+  if (e.detail && e.detail.presets) {
+    WizardComponent.tagPresets = e.detail.presets;
+    if (WizardComponent.currentStep === 3) {
+      WizardComponent.refreshQuickTagsUI();
+    }
+  }
+});

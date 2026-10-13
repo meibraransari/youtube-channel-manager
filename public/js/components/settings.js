@@ -52,6 +52,26 @@ const SettingsComponent = {
       const smtpNotificationsEnabled = settings.smtp_notifications_enabled === true || settings.smtp_notifications_enabled === 'true';
       const currentUser = API.getUser() || {};
 
+      // Telemetry Email Report Directives
+      const telemetryReportEnabled = settings.telemetry_report_enabled === undefined || settings.telemetry_report_enabled === true || settings.telemetry_report_enabled === 'true';
+      const telemetryReportCron = parseVal(settings.telemetry_report_cron, '0 8 * * *');
+      const telemetryReportSchedulePreset = parseVal(settings.telemetry_report_schedule_preset, 'daily-08');
+      const telemetryReportRecipients = parseVal(settings.telemetry_report_recipients, currentUser.email || 'admin@ytstudio.local');
+      
+      let telemetryReportMetrics = settings.telemetry_report_metrics;
+      if (typeof telemetryReportMetrics === 'string') {
+        try { telemetryReportMetrics = JSON.parse(telemetryReportMetrics); } catch (e) { telemetryReportMetrics = null; }
+      }
+      if (!Array.isArray(telemetryReportMetrics)) {
+        telemetryReportMetrics = ['subscribers', 'views', 'content_breakdown', 'server_health', 'top_videos', 'recent_audit', 'snapshots_status'];
+      }
+
+      const telemetryReportTemplateTheme = parseVal(settings.telemetry_report_template_theme, 'executive_dark');
+      const telemetryReportCustomNotes = parseVal(settings.telemetry_report_custom_notes, 'Daily Automated Creator & Infrastructure Intelligence Digest');
+      const telemetryReportCustomTemplate = parseVal(settings.telemetry_report_custom_template, '');
+      const telemetryReportLastSentAt = parseVal(settings.telemetry_report_last_sent_at, null);
+      const telemetryReportLastStatus = parseVal(settings.telemetry_report_last_status, 'idle');
+
       // Random 2-digit numbers for Flush Data verification challenge
       const num1 = Math.floor(Math.random() * 80) + 10;
       const num2 = Math.floor(Math.random() * 80) + 10;
@@ -293,6 +313,221 @@ const SettingsComponent = {
                 <button type="button" class="btn-cyber btn-cyber-primary" id="btnSaveSmtpCard" style="display: flex; align-items: center; gap: 8px;">
                   <span>💾</span>
                   <span>SAVE SMTP CONFIGURATION</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3.5: Automated Telemetry Report & Email Digest Card -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 22px; border-color: var(--accent-teal);">
+            <!-- Card Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📊</span>
+                <div>
+                  <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">
+                    AUTOMATED TELEMETRY REPORT & EMAIL DIGEST
+                  </h3>
+                  <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+                    Daily scheduled metrics alert delivered via configured SMTP relay.
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge ${telemetryReportEnabled ? 'badge-emerald' : 'badge-amber'}" id="telemetryCronBadge">
+                  ${telemetryReportEnabled ? 'CRON REPORT ACTIVE' : 'CRON REPORT PAUSED'}
+                </span>
+                <span class="badge badge-cyan" id="telemetryThemeBadge">
+                  THEME: ${telemetryReportTemplateTheme.toUpperCase().replace('_', ' ')}
+                </span>
+              </div>
+            </div>
+
+            <!-- Recipient & Sender Coordinates -->
+            <div style="background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;">
+              <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px;">
+                <div>
+                  <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Recipient Email Addresses (Comma-Separated) *</span>
+                    <span style="font-weight: 400; text-transform: none; color: var(--text-muted); font-size: 10px;">Multiple recipients supported</span>
+                  </label>
+                  <input type="text" id="settingTelemetryRecipients" class="cyber-input" placeholder="admin@domain.com, ops@domain.com, creator@domain.com" value="${telemetryReportRecipients}" style="margin-top: 6px;" />
+                  <div style="font-size: 10px; color: var(--text-dim); margin-top: 4px;">
+                    Separate multiple recipient emails with commas. All recipients will receive the daily telemetry briefing.
+                  </div>
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Sender Relay Identity</label>
+                  <div style="margin-top: 6px; padding: 9px 12px; background: rgba(255,255,255,0.03); border: 1px dashed var(--border-color); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-muted);">
+                    <div style="color: var(--accent-teal); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="telemetryFromEmailDisplay">
+                      ${smtpFromEmail || smtpUser || (smtpHost ? 'noreply@' + smtpHost : 'Configure SMTP Relay First')}
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">
+                      From Name: "${smtpFromName || 'YouTube Channel Manager'}"
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Execution Cadence / Cron Job Schedule -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">
+                  Automated Execution Cadence (Cron Job)
+                </label>
+                <select id="settingTelemetryPreset" class="cyber-input" style="margin-top: 6px;">
+                  <option value="daily-08" ${telemetryReportSchedulePreset === 'daily-08' ? 'selected' : ''}>Every Day at 08:00 AM (Morning Digest)</option>
+                  <option value="daily-12" ${telemetryReportSchedulePreset === 'daily-12' ? 'selected' : ''}>Every Day at 12:00 PM (Midday Velocity)</option>
+                  <option value="daily-20" ${telemetryReportSchedulePreset === 'daily-20' ? 'selected' : ''}>Every Day at 08:00 PM (Evening Summary)</option>
+                  <option value="interval-6" ${telemetryReportSchedulePreset === 'interval-6' ? 'selected' : ''}>Every 6 Hours (Periodic Pulse)</option>
+                  <option value="interval-12" ${telemetryReportSchedulePreset === 'interval-12' ? 'selected' : ''}>Every 12 Hours (Bi-Daily Pulse)</option>
+                  <option value="interval-1" ${telemetryReportSchedulePreset === 'interval-1' ? 'selected' : ''}>Every 1 Hour (High-Frequency SRE)</option>
+                  <option value="custom" ${telemetryReportSchedulePreset === 'custom' ? 'selected' : ''}>Custom Cron Expression</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; display: flex; justify-content: space-between;">
+                  <span>Cron Expression (5-Part Standard)</span>
+                  <span style="font-weight: 400; text-transform: none; color: var(--text-dim); font-size: 10px;">min hour dom mon dow</span>
+                </label>
+                <input type="text" id="settingTelemetryCron" class="cyber-input font-mono" placeholder="0 8 * * *" value="${telemetryReportCron}" style="margin-top: 6px;" />
+              </div>
+            </div>
+
+            <!-- Checkbox of Metrics (What I am interested to get) -->
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">
+                  Included Telemetry Metrics Checkboxes (Select What To Receive)
+                </label>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn-cyber btn-cyber-outline btn-xs" id="btnSelectAllTelemetryMetrics" style="font-size: 10px; padding: 2px 8px;">Select All</button>
+                  <button type="button" class="btn-cyber btn-cyber-outline btn-xs" id="btnDeselectAllTelemetryMetrics" style="font-size: 10px; padding: 2px 8px;">Clear All</button>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(0,0,0,0.18); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0;">
+                  <input type="checkbox" class="telemetry-metric-check" value="subscribers" ${telemetryReportMetrics.includes('subscribers') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-cyan);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">👥 Channel Subscribers & Reach</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Total audience reach across channels, 24h delta, and growth velocity</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0;">
+                  <input type="checkbox" class="telemetry-metric-check" value="views" ${telemetryReportMetrics.includes('views') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-emerald);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">👁️ Aggregated Views & Engagement</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Cumulative watch impressions, likes, and audience engagement</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0;">
+                  <input type="checkbox" class="telemetry-metric-check" value="content_breakdown" ${telemetryReportMetrics.includes('content_breakdown') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-purple);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">🎬 Content Breakdown (Videos, Shorts, Podcasts)</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Detailed inventory counts: Long-form 16:9, Shorts 9:16, and Podcast episodes</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0;">
+                  <input type="checkbox" class="telemetry-metric-check" value="server_health" ${telemetryReportMetrics.includes('server_health') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-teal);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">⚡ Server Runtime & PostgreSQL 18 Latency</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Node.js uptime, memory RSS/Heap, DB ping latency, and platform telemetry</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0;">
+                  <input type="checkbox" class="telemetry-metric-check" value="top_videos" ${telemetryReportMetrics.includes('top_videos') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-cyan);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">🏆 Top Content Assets Leaderboard</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Top 5 highest performing videos/shorts ranked by lifetime audience views</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0;">
+                  <input type="checkbox" class="telemetry-metric-check" value="recent_audit" ${telemetryReportMetrics.includes('recent_audit') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-amber);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">🔒 Security & Admin Audit Trail</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Operator actions, configuration modifications, and system alerts in past 24h</div>
+                  </div>
+                </label>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12px; margin: 0; grid-column: span 2;">
+                  <input type="checkbox" class="telemetry-metric-check" value="snapshots_status" ${telemetryReportMetrics.includes('snapshots_status') ? 'checked' : ''} style="margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent-emerald);" />
+                  <div>
+                    <div style="font-weight: 700; color: var(--text-main);">⏱️ Snapshot Synchronization Telemetry</div>
+                    <div style="font-size: 10px; color: var(--text-dim);">Historical snapshots recorded, YouTube API sync cadence, and engine status</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Custom Template Format Support & Nice Design -->
+            <div style="margin-bottom: 16px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+                <div>
+                  <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">
+                    Email Design Template Style
+                  </label>
+                  <select id="settingTelemetryTheme" class="cyber-input" style="margin-top: 6px;">
+                    <option value="executive_dark" ${telemetryReportTemplateTheme === 'executive_dark' ? 'selected' : ''}>🌃 Executive Studio Dark (Cyberpunk High-Contrast, Neon Accents)</option>
+                    <option value="modern_light" ${telemetryReportTemplateTheme === 'modern_light' ? 'selected' : ''}>☀️ Clean Minimalist Light (Crisp Corporate White & Slate)</option>
+                    <option value="ops_blueprint" ${telemetryReportTemplateTheme === 'ops_blueprint' ? 'selected' : ''}>🖥️ SRE & DevOps Blueprint (Terminal Monospace Telemetry)</option>
+                    <option value="custom" ${telemetryReportTemplateTheme === 'custom' ? 'selected' : ''}>🛠️ Custom HTML Template with Dynamic Placeholders</option>
+                  </select>
+                </div>
+                <div>
+                  <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">
+                    Executive Directive / Header Notes
+                  </label>
+                  <input type="text" id="settingTelemetryNotes" class="cyber-input" value="${telemetryReportCustomNotes}" placeholder="Daily studio intelligence digest..." style="margin-top: 6px;" />
+                </div>
+              </div>
+
+              <!-- Custom Template Editor Container -->
+              <div id="customTemplateEditorContainer" style="display: ${telemetryReportTemplateTheme === 'custom' ? 'block' : 'none'}; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-size: 11px; font-weight: 700; color: var(--accent-teal);">CUSTOM HTML EMAIL TEMPLATE</span>
+                  <span style="font-size: 10px; color: var(--text-dim);">Placeholders: {{channel_name}}, {{subscribers_stat}}, {{views_stat}}, {{catalog_count}}, {{db_latency_ms}}, {{server_uptime}}, {{custom_notes}}</span>
+                </div>
+                <textarea id="settingTelemetryCustomTemplate" class="cyber-input font-mono" rows="5" placeholder="<!DOCTYPE html><html><body><h1>{{channel_name}} Daily Digest</h1>...</body></html>" style="font-size: 11px; width: 100%; resize: vertical;">${telemetryReportCustomTemplate}</textarea>
+              </div>
+            </div>
+
+            <!-- Toggles and Actions -->
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.18); padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13px; cursor: pointer; margin: 0;">
+                <input type="checkbox" id="settingTelemetryEnabled" ${telemetryReportEnabled ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--accent-emerald);" />
+                <span>ENABLE AUTOMATED TELEMETRY EMAIL CRON DISPATCH</span>
+              </label>
+
+              <div style="font-size: 11px; color: var(--text-dim);">
+                Last Dispatched: <strong style="color: var(--text-main);">${telemetryReportLastSentAt ? new Date(telemetryReportLastSentAt).toLocaleString() : 'Never'}</strong>
+                <span class="badge ${telemetryReportLastStatus === 'success' ? 'badge-emerald' : 'badge-cyan'}" style="margin-left: 6px; font-size: 9px;" id="telemetryLastStatusBadge">${telemetryReportLastStatus.toUpperCase()}</span>
+              </div>
+            </div>
+
+            <!-- Card Bottom Action Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" class="btn-cyber btn-cyber-outline" id="btnPreviewTelemetryReport" style="display: flex; align-items: center; gap: 8px;">
+                  <span>👁️</span>
+                  <span>PREVIEW EMAIL TEMPLATE</span>
+                </button>
+                <button type="button" class="btn-cyber btn-cyber-outline" id="btnDispatchTelemetryReportNow" style="display: flex; align-items: center; gap: 8px;">
+                  <span>⚡</span>
+                  <span>DISPATCH LIVE REPORT NOW</span>
+                </button>
+              </div>
+              <div>
+                <button type="button" class="btn-cyber btn-cyber-primary" id="btnSaveTelemetryCard" style="display: flex; align-items: center; gap: 8px;">
+                  <span>💾</span>
+                  <span>SAVE TELEMETRY DIRECTIVES</span>
                 </button>
               </div>
             </div>
@@ -561,6 +796,34 @@ const SettingsComponent = {
               </form>
             </div>
           </div>
+
+          <!-- Telemetry Live Email Preview Modal -->
+          <div id="telemetryPreviewModal" class="modal-overlay" style="display: none;">
+            <div class="modal-dialog" style="max-width: 880px; width: 95%; max-height: 92vh; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+              <div class="modal-header" style="padding: 16px 20px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div class="modal-title" style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 20px;">👁️</span>
+                  <div>
+                    <div style="font-size: 15px; font-weight: 800; color: var(--accent-cyan);">LIVE TELEMETRY EMAIL REPORT PREVIEW</div>
+                    <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">Rendered dynamically with live PostgreSQL metrics & selected theme</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <button type="button" class="btn-cyber btn-cyber-outline btn-xs" id="btnPreviewToggleWidth" style="display: flex; align-items: center; gap: 6px;">
+                    <span id="previewDeviceIcon">📱</span> <span id="previewWidthLabel">Switch to Mobile (420px)</span>
+                  </button>
+                  <button type="button" class="modal-close-btn" id="btnCloseTelemetryPreviewX" style="margin-left: 8px;">✕</button>
+                </div>
+              </div>
+              <div style="flex: 1; padding: 16px; overflow-y: auto; display: flex; justify-content: center; background: #05070f; min-height: 520px;">
+                <iframe id="telemetryPreviewIframe" style="width: 100%; max-width: 720px; height: 560px; border: 1px solid var(--border-color); border-radius: 8px; background: #070913; transition: max-width 0.3s ease;"></iframe>
+              </div>
+              <div style="padding: 12px 20px; background: rgba(0,0,0,0.4); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-dim);">
+                <div id="previewMetaSummary">Channels: - • Subs: - • Latency: -</div>
+                <button type="button" class="btn-cyber btn-cyber-primary btn-sm" id="btnCloseTelemetryPreviewBtn">CLOSE PREVIEW</button>
+              </div>
+            </div>
+          </div>
         </div>
       `;
 
@@ -789,6 +1052,213 @@ const SettingsComponent = {
         };
       }
 
+      // =========================================================================
+      // Telemetry Email Report & Metric Alert Handlers
+      // =========================================================================
+      const telemetryPresetSelect = document.getElementById('settingTelemetryPreset');
+      const telemetryCronInput = document.getElementById('settingTelemetryCron');
+      const telemetryThemeSelect = document.getElementById('settingTelemetryTheme');
+      const telemetryThemeBadge = document.getElementById('telemetryThemeBadge');
+      const customEditorContainer = document.getElementById('customTemplateEditorContainer');
+      const telemetryCronBadge = document.getElementById('telemetryCronBadge');
+      const saveTelemetryCardBtn = document.getElementById('btnSaveTelemetryCard');
+      const previewReportBtn = document.getElementById('btnPreviewTelemetryReport');
+      const dispatchReportBtn = document.getElementById('btnDispatchTelemetryReportNow');
+      const previewModal = document.getElementById('telemetryPreviewModal');
+      const previewIframe = document.getElementById('telemetryPreviewIframe');
+
+      // Schedule Preset Switcher
+      if (telemetryPresetSelect && telemetryCronInput) {
+        telemetryPresetSelect.onchange = () => {
+          const val = telemetryPresetSelect.value;
+          const presetCronMap = {
+            'daily-08': '0 8 * * *',
+            'daily-12': '0 12 * * *',
+            'daily-20': '0 20 * * *',
+            'interval-6': '0 */6 * * *',
+            'interval-12': '0 */12 * * *',
+            'interval-1': '0 * * * *'
+          };
+          if (presetCronMap[val]) {
+            telemetryCronInput.value = presetCronMap[val];
+            telemetryCronInput.style.borderColor = 'var(--accent-teal)';
+            setTimeout(() => { telemetryCronInput.style.borderColor = ''; }, 800);
+          }
+        };
+      }
+
+      // Metrics Select / Deselect All
+      const btnSelectAllMetrics = document.getElementById('btnSelectAllTelemetryMetrics');
+      const btnDeselectAllMetrics = document.getElementById('btnDeselectAllTelemetryMetrics');
+      if (btnSelectAllMetrics) {
+        btnSelectAllMetrics.onclick = () => {
+          document.querySelectorAll('.telemetry-metric-check').forEach(chk => { chk.checked = true; });
+        };
+      }
+      if (btnDeselectAllMetrics) {
+        btnDeselectAllMetrics.onclick = () => {
+          document.querySelectorAll('.telemetry-metric-check').forEach(chk => { chk.checked = false; });
+        };
+      }
+
+      // Theme Change Handler
+      if (telemetryThemeSelect) {
+        telemetryThemeSelect.onchange = () => {
+          const val = telemetryThemeSelect.value;
+          if (telemetryThemeBadge) {
+            telemetryThemeBadge.textContent = `THEME: ${val.toUpperCase().replace('_', ' ')}`;
+          }
+          if (customEditorContainer) {
+            customEditorContainer.style.display = (val === 'custom') ? 'block' : 'none';
+          }
+        };
+      }
+
+      // Helper to gather all Telemetry Report payload directives
+      const getTelemetryPayload = () => {
+        const checkedMetrics = Array.from(document.querySelectorAll('.telemetry-metric-check:checked')).map(c => c.value);
+        return {
+          telemetry_report_enabled: document.getElementById('settingTelemetryEnabled').checked,
+          telemetry_report_cron: (document.getElementById('settingTelemetryCron').value || '0 8 * * *').trim(),
+          telemetry_report_schedule_preset: document.getElementById('settingTelemetryPreset').value,
+          telemetry_report_recipients: document.getElementById('settingTelemetryRecipients').value.trim(),
+          telemetry_report_metrics: checkedMetrics,
+          telemetry_report_template_theme: document.getElementById('settingTelemetryTheme').value,
+          telemetry_report_custom_notes: document.getElementById('settingTelemetryNotes').value.trim(),
+          telemetry_report_custom_template: document.getElementById('settingTelemetryCustomTemplate').value
+        };
+      };
+
+      // Dedicated Save Telemetry Card Button
+      if (saveTelemetryCardBtn) {
+        saveTelemetryCardBtn.onclick = async () => {
+          const payload = getTelemetryPayload();
+          saveTelemetryCardBtn.disabled = true;
+          saveTelemetryCardBtn.innerHTML = `<span>⏳</span><span>SAVING TELEMETRY DIRECTIVES...</span>`;
+          try {
+            await API.settings.bulkUpdate(payload);
+            Toast.show('Telemetry report directives persisted dynamically to PostgreSQL!', 'success');
+            if (telemetryCronBadge) {
+              telemetryCronBadge.className = payload.telemetry_report_enabled ? 'badge badge-emerald' : 'badge badge-amber';
+              telemetryCronBadge.textContent = payload.telemetry_report_enabled ? 'CRON REPORT ACTIVE' : 'CRON REPORT PAUSED';
+            }
+          } catch (err) {
+            Toast.show(`Failed to save telemetry settings: ${err.message}`, 'error');
+          } finally {
+            saveTelemetryCardBtn.disabled = false;
+            saveTelemetryCardBtn.innerHTML = `<span>💾</span><span>SAVE TELEMETRY DIRECTIVES</span>`;
+          }
+        };
+      }
+
+      // Live Template Preview Handler
+      if (previewReportBtn) {
+        previewReportBtn.onclick = async () => {
+          const payload = getTelemetryPayload();
+          previewReportBtn.disabled = true;
+          previewReportBtn.innerHTML = `<span>⏳</span><span>RENDERING PREVIEW...</span>`;
+          try {
+            const previewData = {
+              metrics: payload.telemetry_report_metrics,
+              templateTheme: payload.telemetry_report_template_theme,
+              customNotes: payload.telemetry_report_custom_notes,
+              customTemplate: payload.telemetry_report_custom_template,
+              recipients: payload.telemetry_report_recipients,
+              cron: payload.telemetry_report_cron
+            };
+
+            const res = await API.settings.previewTelemetryReport(previewData);
+            if (res && res.html) {
+              if (previewIframe) {
+                previewIframe.srcdoc = res.html;
+              }
+              const metaElem = document.getElementById('previewMetaSummary');
+              if (metaElem && res.telemetrySummary) {
+                const s = res.telemetrySummary;
+                metaElem.textContent = `Channels: ${s.totalChannels} • Subscribers: ${Number(s.totalSubscribers).toLocaleString()} • Views: ${Number(s.totalViews).toLocaleString()} • DB Latency: ${s.dbLatencyMs}ms`;
+              }
+              if (previewModal) {
+                previewModal.style.display = 'flex';
+              }
+            } else {
+              Toast.show('Failed to render template preview: empty output.', 'error');
+            }
+          } catch (err) {
+            Toast.show(`Preview failed: ${err.message}`, 'error');
+          } finally {
+            previewReportBtn.disabled = false;
+            previewReportBtn.innerHTML = `<span>👁️</span><span>PREVIEW EMAIL TEMPLATE</span>`;
+          }
+        };
+      }
+
+      // Preview Modal Device Width Toggle
+      let isMobilePreview = false;
+      const btnToggleWidth = document.getElementById('btnPreviewToggleWidth');
+      if (btnToggleWidth && previewIframe) {
+        btnToggleWidth.onclick = () => {
+          isMobilePreview = !isMobilePreview;
+          if (isMobilePreview) {
+            previewIframe.style.maxWidth = '420px';
+            document.getElementById('previewDeviceIcon').textContent = '💻';
+            document.getElementById('previewWidthLabel').textContent = 'Switch to Desktop (720px)';
+          } else {
+            previewIframe.style.maxWidth = '720px';
+            document.getElementById('previewDeviceIcon').textContent = '📱';
+            document.getElementById('previewWidthLabel').textContent = 'Switch to Mobile (420px)';
+          }
+        };
+      }
+
+      // Close Preview Modal
+      const closePreview = () => { if (previewModal) previewModal.style.display = 'none'; };
+      const btnCloseX = document.getElementById('btnCloseTelemetryPreviewX');
+      const btnCloseBtn = document.getElementById('btnCloseTelemetryPreviewBtn');
+      if (btnCloseX) btnCloseX.onclick = closePreview;
+      if (btnCloseBtn) btnCloseBtn.onclick = closePreview;
+      if (previewModal) {
+        previewModal.onclick = (e) => {
+          if (e.target === previewModal) closePreview();
+        };
+      }
+
+      // Dispatch Live Test Report Now
+      if (dispatchReportBtn) {
+        dispatchReportBtn.onclick = async () => {
+          const payload = getTelemetryPayload();
+          if (!payload.telemetry_report_recipients) {
+            Toast.show('Please provide at least one recipient email address to dispatch the report.', 'warning');
+            return;
+          }
+
+          dispatchReportBtn.disabled = true;
+          dispatchReportBtn.innerHTML = `<span>⏳</span><span>DISPATCHING LIVE REPORT...</span>`;
+
+          try {
+            const res = await API.settings.testTelemetryReport({
+              recipients: payload.telemetry_report_recipients,
+              metrics: payload.telemetry_report_metrics,
+              templateTheme: payload.telemetry_report_template_theme,
+              customNotes: payload.telemetry_report_custom_notes,
+              customTemplate: payload.telemetry_report_custom_template,
+              cron: payload.telemetry_report_cron
+            });
+
+            Toast.show(`✅ ${res.message || 'Telemetry report dispatched successfully!'}`, 'success', 6000);
+            const statusBadge = document.getElementById('telemetryLastStatusBadge');
+            if (statusBadge) {
+              statusBadge.className = 'badge badge-emerald';
+              statusBadge.textContent = 'SUCCESS';
+            }
+          } catch (err) {
+            Toast.show(`Report dispatch failed: ${err.message}`, 'error', 6000);
+          } finally {
+            dispatchReportBtn.disabled = false;
+            dispatchReportBtn.innerHTML = `<span>⚡</span><span>DISPATCH LIVE REPORT NOW</span>`;
+          }
+        };
+      }
+
       // Other Handlers
       document.getElementById('applyLogLevelNowBtn').onclick = async () => {
         const newLevel = document.getElementById('settingLogLevel').value;
@@ -892,7 +1362,8 @@ const SettingsComponent = {
           smtp_from_name: document.getElementById('settingSmtpFromName').value.trim(),
           smtp_allow_self_signed: document.getElementById('settingSmtpSelfSigned').checked,
           smtp_timeout_seconds: document.getElementById('settingSmtpTimeout').value,
-          smtp_notifications_enabled: document.getElementById('settingSmtpNotificationsEnabled').checked
+          smtp_notifications_enabled: document.getElementById('settingSmtpNotificationsEnabled').checked,
+          ...getTelemetryPayload()
         };
 
         try {

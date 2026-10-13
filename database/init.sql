@@ -259,7 +259,17 @@ VALUES
     ('auto_audit', 'true', 'security', 'Enable comprehensive audit trail for all user interactions'),
     ('max_tags_length', '500', 'content', 'Maximum allowed character length for tags field'),
     ('cron_sync_enabled', 'true', 'automation', 'Background automated YouTube metrics collection cron job'),
-    ('cron_sync_interval_hours', '"6"', 'automation', 'Cadence in hours between metric refresh intervals')
+    ('cron_sync_interval_hours', '"6"', 'automation', 'Cadence in hours between metric refresh intervals'),
+    ('telemetry_report_enabled', 'true', 'telemetry', 'Enable automated daily telemetry email reporting via cron'),
+    ('telemetry_report_cron', '"0 8 * * *"', 'telemetry', 'Cron schedule expression for daily telemetry report execution (default: 08:00 AM)'),
+    ('telemetry_report_schedule_preset', '"daily-08"', 'telemetry', 'Schedule preset cadence for telemetry email report'),
+    ('telemetry_report_recipients', '"admin@ytstudio.local"', 'telemetry', 'Comma-separated email addresses of telemetry digest receivers'),
+    ('telemetry_report_metrics', '["subscribers", "views", "content_breakdown", "server_health", "top_videos", "recent_audit", "snapshots_status"]', 'telemetry', 'Selected metrics included in telemetry email digest'),
+    ('telemetry_report_template_theme', '"executive_dark"', 'telemetry', 'Design format theme for telemetry email report (executive_dark, modern_light, ops_blueprint, custom)'),
+    ('telemetry_report_custom_notes', '"Daily Automated Creator & Infrastructure Intelligence Digest"', 'telemetry', 'Executive brief directives displayed at the top of the telemetry report'),
+    ('telemetry_report_custom_template', '""', 'telemetry', 'Custom HTML template override supporting dynamic placeholders'),
+    ('telemetry_report_last_sent_at', 'null', 'telemetry', 'Timestamp of last successfully dispatched telemetry email report'),
+    ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)')
 ON CONFLICT (key) DO NOTHING;
 
 -- Ensure tag_presets is completely decoupled from system_settings

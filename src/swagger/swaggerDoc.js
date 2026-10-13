@@ -257,6 +257,80 @@ const swaggerDocument = {
         responses: { 200: { description: 'Setting updated' } }
       }
     },
+    '/api/settings/test-smtp': {
+      post: {
+        summary: 'Test SMTP Connection & Relay Dispatch Probe',
+        tags: ['Settings'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  smtp_host: { type: 'string', example: 'smtp.gmail.com' },
+                  smtp_port: { type: 'string', example: '587' },
+                  test_recipient_email: { type: 'string', example: 'admin@studio.local' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'SMTP handshake and test email successfully delivered' },
+          400: { description: 'SMTP connection or authentication failure' }
+        }
+      }
+    },
+    '/api/settings/telemetry-report/preview': {
+      post: {
+        summary: 'Generate Live Rendered HTML Preview of Telemetry Report',
+        tags: ['Settings'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  metrics: { type: 'array', items: { type: 'string' } },
+                  templateTheme: { type: 'string', example: 'executive_dark' },
+                  customNotes: { type: 'string', example: 'Daily Intelligence Digest' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Rendered HTML and live metrics summary returned' }
+        }
+      }
+    },
+    '/api/settings/telemetry-report/test': {
+      post: {
+        summary: 'Dispatch Live Telemetry Report Email via SMTP Relay',
+        tags: ['Settings'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  recipients: { type: 'string', example: 'admin@domain.com, ops@domain.com' },
+                  metrics: { type: 'array', items: { type: 'string' } },
+                  templateTheme: { type: 'string', example: 'executive_dark' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Telemetry report delivered to recipients' },
+          400: { description: 'Delivery failed or invalid recipients' }
+        }
+      }
+    },
     '/api/users': {
       get: {
         summary: 'List All Users',

@@ -166,6 +166,32 @@ Operating multi-channel networks and complex content production pipelines often 
 
 ---
 
+### 📊 Automated Telemetry Reporting & Daily Email Alerts Engine (`#settings`)
+- **Single Settings Card Architecture**: Dedicated, unified control card integrated directly into System Settings (`#settings`), utilizing the configured SMTP relay sender address (`From: "YouTube Channel Manager" <noreply@studio.com>`).
+- **Automated Cron Job Execution Cadence**:
+  - Fully configurable 5-part standard cron scheduler (e.g., `0 8 * * *` for daily 08:00 AM dispatch).
+  - Rapid preset selector: Daily 08:00 AM (Morning Digest), Daily 12:00 PM (Midday Velocity), Daily 08:00 PM (Evening Wrap-up), Every 6 Hours, Every 12 Hours, Every 1 Hour, or Custom Cron Expression.
+  - One-click master toggle to enable or pause automated report dispatch without container restarts.
+- **Multi-Recipient Alert Dispatch**: Supports comma-separated email addresses (`admin@domain.com, ops@domain.com, creator@domain.com`) to keep the entire production team aligned.
+- **Granular Metric Selection Checkboxes**: Tailor each daily briefing by checking or unchecking specific metric modules:
+  - 👥 **Channel Subscribers & Growth Velocity**: Aggregate subscribers across channels, net 24h change, and growth curves.
+  - 👁️ **Aggregated Views & Engagement**: Cumulative audience impressions, watch hours, and like totals.
+  - 🎬 **Content Catalog Breakdown**: Real inventory counts for 16:9 Long-Form Videos, 9:16 Shorts, and Podcasts.
+  - ⚡ **Server Runtime & PostgreSQL 18 Telemetry**: Node.js uptime, memory RSS/Heap, DB ping latency, and platform OS coordinates.
+  - 🏆 **Top Content Assets Leaderboard**: Top 5 highest performing videos/shorts ranked by lifetime audience views.
+  - 🔒 **Security Audit & User Activity**: Recent operator events, logins, and permission changes over the last 24 hours.
+  - ⏱️ **Snapshot Synchronization Telemetry**: Historical snapshots count, YouTube API sync cadence, and engine status.
+- **Multiple Curated Design Themes & Custom Template Format Support**:
+  - 🌃 **Executive Studio Dark (Default)**: Dark glassmorphism email design with YouTube red & cyber neon cyan accents, metric cards, and high contrast.
+  - ☀️ **Clean Minimalist Light**: High-contrast corporate white and slate layout with crisp card borders.
+  - 🖥️ **SRE / DevOps Blueprint**: Monospace cyber terminal layout optimized for infrastructure reliability engineers.
+  - 🛠️ **Custom HTML Template**: Dynamic template override supporting placeholder interpolation (`{{channel_name}}`, `{{subscribers_stat}}`, `{{views_stat}}`, `{{catalog_count}}`, `{{db_latency_ms}}`, `{{server_uptime}}`, `{{custom_notes}}`).
+- **Interactive Live Preview Modal**: Built-in preview modal rendering the email dynamically using live database metrics, complete with an interactive Desktop vs. Mobile (420px) viewport toggle.
+- **On-Demand Live Dispatch Action**: Direct "Dispatch Live Report Now" button to instantly fire an email to the configured recipients via the SMTP relay.
+- **Auditing & Telemetry Persistence**: Updates `telemetry_report_last_sent_at` and `telemetry_report_last_status` in PostgreSQL `system_settings` and logs every dispatch under `audit_logs`.
+
+---
+
 ### 👥 Enterprise RBAC User Management (`#users`)
 - **Single Admin Baseline**: New deployments provision a single root admin account (`admin` / `Admin@2026`).
 - **Role Hierarchy**:

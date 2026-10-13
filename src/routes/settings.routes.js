@@ -4,7 +4,15 @@ const { query } = require('../config/db');
 const { authenticateToken, requirePermission, requireRole } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { logger, setLogLevel } = require('../config/logger');
-const { testSmtpConnection } = require('../services/smtp.service');
+const { testSmtpConnection, getSmtpConfig } = require('../services/smtp.service');
+const { reloadCronScheduler } = require('../services/cronSync');
+const { 
+  sendTelemetryReport, 
+  collectTelemetryData, 
+  buildTelemetryReportHtml, 
+  reloadTelemetryReportScheduler,
+  getTelemetryReportConfig 
+} = require('../services/telemetryReport.service');
 
 /**
  * GET /api/settings
@@ -68,6 +76,14 @@ router.put('/:key', authenticateToken, requirePermission('can_manage_settings'),
       ]
     );
 
+    // Reload schedulers dynamically if relevant keys changed
+    if (key.startsWith('telemetry_report_')) {
+      reloadTelemetryReportScheduler().catch(e => logger.warn(`[SCHEDULER-RELOAD] ${e.message}`));
+    }
+    if (key.startsWith('cron_sync_')) {
+      reloadCronScheduler().catch(e => logger.warn(`[CRON-RELOAD] ${e.message}`));
+    }
+
     await recordAudit(req, {
       action: 'SETTINGS_CHANGE',
       entity: 'setting',
@@ -115,6 +131,14 @@ router.put('/', authenticateToken, requirePermission('can_manage_settings'), asy
         [key, JSON.stringify(value), req.user.id]
       );
       updatedKeys.push(key);
+    }
+
+    // Reload schedulers dynamically if relevant keys changed
+    if (updatedKeys.some(k => k.startsWith('telemetry_report_'))) {
+      reloadTelemetryReportScheduler().catch(e => logger.warn(`[SCHEDULER-RELOAD] ${e.message}`));
+    }
+    if (updatedKeys.some(k => k.startsWith('cron_sync_'))) {
+      reloadCronScheduler().catch(e => logger.warn(`[CRON-RELOAD] ${e.message}`));
     }
 
     await recordAudit(req, {
@@ -200,6 +224,112 @@ router.post('/test-smtp', authenticateToken, requirePermission('can_manage_setti
       error: err.message,
       code: err.code || 'SMTP_ERROR',
       command: err.command || null
+    });
+  }
+});
+
+/**
+ * POST /api/settings/telemetry-report/preview
+ * Generate live rendered HTML preview of the telemetry report email without sending
+ */
+router.post('/telemetry-report/preview', authenticateToken, requirePermission('can_manage_settings'), async (req, res) => {
+  try {
+    const { 
+      metrics, 
+      templateTheme, 
+      customNotes, 
+      customTemplate, 
+      recipients, 
+      cron 
+    } = req.body;
+
+    const savedConfig = await getTelemetryReportConfig();
+    const config = {
+      ...savedConfig,
+      ...(metrics ? { metrics } : {}),
+      ...(templateTheme ? { templateTheme } : {}),
+      ...(customNotes !== undefined ? { customNotes } : {}),
+      ...(customTemplate !== undefined ? { customTemplate } : {}),
+      ...(recipients ? { recipients } : {}),
+      ...(cron ? { cron } : {})
+    };
+
+    const smtpConfig = await getSmtpConfig();
+    const fromName = (smtpConfig.smtp_from_name || 'YouTube Channel Manager').trim();
+    const fromEmail = (smtpConfig.smtp_from_email || smtpConfig.smtp_user || `noreply@${smtpConfig.smtp_host || 'localhost'}`).trim();
+    const fromFormatted = `"${fromName}" <${fromEmail}>`;
+
+    const telemetry = await collectTelemetryData();
+    const html = buildTelemetryReportHtml(telemetry, config, { fromFormatted, fromEmail });
+
+    return res.json({
+      success: true,
+      html,
+      telemetrySummary: {
+        totalChannels: telemetry.totalChannels,
+        totalSubscribers: telemetry.totalSubscribers,
+        totalViews: telemetry.totalViews,
+        catalogItems: telemetry.totalCatalogItems,
+        dbLatencyMs: telemetry.serverHealth.dbLatencyMs
+      }
+    });
+  } catch (err) {
+    logger.error(`[TELEMETRY-PREVIEW-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/settings/telemetry-report/test
+ * Immediately dispatch a live telemetry report email to configured or provided recipients
+ */
+router.post('/telemetry-report/test', authenticateToken, requirePermission('can_manage_settings'), async (req, res) => {
+  try {
+    const { 
+      recipients, 
+      metrics, 
+      templateTheme, 
+      customNotes, 
+      customTemplate, 
+      cron 
+    } = req.body;
+
+    const customConfig = {};
+    if (metrics) customConfig.metrics = metrics;
+    if (templateTheme) customConfig.templateTheme = templateTheme;
+    if (customNotes !== undefined) customConfig.customNotes = customNotes;
+    if (customTemplate !== undefined) customConfig.customTemplate = customTemplate;
+    if (cron) customConfig.cron = cron;
+
+    const targetRecipients = recipients || undefined;
+
+    const result = await sendTelemetryReport({
+      recipients: targetRecipients,
+      customConfig,
+      triggeredBy: req.user.username
+    });
+
+    await recordAudit(req, {
+      action: 'TELEMETRY_REPORT_TEST',
+      entity: 'settings',
+      entityId: 'telemetry_report',
+      details: {
+        recipients: result.recipients,
+        messageId: result.messageId,
+        metrics: customConfig.metrics || 'default'
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: result.message,
+      details: result
+    });
+  } catch (err) {
+    logger.error(`[TELEMETRY-TEST-ERROR] ${err.message}`);
+    return res.status(400).json({
+      success: false,
+      error: err.message
     });
   }
 });

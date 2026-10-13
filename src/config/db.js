@@ -136,6 +136,23 @@ async function initDatabase() {
         console.log('[DB] Seeded 10 curated default tag presets into tag_presets table.');
       }
 
+      // Auto-seed default Telemetry Report settings into system_settings if not present
+      await pool.query(`
+        INSERT INTO system_settings (key, value, category, description)
+        VALUES
+          ('telemetry_report_enabled', 'true', 'telemetry', 'Enable automated daily telemetry email reporting via cron'),
+          ('telemetry_report_cron', '"0 8 * * *"', 'telemetry', 'Cron schedule expression for daily telemetry report execution (default: 08:00 AM)'),
+          ('telemetry_report_schedule_preset', '"daily-08"', 'telemetry', 'Schedule preset cadence for telemetry email report'),
+          ('telemetry_report_recipients', '"admin@ytstudio.local"', 'telemetry', 'Comma-separated email addresses of telemetry digest receivers'),
+          ('telemetry_report_metrics', '["subscribers", "views", "content_breakdown", "server_health", "top_videos", "recent_audit", "snapshots_status"]', 'telemetry', 'Selected metrics included in telemetry email digest'),
+          ('telemetry_report_template_theme', '"executive_dark"', 'telemetry', 'Design format theme for telemetry email report (executive_dark, modern_light, ops_blueprint, custom)'),
+          ('telemetry_report_custom_notes', '"Daily Automated Creator & Infrastructure Intelligence Digest"', 'telemetry', 'Executive brief directives displayed at the top of the telemetry report'),
+          ('telemetry_report_custom_template', '""', 'telemetry', 'Custom HTML template override supporting dynamic placeholders'),
+          ('telemetry_report_last_sent_at', 'null', 'telemetry', 'Timestamp of last successfully dispatched telemetry email report'),
+          ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)')
+        ON CONFLICT (key) DO NOTHING;
+      `);
+
       // Ensure initial Administrator user exists with correct password hash
       const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin';
       const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'Admin@2026';

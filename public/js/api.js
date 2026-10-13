@@ -148,6 +148,14 @@ const API = {
     testSmtp: (data) => API.request('/api/settings/test-smtp', {
       method: 'POST',
       body: JSON.stringify(data)
+    }),
+    testTelemetryReport: (data) => API.request('/api/settings/telemetry-report/test', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+    previewTelemetryReport: (data) => API.request('/api/settings/telemetry-report/preview', {
+      method: 'POST',
+      body: JSON.stringify(data)
     })
   },
 

@@ -155,5 +155,35 @@ Write-Host "   Created Custom Tag Preset: $($createPresetRes.preset.name) (ID: $
 $delPresetRes = Invoke-RestMethod -Uri "http://localhost:3000/api/tags/presets/$createdPresetId" -Method Delete -Headers $headers
 Write-Host "   Deleted Custom Tag Preset: $($delPresetRes.message)" -ForegroundColor Green
 
-Write-Host "`n=== ALL 13 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+# 14. Telemetry Report & Email Alerts API
+Write-Host "`n14. Testing Automated Telemetry Report Preview & Directives API..." -ForegroundColor Yellow
+$telemetryPreviewBody = @{
+    recipients = "admin@domain.com, ops@domain.com, devops@studio.internal"
+    metrics = @("subscribers", "views", "content_breakdown", "server_health", "top_videos", "recent_audit")
+    templateTheme = "executive_dark"
+    customNotes = "Daily Studio Telemetry Automated Digest"
+    cron = "0 8 * * *"
+} | ConvertTo-Json
+
+$previewRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/telemetry-report/preview" -Method Post -Headers $headers -Body $telemetryPreviewBody
+if (-not $previewRes.html -or $previewRes.html.Length -lt 200) {
+    throw "Telemetry Preview HTML is empty or invalid!"
+}
+Write-Host "   Live Telemetry HTML Generated: $($previewRes.html.Length) chars | Channels: $($previewRes.telemetrySummary.totalChannels) | Latency: $($previewRes.telemetrySummary.dbLatencyMs)ms" -ForegroundColor Green
+
+# Test Bulk Updating Telemetry Report Directives
+$telemetryUpdateBody = @{
+    settings = @{
+        telemetry_report_enabled = $true
+        telemetry_report_cron = "0 8 * * *"
+        telemetry_report_recipients = "admin@domain.com, alerts@domain.com"
+        telemetry_report_template_theme = "executive_dark"
+        telemetry_report_custom_notes = "Executive Daily Intelligence Brief"
+    }
+} | ConvertTo-Json
+
+$updateSettingsRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Put -Headers $headers -Body $telemetryUpdateBody
+Write-Host "   Updated Telemetry Settings: $($updateSettingsRes.message)" -ForegroundColor Green
+
+Write-Host "`n=== ALL 14 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
 

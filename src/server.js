@@ -24,6 +24,7 @@ const channelsRoutes = require('./routes/channels.routes');
 const tagsRoutes = require('./routes/tags.routes');
 const subscriptionsRoutes = require('./routes/subscriptions.routes');
 const { initCronScheduler } = require('./services/cronSync');
+const { initTelemetryReportScheduler } = require('./services/telemetryReport.service');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -163,6 +164,9 @@ async function startServer() {
 
       // Start automated metric sync cron scheduler
       initCronScheduler();
+
+      // Start automated daily telemetry email report scheduler
+      initTelemetryReportScheduler();
     });
   } catch (err) {
     logger.error(`❌ Critical Boot Failure: ${err.message}`);

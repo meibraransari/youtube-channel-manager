@@ -388,7 +388,16 @@ const TagManagerComponent = {
 
     if (resetBtn) {
       resetBtn.onclick = async () => {
-        if (!confirm('Are you sure you want to restore default curated tag presets? Any custom additions will be reset.')) {
+        const confirmed = await cyberConfirm({
+          title: 'Restore Default Tag Presets?',
+          subtitle: 'Tag manager preset reset',
+          message: 'Are you sure you want to restore default curated tag presets? Any custom additions or edits will be reset to studio defaults.',
+          confirmText: 'Restore Defaults',
+          cancelText: 'Keep Current Presets',
+          type: 'warning',
+          icon: '🔄'
+        });
+        if (!confirmed) {
           return;
         }
         try {
@@ -488,7 +497,16 @@ const TagManagerComponent = {
     const preset = this.presets.find(p => p.id === id);
     if (!preset) return;
 
-    if (!confirm(`Are you sure you want to delete tag preset "${preset.name}"?`)) {
+    const confirmed = await cyberConfirm({
+      title: 'Delete Tag Preset?',
+      subtitle: 'Tag management catalog',
+      message: `Are you sure you want to delete tag preset "${preset.name}"? This action cannot be reversed.`,
+      confirmText: 'Delete Preset',
+      cancelText: 'Cancel',
+      type: 'danger',
+      icon: '🗑️'
+    });
+    if (!confirmed) {
       return;
     }
 

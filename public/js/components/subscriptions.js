@@ -1300,7 +1300,16 @@ const SubscriptionsComponent = {
   },
 
   async deleteSubscription(subId, channelTitle) {
-    if (!confirm(`Are you sure you want to remove "${channelTitle}" from your subscribed channels registry?`)) {
+    const confirmed = await cyberConfirm({
+      title: 'Remove Subscribed Channel',
+      subtitle: 'Feed subscription registry',
+      message: `Are you sure you want to remove "${channelTitle}" from your subscribed channels registry?`,
+      confirmText: 'Remove Channel',
+      cancelText: 'Keep Subscription',
+      type: 'danger',
+      icon: '🗑️'
+    });
+    if (!confirmed) {
       return;
     }
 

@@ -52,7 +52,7 @@ const WizardComponent = {
     }
   },
 
-  cancelWizard() {
+  async cancelWizard() {
     this.saveCurrentStepInputs();
     const hasData = Boolean(
       (this.formData.title && this.formData.title.trim()) ||
@@ -77,7 +77,19 @@ const WizardComponent = {
     };
 
     if (hasData) {
-      if (confirm('Discard unsaved content and exit the Content Creator Wizard?')) {
+      const draftTitle = this.formData.title ? `"${this.formData.title.trim()}"` : 'Untitled Asset';
+      const confirmed = await cyberConfirm({
+        title: 'Discard Wizard Draft?',
+        subtitle: 'Unsaved creator session in progress',
+        message: `You have active unsaved draft metadata in progress. Exiting now will discard this creation session and return you to ${this.getReturnViewLabel()}.`,
+        details: `Draft in progress: ${draftTitle} • ${(this.formData.content_type || 'short').toUpperCase()}`,
+        confirmText: 'Discard & Exit Wizard',
+        cancelText: 'Keep Editing',
+        badge: 'UNSAVED DRAFT',
+        type: 'danger',
+        icon: '🗑️'
+      });
+      if (confirmed) {
         proceedExit();
       }
     } else {

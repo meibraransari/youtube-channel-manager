@@ -43,70 +43,110 @@ const Toast = {
 
 window.Toast = Toast;
 
-// 2. Futuristic Cyber Confirmation Dialog
+// 2. Futuristic Cyber Confirmation Dialog (Executive Modal)
 function cyberConfirm({
   title = 'Confirmation Required',
+  subtitle = '',
   message = 'Are you sure you wish to proceed with this directive?',
+  details = '',
   confirmText = 'EXECUTE DIRECTIVE',
   cancelText = 'ABORT',
-  type = 'warning'
+  type = 'warning',
+  badge = '',
+  icon = ''
 }) {
   return new Promise((resolve) => {
     let modal = document.getElementById('cyberConfirmModal');
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'cyberConfirmModal';
-      modal.className = 'modal-overlay';
+      modal.className = 'modal-overlay cyber-modal';
       document.body.appendChild(modal);
     }
 
-    const glowColor = type === 'danger' ? 'rgba(239, 68, 68, 0.4)' : 'var(--neon-cyan-glow)';
-    const btnClass = type === 'danger' ? 'btn-cyber-danger' : 'btn-cyber-primary';
+    const resolvedType = type === 'danger' ? 'danger' : (type === 'warning' ? 'warning' : 'primary');
+    const defaultIcon = resolvedType === 'danger' ? '⚠️' : (resolvedType === 'warning' ? '⚡' : 'ℹ️');
+    const activeIcon = icon || defaultIcon;
+    const badgeClass = resolvedType === 'danger' ? 'badge-rose' : (resolvedType === 'warning' ? 'badge-amber' : 'badge-teal');
+    const btnClass = resolvedType === 'danger' ? 'btn-cyber-danger' : 'btn-cyber-primary';
 
     modal.innerHTML = `
-      <div class="modal-dialog" style="max-width: 480px; border-color: ${glowColor}; box-shadow: 0 0 30px ${glowColor};">
-        <div class="modal-header">
-          <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 20px;">${type === 'danger' ? '⚠️' : '⚡'}</span>
-            <span>${title}</span>
+      <div class="modal-dialog cyber-confirm-dialog" style="max-width: 490px;" role="dialog" aria-modal="true" aria-labelledby="cyberConfirmTitle">
+        <div class="cyber-confirm-glow-stripe ${resolvedType}"></div>
+        <div class="cyber-confirm-header">
+          <div class="cyber-confirm-icon-wrap ${resolvedType}">
+            <span>${activeIcon}</span>
           </div>
-          <button class="modal-close-btn" id="confirmCloseX">✕</button>
+          <div style="flex: 1; min-width: 0;">
+            <div class="cyber-confirm-title-row">
+              <h3 class="cyber-confirm-title" id="cyberConfirmTitle">${title}</h3>
+              ${badge ? `<span class="badge ${badgeClass}" style="font-size: 10px; padding: 2px 7px;">${badge}</span>` : ''}
+            </div>
+            ${subtitle ? `<div class="cyber-confirm-subtitle">${subtitle}</div>` : ''}
+          </div>
+          <button class="modal-close-btn" id="confirmCloseX" title="Close (Escape)" aria-label="Close">✕</button>
         </div>
-        <div class="modal-body">
-          <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">${message}</p>
+        <div class="cyber-confirm-body">
+          <p class="cyber-confirm-message">${message}</p>
+          ${details ? `
+            <div class="cyber-confirm-details-box">
+              <span class="cyber-confirm-details-icon">📋</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${details}</span>
+            </div>
+          ` : ''}
         </div>
-        <div class="modal-footer">
-          <button class="btn-cyber btn-cyber-outline" id="confirmCancelBtn">${cancelText}</button>
-          <button class="btn-cyber ${btnClass}" id="confirmAcceptBtn">${confirmText}</button>
+        <div class="cyber-confirm-footer">
+          <button type="button" class="btn-cyber btn-cyber-outline" id="confirmCancelBtn">${cancelText}</button>
+          <button type="button" class="btn-cyber ${btnClass}" id="confirmAcceptBtn">${confirmText}</button>
         </div>
       </div>
     `;
 
     modal.classList.add('open');
+    modal.style.display = 'flex';
 
     let resolved = false;
-    function cleanup(result) {
+    const cleanup = (result) => {
       if (resolved) return;
       resolved = true;
       modal.classList.remove('open');
+      modal.style.display = 'none';
+      document.removeEventListener('keydown', keyListener);
+      modal.removeEventListener('click', backdropListener);
       resolve(result);
-    }
+    };
 
-    document.getElementById('confirmCancelBtn').onclick = (e) => { e.preventDefault(); e.stopPropagation(); cleanup(false); };
-    document.getElementById('confirmCloseX').onclick = (e) => { e.preventDefault(); e.stopPropagation(); cleanup(false); };
-    document.getElementById('confirmAcceptBtn').onclick = (e) => { e.preventDefault(); e.stopPropagation(); cleanup(true); };
+    const keyListener = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        cleanup(false);
+      }
+    };
+    document.addEventListener('keydown', keyListener);
 
     const backdropListener = (e) => {
       if (e.target === modal) {
-        modal.removeEventListener('click', backdropListener);
         cleanup(false);
       }
     };
     modal.addEventListener('click', backdropListener);
+
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+    const closeX = document.getElementById('confirmCloseX');
+    const acceptBtn = document.getElementById('confirmAcceptBtn');
+
+    if (cancelBtn) cancelBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); cleanup(false); };
+    if (closeX) closeX.onclick = (e) => { e.preventDefault(); e.stopPropagation(); cleanup(false); };
+    if (acceptBtn) acceptBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); cleanup(true); };
+
+    // Auto-focus cancelBtn for safety
+    if (cancelBtn) cancelBtn.focus();
   });
 }
 
 window.cyberConfirm = cyberConfirm;
+window.confirmAsync = cyberConfirm;
+
 
 // 3. Futuristic Custom Date & Time Picker Modal
 function openCyberDatePicker(currentVal, onSelect) {

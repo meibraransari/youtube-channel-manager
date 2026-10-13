@@ -129,16 +129,36 @@ router.get('/stats', authenticateToken, async (req, res) => {
       statusBreakdown[r.status] = parseInt(r.count, 10);
     });
 
-    // 9. Activity distribution for heatmap by calendar date
+    // 9. Activity distribution by calendar date with breakdown & latest titles
     const activityRes = await query(`
       SELECT 
         TO_CHAR(COALESCE(uploaded_at, created_at), 'YYYY-MM-DD') as activity_date,
-        COUNT(*)::int as count
+        COUNT(*)::int as count,
+        COUNT(*) FILTER (WHERE content_type = 'short')::int as shorts,
+        COUNT(*) FILTER (WHERE content_type = 'video')::int as videos,
+        COUNT(*) FILTER (WHERE content_type = 'podcast')::int as podcasts,
+        (ARRAY_AGG(title ORDER BY COALESCE(uploaded_at, created_at) DESC))[1] as latest_title
       FROM content_items
       ${whereClause}
       GROUP BY activity_date
       ORDER BY activity_date ASC
     `, params);
+
+    // 10. Most recent published content item
+    const lastPublishedRes = await query(`
+      SELECT 
+        id, 
+        title, 
+        content_type, 
+        status,
+        COALESCE(uploaded_at, created_at) as published_at,
+        views_count
+      FROM content_items
+      ${whereClause}
+      ORDER BY COALESCE(uploaded_at, created_at) DESC
+      LIMIT 1
+    `, params);
+    const lastPublishedItem = lastPublishedRes.rows[0] || null;
 
     return res.json({
       success: true,
@@ -166,7 +186,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
       timeline: timelineRes.rows,
       recentContent: recentContentRes.rows,
       recentActivity: recentAuditRes.rows,
-      activityDays: activityRes.rows
+      activityDays: activityRes.rows,
+      lastPublished: lastPublishedItem
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

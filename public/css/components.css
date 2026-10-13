@@ -1507,6 +1507,19 @@ a.nav-pill-item,
   font-family: var(--font-mono);
 }
 
+.trajectory-legend-btn.active-emerald {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #ecfdf5;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.15);
+}
+
+.trajectory-legend-btn.active-emerald .legend-val {
+  color: #10b981;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
 .trajectory-legend-btn.dimmed {
   opacity: 0.38;
   border-style: dashed;
@@ -1529,6 +1542,11 @@ a.nav-pill-item,
 .legend-color-indicator.purple-dot {
   background: #a855f7;
   box-shadow: 0 0 8px #a855f7;
+}
+
+.legend-color-indicator.emerald-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
 }
 
 .trajectory-status-indicator {

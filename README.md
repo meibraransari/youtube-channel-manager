@@ -89,10 +89,12 @@ Operating multi-channel networks and complex content production pipelines often 
 ---
 
 ### 🏷️ Centralized Tag Preset Registry & Tag Manager (`#tags`)
+- **Dedicated Database Table (`tag_presets`)**: Fully decoupled from `system_settings`. Tag presets are persisted in their own dedicated PostgreSQL 18 relational table (`tag_presets`), where each preset is stored as an individual row with independent `id`, `name`, `category`, `tags`, `is_system`, `created_at`, and `updated_at`.
+- **Multi-Category Architecture**: Pre-seeded with 10 distinct curated domain categories (`Database`, `Cloud & DevOps`, `DevOps`, `AI & ML`, `Development`, `YouTube`, `Architecture`, `Security`, `Frontend`, plus user custom categories).
+- **Dedicated REST API Suite**: Complete CRUD operations via `/api/tags/presets`, `/api/tags/presets/:id`, `/api/tags/presets/reset`, and `/api/tags/categories`.
 - **Centralized Tag Manager Overlay**: Accessible from the top navigation, the sidebar ("Manage Tags" button), and Step 3 of the Content Creator Wizard.
-- **Domain Categories**: Pre-packaged presets for DevOps, Cloud Native, Cybersecurity, AI / Machine Learning, Full-Stack, Python, and Databases.
-- **Preset CRUD**: Add custom presets, update tag collections, assign categories, delete obsolete presets, or restore factory defaults with 1 click.
-- **Filter Toolbar**: Instant search across preset titles and keywords, category dropdown filter, and fast category pills with counter badges.
+- **Preset CRUD & Management**: Add custom presets, update tag collections, assign categories, delete obsolete presets, or restore factory defaults with 1 click.
+- **Executive Filter Toolbar**: Instant search across preset titles and keywords, category dropdown filter, and fast category pills with counter badges.
 - **1-Click Quick Tag Insertion**: Direct dropdown and fast clickable chips inside the Content Creator Wizard to inject tag presets directly into metadata, automatically respecting the 500-character constraint.
 
 ---

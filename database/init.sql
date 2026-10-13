@@ -173,6 +173,25 @@ CREATE TABLE IF NOT EXISTS channel_subscriptions (
 );
 
 -- ------------------------------------------------------------------------------
+-- 11. Tag Presets Table (Dedicated Categorized SEO & Creator Tag Presets)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS tag_presets (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    category VARCHAR(100) NOT NULL DEFAULT 'Custom',
+    tags TEXT NOT NULL,
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tag_presets_category ON tag_presets(category);
+CREATE INDEX IF NOT EXISTS idx_tag_presets_name ON tag_presets(name);
+CREATE INDEX IF NOT EXISTS idx_tag_presets_created_at ON tag_presets(created_at DESC);
+
+-- ------------------------------------------------------------------------------
 -- Triggers and Validation Functions
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_tags_length_func()
@@ -243,5 +262,26 @@ VALUES
     ('cron_sync_interval_hours', '"6"', 'automation', 'Cadence in hours between metric refresh intervals')
 ON CONFLICT (key) DO NOTHING;
 
+-- Ensure tag_presets is completely decoupled from system_settings
+DELETE FROM system_settings WHERE key = 'tag_presets';
+
+-- ------------------------------------------------------------------------------
+-- Seed Default Curated Tag Presets (Individual Rows per Category)
+-- ------------------------------------------------------------------------------
+INSERT INTO tag_presets (id, name, category, tags, is_system)
+VALUES
+    ('preset-postgres', 'PostgreSQL & Database', 'Database', 'postgresql, database, pg18, sql, rdbms, performance, indexing, backend, data modeling', TRUE),
+    ('preset-kubernetes', 'Kubernetes & Cloud', 'Cloud & DevOps', 'kubernetes, k8s, containers, devops, cloud, microservices, helm, cluster, cloud native', TRUE),
+    ('preset-docker', 'Docker & Microservices', 'DevOps', 'docker, docker compose, microservices, containers, devops, linux, deployment', TRUE),
+    ('preset-automation', 'AI & Automation', 'AI & ML', 'ai, machine learning, automation, llm, artificial intelligence, deep learning, workflow', TRUE),
+    ('preset-nodejs', 'Node.js & Backend Architecture', 'Development', 'nodejs, javascript, backend, express, rest api, web development, fullstack, software', TRUE),
+    ('preset-devops', 'DevOps & CI/CD Pipelines', 'DevOps', 'devops, cicd, github actions, automation, continuous integration, deployment, sre', TRUE),
+    ('preset-shorts', 'YouTube Shorts Growth', 'YouTube', 'shorts, youtube shorts, content creator, viral, trending, algorithm, tech tips, coding', TRUE),
+    ('preset-system-design', 'System Design & Scalability', 'Architecture', 'system design, software architecture, scalability, high availability, cloud native, distributed systems', TRUE),
+    ('preset-security', 'Cybersecurity & RBAC', 'Security', 'security, authentication, jwt, rbac, cybersecurity, infosec, access control, devsecops', TRUE),
+    ('preset-frontend', 'Modern Web & UI/UX Design', 'Frontend', 'frontend, ui, ux, responsive design, css, javascript, web design, modern web', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
 -- Reset serial sequence for content_items to clean starting state
 SELECT setval('content_items_id_seq', 1, false);
+

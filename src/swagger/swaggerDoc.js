@@ -50,6 +50,18 @@ const swaggerDocument = {
           permissions: { type: 'array', items: { type: 'string' } },
           is_active: { type: 'boolean', example: true }
         }
+      },
+      TagPreset: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'preset-postgres' },
+          name: { type: 'string', example: 'PostgreSQL & Database' },
+          category: { type: 'string', example: 'Database' },
+          tags: { type: 'string', example: 'postgresql, database, pg18, sql, rdbms, performance, indexing' },
+          is_system: { type: 'boolean', example: true },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' }
+        }
       }
     }
   },
@@ -262,6 +274,124 @@ const swaggerDocument = {
         summary: 'View Audit Trail Logs',
         tags: ['Audit'],
         responses: { 200: { description: 'Audit trail returned' } }
+      }
+    },
+    '/api/tags/presets': {
+      get: {
+        summary: 'List All Tag Presets from Dedicated Registry',
+        tags: ['Tag Presets'],
+        parameters: [
+          { name: 'category', in: 'query', schema: { type: 'string' }, description: 'Filter by category (e.g. Database, DevOps, AI & ML)' },
+          { name: 'search', in: 'query', schema: { type: 'string' }, description: 'Search preset names, categories, or tags' }
+        ],
+        responses: {
+          200: {
+            description: 'List of tag presets returned',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    count: { type: 'integer' },
+                    presets: { type: 'array', items: { $ref: '#/components/schemas/TagPreset' } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        summary: 'Create New Tag Preset Row',
+        tags: ['Tag Presets'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'tags'],
+                properties: {
+                  name: { type: 'string', example: 'Next.js & React Ecosystem' },
+                  category: { type: 'string', example: 'Frontend' },
+                  tags: { type: 'string', example: 'nextjs, react, tailwind, typescript, web dev' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Tag preset created successfully' },
+          400: { description: 'Validation error or duplicate preset name' }
+        }
+      }
+    },
+    '/api/tags/presets/{id}': {
+      put: {
+        summary: 'Update Existing Tag Preset Row',
+        tags: ['Tag Presets'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  category: { type: 'string' },
+                  tags: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Tag preset updated successfully' },
+          404: { description: 'Preset not found' }
+        }
+      },
+      delete: {
+        summary: 'Delete Tag Preset Row',
+        tags: ['Tag Presets'],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: {
+          200: { description: 'Tag preset deleted successfully' },
+          404: { description: 'Preset not found' }
+        }
+      }
+    },
+    '/api/tags/presets/reset': {
+      post: {
+        summary: 'Restore Curated Default Tag Presets (10 System Categories)',
+        tags: ['Tag Presets'],
+        responses: {
+          200: { description: 'Tag presets reset to default curated bundles' }
+        }
+      }
+    },
+    '/api/tags/categories': {
+      get: {
+        summary: 'List Distinct Tag Preset Categories',
+        tags: ['Tag Presets'],
+        responses: {
+          200: {
+            description: 'List of distinct categories',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    count: { type: 'integer' },
+                    categories: { type: 'array', items: { type: 'string' } }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

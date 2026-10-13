@@ -293,6 +293,7 @@ const TagManagerComponent = {
                 <span class="badge badge-teal" style="font-size: 10px; padding: 2px 6px;">
                   ${this.escapeHtml(p.category || 'General')}
                 </span>
+                ${p.is_system ? `<span class="badge badge-violet" style="font-size: 9px; padding: 1px 5px;">CURATED</span>` : ''}
               </div>
               <div style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px;">
                 ${tagList.length} tags • ${p.tags.length}/500 chars

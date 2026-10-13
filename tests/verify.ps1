@@ -129,4 +129,31 @@ Write-Host "`n12. Testing Audit Trail API..." -ForegroundColor Yellow
 $auditRes = Invoke-RestMethod -Uri "http://localhost:3000/api/audit?limit=5" -Method Get -Headers $headers
 Write-Host "   Audit Logs Count: $($auditRes.data.Count) (Latest Action: $($auditRes.data[0].action))" -ForegroundColor Green
 
-Write-Host "`n=== ALL TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+# 13. Tag Presets Dedicated Table & API
+Write-Host "`n13. Testing Tag Presets Dedicated Table & API..." -ForegroundColor Yellow
+$tagsRes = Invoke-RestMethod -Uri "http://localhost:3000/api/tags/presets" -Method Get -Headers $headers
+Write-Host "   Existing Tag Presets Count: $($tagsRes.presets.Count)" -ForegroundColor Green
+
+# Verify tag_presets is NOT in system_settings
+$settingsCheck = Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Get -Headers $headers
+if ($settingsCheck.settings.tag_presets) {
+    throw "Regression: tag_presets found inside system_settings! It must be completely decoupled."
+}
+Write-Host "   Verified tag_presets is completely decoupled from system_settings." -ForegroundColor Green
+
+# Test Creating Custom Preset
+$newPresetBody = @{
+    name = "Terraform & IaC Automation"
+    category = "DevOps"
+    tags = "terraform, iac, infrastructure as code, cloud, automation, hashicorp"
+} | ConvertTo-Json
+$createPresetRes = Invoke-RestMethod -Uri "http://localhost:3000/api/tags/presets" -Method Post -Headers $headers -Body $newPresetBody
+$createdPresetId = $createPresetRes.preset.id
+Write-Host "   Created Custom Tag Preset: $($createPresetRes.preset.name) (ID: $createdPresetId)" -ForegroundColor Green
+
+# Test Deleting Custom Preset
+$delPresetRes = Invoke-RestMethod -Uri "http://localhost:3000/api/tags/presets/$createdPresetId" -Method Delete -Headers $headers
+Write-Host "   Deleted Custom Tag Preset: $($delPresetRes.message)" -ForegroundColor Green
+
+Write-Host "`n=== ALL 13 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+

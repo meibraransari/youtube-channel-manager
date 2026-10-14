@@ -51,6 +51,8 @@ services:
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-admin@ytstudio.local}
     ports:
       - "${APP_PORT:-3000}:${PORT:-3000}"
+    volumes:
+      - ./media:/app/media
     depends_on:
       postgres18:
         condition: service_healthy

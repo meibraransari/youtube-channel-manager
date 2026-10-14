@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -113,10 +114,20 @@ app.use(express.static(publicDir, {
   }
 }));
 
+// Serve uploaded media files (images and videos) directly
+const mediaDir = path.join(__dirname, '../media');
+if (!fs.existsSync(mediaDir)) {
+  fs.mkdirSync(mediaDir, { recursive: true });
+}
+app.use('/media', express.static(mediaDir, {
+  etag: true,
+  maxAge: '1d'
+}));
+
 // Fallback to index.html for SPA routing
 app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
-    return res.status(404).json({ success: false, error: 'API endpoint not found' });
+  if (req.path.startsWith('/api/') || req.path.startsWith('/health') || req.path.startsWith('/media/')) {
+    return res.status(404).json({ success: false, error: 'Resource not found' });
   }
   res.sendFile(path.join(publicDir, 'index.html'));
 });

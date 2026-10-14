@@ -964,6 +964,33 @@ window.viewContentModal = async function(id) {
             </div>
           ` : ''}
 
+          ${(item.image_url || item.image_file) ? `
+            <div>
+              <span style="color: var(--text-dim); font-weight: 700; font-size: 11px;">IMAGE / THUMBNAIL TARGET LINK:</span>
+              <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 8px;">
+                <div>
+                  <a href="${item.image_file || item.image_url}" target="_blank" rel="noopener" class="btn-cyber btn-cyber-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                    🖼️ VIEW IMAGE (${item.image_file || item.image_url})
+                  </a>
+                </div>
+                <div style="margin-top: 2px; border-radius: var(--radius-sm); overflow: hidden; max-width: 260px; border: 1px solid var(--border-color);">
+                  <img src="${item.image_file || item.image_url}" alt="Thumbnail Preview" style="width: 100%; height: auto; display: block;" onerror="this.style.display='none'" />
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${item.video_file ? `
+            <div>
+              <span style="color: var(--text-dim); font-weight: 700; font-size: 11px;">LOCAL MEDIA VIDEO ASSET:</span>
+              <div style="margin-top: 4px;">
+                <a href="${item.video_file}" target="_blank" rel="noopener" class="btn-cyber btn-cyber-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                  📹 PLAY/DOWNLOAD VIDEO ASSET (${item.video_file})
+                </a>
+              </div>
+            </div>
+          ` : ''}
+
           ${item.description ? `
             <div>
               <span style="color: var(--text-dim); font-weight: 700; font-size: 11px;">DESCRIPTION / SUMMARY:</span>

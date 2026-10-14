@@ -1,11 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { query } = require('../config/db');
 const { authenticateToken, requirePermission } = require('../middleware/auth');
 const { recordAudit } = require('../middleware/audit');
 const { logger } = require('../config/logger');
 const { fetchYouTubeVideoDetails, extractVideoId } = require('../services/youtube.service');
+const { handleMediaUpload, finalizeUploadedFile, mediaDir } = require('../middleware/upload');
 
 /**
  * GET /api/content
@@ -178,9 +181,9 @@ router.post('/:id/sync-youtube', authenticateToken, requirePermission('can_manag
 
 /**
  * POST /api/content
- * Create new content item (used by Content Creator Wizard)
+ * Create new content item (used by Content Creator Wizard & Media Ingestion)
  */
-router.post('/', authenticateToken, requirePermission('can_manage_content'), async (req, res) => {
+router.post('/', authenticateToken, requirePermission('can_manage_content'), handleMediaUpload, async (req, res) => {
   try {
     const {
       channel_id,
@@ -214,15 +217,51 @@ router.post('/', authenticateToken, requirePermission('can_manage_content'), asy
       return res.status(400).json({ success: false, error: 'Tags length cannot exceed 500 characters' });
     }
 
-    const mediaUuid = crypto.randomUUID();
+    const mediaUuid = req.body.media_uuid || crypto.randomUUID();
     const uploadedAt = status === 'uploaded' ? new Date() : null;
+
+    let finalImageUrl = image_url || null;
+    let finalVideoUrl = video_url || null;
+    let finalImageFile = null;
+    let finalVideoFile = null;
+    let hasImage = image_present === true || image_present === 'true';
+    let hasVideo = video_present === true || video_present === 'true';
+
+    // Process uploaded image file if present (image_file or image)
+    const uploadedImg = req.files && (
+      (req.files.image_file && req.files.image_file[0]) ||
+      (req.files.image && req.files.image[0])
+    );
+    if (uploadedImg) {
+      const imgRes = finalizeUploadedFile(uploadedImg, mediaUuid);
+      if (imgRes) {
+        hasImage = true;
+        finalImageFile = imgRes.urlPath;
+        if (!finalImageUrl) finalImageUrl = imgRes.urlPath;
+      }
+    }
+
+    // Process uploaded video file if present (video_file or video)
+    const uploadedVid = req.files && (
+      (req.files.video_file && req.files.video_file[0]) ||
+      (req.files.video && req.files.video[0])
+    );
+    if (uploadedVid) {
+      const vidRes = finalizeUploadedFile(uploadedVid, mediaUuid);
+      if (vidRes) {
+        hasVideo = true;
+        finalVideoFile = vidRes.urlPath;
+        if (!finalVideoUrl) finalVideoUrl = vidRes.urlPath;
+      }
+    }
 
     const insertRes = await query(
       `INSERT INTO content_items (
         media_uuid, channel_id, content_type, topic, title, description, image_prompt,
         tags, image_url, video_url, status, image_present, video_present,
+        image_file, video_file,
         scheduled_at, uploaded_at, created_by
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *`,
       [
         mediaUuid,
@@ -233,11 +272,13 @@ router.post('/', authenticateToken, requirePermission('can_manage_content'), asy
         description || null,
         image_prompt || null,
         tags || null,
-        image_url || null,
-        video_url || null,
+        finalImageUrl,
+        finalVideoUrl,
         status,
-        Boolean(image_present),
-        Boolean(video_present),
+        Boolean(hasImage),
+        Boolean(hasVideo),
+        finalImageFile,
+        finalVideoFile,
         scheduled_at ? new Date(scheduled_at) : null,
         uploadedAt,
         req.user.id
@@ -251,10 +292,18 @@ router.post('/', authenticateToken, requirePermission('can_manage_content'), asy
       action: 'CREATE',
       entity: content_type,
       entityId: newItem.id,
-      details: { title: newItem.title, media_uuid: newItem.media_uuid, status: newItem.status }
+      details: { 
+        title: newItem.title, 
+        media_uuid: newItem.media_uuid, 
+        status: newItem.status,
+        image_present: newItem.image_present,
+        video_present: newItem.video_present,
+        image_file: newItem.image_file,
+        video_file: newItem.video_file
+      }
     });
 
-    logger.info(`[CONTENT] Created new ${content_type}: "${newItem.title}" (ID: ${newItem.id})`);
+    logger.info(`[CONTENT] Created new ${content_type}: "${newItem.title}" (ID: ${newItem.id}, Image: ${newItem.image_present}, Video: ${newItem.video_present})`);
     return res.status(201).json({ success: true, data: newItem });
   } catch (err) {
     logger.error(`[CONTENT-CREATE-ERROR] ${err.message}`);
@@ -264,9 +313,9 @@ router.post('/', authenticateToken, requirePermission('can_manage_content'), asy
 
 /**
  * PUT /api/content/:id
- * Full edit of a content item
+ * Full edit of a content item with media override support
  */
-router.put('/:id', authenticateToken, requirePermission('can_manage_content'), async (req, res) => {
+router.put('/:id', authenticateToken, requirePermission('can_manage_content'), handleMediaUpload, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -300,10 +349,50 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_content'), a
     }
 
     const prevItem = checkRes.rows[0];
+    const mediaUuid = prevItem.media_uuid;
 
     let finalUploadedAt = uploaded_at ? new Date(uploaded_at) : prevItem.uploaded_at;
     if (status === 'uploaded' && !finalUploadedAt) {
       finalUploadedAt = new Date();
+    }
+
+    let finalImageUrl = image_url !== undefined ? image_url : prevItem.image_url;
+    let finalVideoUrl = video_url !== undefined ? video_url : prevItem.video_url;
+    let finalImageFile = prevItem.image_file;
+    let finalVideoFile = prevItem.video_file;
+    let hasImage = image_present !== undefined ? (image_present === true || image_present === 'true') : prevItem.image_present;
+    let hasVideo = video_present !== undefined ? (video_present === true || video_present === 'true') : prevItem.video_present;
+
+    // Process override image upload (image_file or image)
+    const overrideImg = req.files && (
+      (req.files.image_file && req.files.image_file[0]) ||
+      (req.files.image && req.files.image[0])
+    );
+    if (overrideImg) {
+      const imgRes = finalizeUploadedFile(overrideImg, mediaUuid);
+      if (imgRes) {
+        hasImage = true;
+        finalImageFile = imgRes.urlPath;
+        if (!finalImageUrl || finalImageUrl.startsWith('/media/')) {
+          finalImageUrl = imgRes.urlPath;
+        }
+      }
+    }
+
+    // Process override video upload (video_file or video)
+    const overrideVid = req.files && (
+      (req.files.video_file && req.files.video_file[0]) ||
+      (req.files.video && req.files.video[0])
+    );
+    if (overrideVid) {
+      const vidRes = finalizeUploadedFile(overrideVid, mediaUuid);
+      if (vidRes) {
+        hasVideo = true;
+        finalVideoFile = vidRes.urlPath;
+        if (!finalVideoUrl || finalVideoUrl.startsWith('/media/')) {
+          finalVideoUrl = vidRes.urlPath;
+        }
+      }
     }
 
     const updateRes = await query(
@@ -319,10 +408,12 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_content'), a
         status = $9,
         image_present = $10,
         video_present = $11,
-        scheduled_at = $12,
-        uploaded_at = $13,
+        image_file = $12,
+        video_file = $13,
+        scheduled_at = $14,
+        uploaded_at = $15,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $14
+      WHERE id = $16
       RETURNING *`,
       [
         topic || null,
@@ -331,11 +422,13 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_content'), a
         content_type || prevItem.content_type,
         image_prompt || null,
         tags || null,
-        image_url || null,
-        video_url || null,
+        finalImageUrl,
+        finalVideoUrl,
         status || prevItem.status,
-        image_present !== undefined ? Boolean(image_present) : prevItem.image_present,
-        video_present !== undefined ? Boolean(video_present) : prevItem.video_present,
+        Boolean(hasImage),
+        Boolean(hasVideo),
+        finalImageFile,
+        finalVideoFile,
         scheduled_at ? new Date(scheduled_at) : prevItem.scheduled_at,
         finalUploadedAt,
         id
@@ -349,7 +442,14 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_content'), a
       action: 'UPDATE',
       entity: updatedItem.content_type,
       entityId: id,
-      details: { title: updatedItem.title, changes: req.body }
+      details: { 
+        title: updatedItem.title, 
+        image_present: updatedItem.image_present,
+        video_present: updatedItem.video_present,
+        image_file: updatedItem.image_file,
+        video_file: updatedItem.video_file,
+        changes: req.body 
+      }
     });
 
     return res.json({ success: true, data: updatedItem });
@@ -515,12 +615,26 @@ router.delete('/:id', authenticateToken, requirePermission('can_manage_content')
   try {
     const { id } = req.params;
 
-    const findRes = await query('SELECT id, title, content_type FROM content_items WHERE id = $1', [id]);
+    const findRes = await query('SELECT id, title, content_type, media_uuid FROM content_items WHERE id = $1', [id]);
     if (findRes.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Content item not found' });
     }
 
     const item = findRes.rows[0];
+
+    // Delete any disk media files associated with this media_uuid
+    if (item.media_uuid && fs.existsSync(mediaDir)) {
+      try {
+        const files = fs.readdirSync(mediaDir);
+        files.forEach(f => {
+          if (f.startsWith(item.media_uuid)) {
+            try { fs.unlinkSync(path.join(mediaDir, f)); } catch (_) {}
+          }
+        });
+      } catch (fErr) {
+        logger.warn(`[CONTENT-DELETE] Could not clean up media files for ${item.media_uuid}: ${fErr.message}`);
+      }
+    }
 
     await query('DELETE FROM content_items WHERE id = $1', [id]);
 

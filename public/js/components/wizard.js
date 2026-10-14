@@ -20,7 +20,9 @@ const WizardComponent = {
     tags: '',
     description: '',
     status: 'pending',
-    scheduled_at: null
+    scheduled_at: null,
+    image_file: null,
+    video_file: null
   },
 
   getReturnView() {
@@ -61,7 +63,9 @@ const WizardComponent = {
       (this.formData.image_prompt && this.formData.image_prompt.trim()) ||
       (this.formData.tags && this.formData.tags.trim()) ||
       (this.formData.video_url && this.formData.video_url.trim()) ||
-      (this.formData.image_url && this.formData.image_url.trim())
+      (this.formData.image_url && this.formData.image_url.trim()) ||
+      this.formData.image_file ||
+      this.formData.video_file
     );
 
     const proceedExit = () => {
@@ -366,7 +370,7 @@ const WizardComponent = {
     } else if (this.currentStep === 2) {
       body.innerHTML = `
         <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--accent-teal);">
-          STEP 2: THUMBNAIL DESIGN & AI IMAGE PROMPT
+          STEP 2: THUMBNAIL DESIGN, ASSET UPLOAD & AI PROMPTS
         </h3>
 
         <!-- Prompt Suggestions helper -->
@@ -388,6 +392,48 @@ const WizardComponent = {
           <textarea id="wizImagePrompt" class="cyber-input" rows="4" style="margin-top: 6px; resize: vertical;" placeholder="High contrast 3D illustration of cloud servers, vibrant glowing accents, bold typography space, aspect ratio ${this.formData.content_type === 'short' ? '9:16' : '16:9'}...">${this.formData.image_prompt}</textarea>
         </div>
 
+        <!-- Optional Media Asset File Uploads -->
+        <div class="glass-card" style="padding: 16px; margin-bottom: 16px; border-color: var(--accent-teal); background: rgba(13, 148, 136, 0.05);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 16px;">📁</span>
+              <span style="font-size: 12px; font-weight: 800; color: var(--text-main); text-transform: uppercase;">LOCAL MEDIA FILE UPLOADS (OPTIONAL)</span>
+            </div>
+            <span class="badge badge-teal" style="font-size: 10px;">STORAGE: ./media</span>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">
+            Optionally attach an image thumbnail (.png) and video file (.mp4). Uploads are stored in <code>./media</code> and renamed to <code>[media_uuid].[ext]</code>.
+          </p>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <!-- Thumbnail Image Upload -->
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Upload Thumbnail Image</label>
+              <input type="file" id="wizImageFileInput" class="cyber-input" accept="image/*,.png,.jpg,.jpeg,.webp" style="margin-top: 6px; padding: 6px;" />
+              <div id="wizImagePreviewBox" style="margin-top: 8px; display: ${this.formData.image_file ? 'flex' : 'none'}; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: var(--radius-sm);">
+                <span>🖼️</span>
+                <span id="wizImagePreviewText" style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-teal); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  ${this.formData.image_file ? this.formData.image_file.name : ''}
+                </span>
+                <button type="button" class="btn-cyber btn-cyber-danger btn-sm" id="wizClearImageBtn" style="padding: 1px 6px; font-size: 10px;">✕</button>
+              </div>
+            </div>
+
+            <!-- Video Asset Upload -->
+            <div>
+              <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Upload Video Asset</label>
+              <input type="file" id="wizVideoFileInput" class="cyber-input" accept="video/*,.mp4,.mov,.mkv" style="margin-top: 6px; padding: 6px;" />
+              <div id="wizVideoPreviewBox" style="margin-top: 8px; display: ${this.formData.video_file ? 'flex' : 'none'}; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: var(--radius-sm);">
+                <span>🎥</span>
+                <span id="wizVideoPreviewText" style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-emerald); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  ${this.formData.video_file ? `${this.formData.video_file.name} (${(this.formData.video_file.size / (1024*1024)).toFixed(1)} MB)` : ''}
+                </span>
+                <button type="button" class="btn-cyber btn-cyber-danger btn-sm" id="wizClearVideoBtn" style="padding: 1px 6px; font-size: 10px;">✕</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Image URL -->
         <div style="margin-bottom: 16px;">
           <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">External Thumbnail Image URL (Optional)</label>
@@ -400,6 +446,49 @@ const WizardComponent = {
           <input type="url" id="wizVideoUrl" class="cyber-input" placeholder="https://youtube.com/shorts/... or https://youtu.be/..." value="${this.formData.video_url}" style="margin-top: 6px;" />
         </div>
       `;
+
+      const imgInput = document.getElementById('wizImageFileInput');
+      const vidInput = document.getElementById('wizVideoFileInput');
+      const imgPreviewBox = document.getElementById('wizImagePreviewBox');
+      const imgPreviewText = document.getElementById('wizImagePreviewText');
+      const vidPreviewBox = document.getElementById('wizVideoPreviewBox');
+      const vidPreviewText = document.getElementById('wizVideoPreviewText');
+      const clearImgBtn = document.getElementById('wizClearImageBtn');
+      const clearVidBtn = document.getElementById('wizClearVideoBtn');
+
+      if (imgInput) {
+        imgInput.onchange = (e) => {
+          if (e.target.files && e.target.files[0]) {
+            this.formData.image_file = e.target.files[0];
+            imgPreviewText.textContent = this.formData.image_file.name;
+            imgPreviewBox.style.display = 'flex';
+          }
+        };
+      }
+      if (clearImgBtn) {
+        clearImgBtn.onclick = () => {
+          this.formData.image_file = null;
+          if (imgInput) imgInput.value = '';
+          imgPreviewBox.style.display = 'none';
+        };
+      }
+
+      if (vidInput) {
+        vidInput.onchange = (e) => {
+          if (e.target.files && e.target.files[0]) {
+            this.formData.video_file = e.target.files[0];
+            vidPreviewText.textContent = `${this.formData.video_file.name} (${(this.formData.video_file.size / (1024*1024)).toFixed(1)} MB)`;
+            vidPreviewBox.style.display = 'flex';
+          }
+        };
+      }
+      if (clearVidBtn) {
+        clearVidBtn.onclick = () => {
+          this.formData.video_file = null;
+          if (vidInput) vidInput.value = '';
+          vidPreviewBox.style.display = 'none';
+        };
+      }
     } else if (this.currentStep === 3) {
       body.innerHTML = `
         <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--accent-teal);">
@@ -592,6 +681,23 @@ const WizardComponent = {
               <div style="color: var(--accent-emerald);">${this.formData.scheduled_at ? new Date(this.formData.scheduled_at).toLocaleString() : 'Immediate'}</div>
             </div>
           </div>
+
+          ${(this.formData.image_file || this.formData.video_file) ? `
+            <div style="margin-top: 12px; padding: 10px; background: rgba(13, 148, 136, 0.08); border-radius: var(--radius-sm); border: 1px solid rgba(13, 148, 136, 0.2); display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 12px;">
+              <div>
+                <span style="color: var(--text-dim); font-weight: 700;">ATTACHED IMAGE:</span>
+                <div style="color: var(--accent-teal); font-family: var(--font-mono); font-size: 11px; margin-top: 2px;">
+                  ${this.formData.image_file ? `🖼️ ${this.formData.image_file.name} (${(this.formData.image_file.size / 1024).toFixed(1)} KB)` : 'None (Using Prompt/URL)'}
+                </div>
+              </div>
+              <div>
+                <span style="color: var(--text-dim); font-weight: 700;">ATTACHED VIDEO:</span>
+                <div style="color: var(--accent-emerald); font-family: var(--font-mono); font-size: 11px; margin-top: 2px;">
+                  ${this.formData.video_file ? `🎥 ${this.formData.video_file.name} (${(this.formData.video_file.size / (1024 * 1024)).toFixed(2)} MB)` : 'None (External/Draft)'}
+                </div>
+              </div>
+            </div>
+          ` : ''}
 
           ${this.formData.tags ? `
             <div style="margin-top: 12px;">
@@ -825,22 +931,52 @@ const WizardComponent = {
     if (cancelBtn) cancelBtn.disabled = true;
 
     try {
-      const payload = {
-        ...this.formData,
-        channel_id: this.formData.channel_id || null,
-        image_present: Boolean(this.formData.image_url || this.formData.image_prompt),
-        video_present: Boolean(this.formData.video_url)
-      };
+      let res;
+      if (this.formData.image_file || this.formData.video_file) {
+        const formData = new FormData();
+        formData.append('channel_id', this.formData.channel_id || '');
+        formData.append('content_type', this.formData.content_type);
+        formData.append('topic', this.formData.topic || '');
+        formData.append('title', this.formData.title || '');
+        formData.append('image_prompt', this.formData.image_prompt || '');
+        formData.append('video_url', this.formData.video_url || '');
+        formData.append('image_url', this.formData.image_url || '');
+        formData.append('tags', this.formData.tags || '');
+        formData.append('description', this.formData.description || '');
+        formData.append('status', this.formData.status || 'pending');
+        if (this.formData.scheduled_at) {
+          formData.append('scheduled_at', this.formData.scheduled_at);
+        }
+        if (this.formData.image_file) {
+          formData.append('image_file', this.formData.image_file);
+        }
+        if (this.formData.video_file) {
+          formData.append('video_file', this.formData.video_file);
+        }
+        res = await API.content.create(formData);
+      } else {
+        const payload = {
+          ...this.formData,
+          channel_id: this.formData.channel_id || null,
+          image_present: Boolean(this.formData.image_url || this.formData.image_prompt),
+          video_present: Boolean(this.formData.video_url)
+        };
+        res = await API.content.create(payload);
+      }
 
-      const res = await API.content.create(payload);
-      Toast.show(`Successfully deployed new ${payload.content_type.toUpperCase()} (#${res.data.id})!`, 'success');
+      const targetType = this.formData.content_type;
+      Toast.show(`Successfully deployed new ${targetType.toUpperCase()} (#${res.data.id})!`, 'success');
       
+      // Reset files
+      this.formData.image_file = null;
+      this.formData.video_file = null;
+
       // Navigate to corresponding view or return view
-      if (payload.content_type === 'short') {
+      if (targetType === 'short') {
         window.navigateTo('shorts');
-      } else if (payload.content_type === 'video') {
+      } else if (targetType === 'video') {
         window.navigateTo('videos');
-      } else if (payload.content_type === 'podcast') {
+      } else if (targetType === 'podcast') {
         window.navigateTo('podcasts');
       } else {
         window.navigateTo(this.getReturnView());

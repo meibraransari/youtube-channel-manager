@@ -25,6 +25,9 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY database/ ./database/
 
+# Create media storage directory and grant ownership to node user
+RUN mkdir -p /app/media && chown -R node:node /app/media
+
 # Create non-root node user for enhanced cyber security
 USER node
 

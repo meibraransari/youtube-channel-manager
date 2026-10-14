@@ -72,6 +72,10 @@ const SettingsComponent = {
       const telemetryReportLastSentAt = parseVal(settings.telemetry_report_last_sent_at, null);
       const telemetryReportLastStatus = parseVal(settings.telemetry_report_last_status, 'idle');
 
+      // Media & Asset Storage Directives
+      const allowedMediaExtensions = parseVal(settings.allowed_media_extensions, '.mp4,.png');
+      const maxMediaUploadSizeMb = parseVal(settings.max_media_upload_size_mb, '500');
+
       // Random 2-digit numbers for Flush Data verification challenge
       const num1 = Math.floor(Math.random() * 80) + 10;
       const num2 = Math.floor(Math.random() * 80) + 10;
@@ -533,7 +537,54 @@ const SettingsComponent = {
             </div>
           </div>
 
-          <!-- Section 4: Dynamic Logging & Console Verbosity -->
+          <!-- Section 4: Media & Asset Storage Directives -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 22px; border-color: var(--accent-teal);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">📁</span>
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);">
+                  MEDIA & ASSET STORAGE DIRECTIVES
+                </h3>
+              </div>
+              <span class="badge badge-teal" id="mediaStorageBadge">PERSISTENT VOLUME: ./media</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+              Configure allowed file extensions and maximum upload thresholds for thumbnail images and video assets. Uploaded media is saved into the mounted volume (<code>./media ⇄ /app/media</code>) and renamed to <code>[media_uuid].[ext]</code>.
+            </p>
+
+            <div style="background: rgba(0,0,0,0.18); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">🐳</span>
+                <div>
+                  <div style="font-size: 12px; font-weight: 700; color: var(--text-main);">Docker Compose Volume Mapping</div>
+                  <div style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-teal);">Host: ./media ⇄ Container: /app/media</div>
+                </div>
+              </div>
+              <span class="badge badge-emerald" style="font-size: 10px;">ACTIVE MOUNT</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Allowed Media File Extensions (Comma-Separated) *</label>
+                <input type="text" id="settingAllowedMediaExtensions" class="cyber-input" placeholder=".mp4,.png,.jpg,.jpeg,.webp" value="${allowedMediaExtensions}" style="margin-top: 6px;" />
+                <span style="font-size: 10px; color: var(--text-dim); margin-top: 4px; display: block;">Define comma-separated extensions (e.g. <code>.mp4,.png</code>). Future formats can be added here without code edits.</span>
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Upload Size per File (MB) *</label>
+                <input type="number" id="settingMaxMediaUploadSizeMb" class="cyber-input" placeholder="500" value="${maxMediaUploadSizeMb}" min="1" max="5000" style="margin-top: 6px;" />
+                <span style="font-size: 10px; color: var(--text-dim); margin-top: 4px; display: block;">Maximum threshold in megabytes (Default: 500 MB)</span>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--border-color);">
+              <button type="button" class="btn-cyber btn-cyber-primary" id="saveMediaSettingsBtn" style="display: flex; align-items: center; gap: 8px;">
+                <span>💾</span>
+                <span>SAVE MEDIA DIRECTIVES</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 5: Dynamic Logging & Console Verbosity -->
           <div class="glass-card" style="padding: 24px; margin-bottom: 22px; border-color: var(--border-color);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
               <div style="display: flex; align-items: center; gap: 8px;">
@@ -1260,6 +1311,34 @@ const SettingsComponent = {
       }
 
       // Other Handlers
+      const saveMediaSettingsBtn = document.getElementById('saveMediaSettingsBtn');
+      if (saveMediaSettingsBtn) {
+        saveMediaSettingsBtn.onclick = async () => {
+          const allowedExt = document.getElementById('settingAllowedMediaExtensions').value.trim();
+          const maxSize = document.getElementById('settingMaxMediaUploadSizeMb').value.trim();
+
+          if (!allowedExt) {
+            Toast.show('Allowed media extensions cannot be empty.', 'warning');
+            return;
+          }
+
+          saveMediaSettingsBtn.disabled = true;
+          saveMediaSettingsBtn.innerHTML = `<span>⏳</span><span>SAVING MEDIA DIRECTIVES...</span>`;
+          try {
+            await API.settings.bulkUpdate({
+              allowed_media_extensions: allowedExt,
+              max_media_upload_size_mb: maxSize || '500'
+            });
+            Toast.show('Media storage directives updated successfully!', 'success');
+          } catch (err) {
+            Toast.show(`Failed to save media settings: ${err.message}`, 'error');
+          } finally {
+            saveMediaSettingsBtn.disabled = false;
+            saveMediaSettingsBtn.innerHTML = `<span>💾</span><span>SAVE MEDIA DIRECTIVES</span>`;
+          }
+        };
+      }
+
       document.getElementById('applyLogLevelNowBtn').onclick = async () => {
         const newLevel = document.getElementById('settingLogLevel').value;
         try {
@@ -1363,6 +1442,8 @@ const SettingsComponent = {
           smtp_allow_self_signed: document.getElementById('settingSmtpSelfSigned').checked,
           smtp_timeout_seconds: document.getElementById('settingSmtpTimeout').value,
           smtp_notifications_enabled: document.getElementById('settingSmtpNotificationsEnabled').checked,
+          allowed_media_extensions: document.getElementById('settingAllowedMediaExtensions').value.trim(),
+          max_media_upload_size_mb: document.getElementById('settingMaxMediaUploadSizeMb').value.trim(),
           ...getTelemetryPayload()
         };
 

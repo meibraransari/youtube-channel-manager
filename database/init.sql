@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS content_items (
     status VARCHAR(20) NOT NULL DEFAULT 'pending', -- 'pending', 'uploaded', 'draft', 'scheduled', 'archived'
     image_present BOOLEAN NOT NULL DEFAULT FALSE,
     video_present BOOLEAN NOT NULL DEFAULT FALSE,
+    image_file VARCHAR(500),
+    video_file VARCHAR(500),
     views_count BIGINT NOT NULL DEFAULT 0,
     likes_count BIGINT NOT NULL DEFAULT 0,
     comments_count BIGINT NOT NULL DEFAULT 0,
@@ -269,7 +271,9 @@ VALUES
     ('telemetry_report_custom_notes', '"Daily Automated Creator & Infrastructure Intelligence Digest"', 'telemetry', 'Executive brief directives displayed at the top of the telemetry report'),
     ('telemetry_report_custom_template', '""', 'telemetry', 'Custom HTML template override supporting dynamic placeholders'),
     ('telemetry_report_last_sent_at', 'null', 'telemetry', 'Timestamp of last successfully dispatched telemetry email report'),
-    ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)')
+    ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)'),
+    ('allowed_media_extensions', '".mp4, .png"', 'media', 'Allowed file extensions for video and image media uploads (e.g. .mp4, .png, .jpg, .mov)'),
+    ('max_media_upload_size_mb', '100', 'media', 'Maximum allowed media file upload size in Megabytes (MB)')
 ON CONFLICT (key) DO NOTHING;
 
 -- Ensure tag_presets is completely decoupled from system_settings

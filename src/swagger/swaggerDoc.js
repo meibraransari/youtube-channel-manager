@@ -37,7 +37,9 @@ const swaggerDocument = {
           video_url: { type: 'string', example: 'https://youtube.com/shorts/JrIS4013jXw' },
           status: { type: 'string', enum: ['pending', 'uploaded', 'draft', 'scheduled', 'archived'], example: 'uploaded' },
           image_present: { type: 'boolean', example: true },
-          video_present: { type: 'boolean', example: true }
+          video_present: { type: 'boolean', example: true },
+          image_file: { type: 'string', example: '/media/1c829fbc-516c-11f1-b1b2-8a22620ec07a.png' },
+          video_file: { type: 'string', example: '/media/1c829fbc-516c-11f1-b1b2-8a22620ec07a.mp4' }
         }
       },
       User: {
@@ -145,6 +147,22 @@ const swaggerDocument = {
           content: {
             'application/json': {
               schema: { $ref: '#/components/schemas/ContentItem' }
+            },
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  channel_id: { type: 'string', example: 'channel_1' },
+                  content_type: { type: 'string', enum: ['short', 'video', 'podcast'], example: 'short' },
+                  title: { type: 'string', example: 'New Video Title' },
+                  topic: { type: 'string', example: 'Tech Topic' },
+                  description: { type: 'string', example: 'Description' },
+                  tags: { type: 'string', example: 'tag1, tag2' },
+                  status: { type: 'string', enum: ['pending', 'uploaded', 'draft', 'scheduled'], example: 'pending' },
+                  image_file: { type: 'string', format: 'binary', description: 'Thumbnail Image File (.png, etc.)' },
+                  video_file: { type: 'string', format: 'binary', description: 'Video Media Asset File (.mp4, etc.)' }
+                }
+              }
             }
           }
         },
@@ -166,7 +184,23 @@ const swaggerDocument = {
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/ContentItem' } } }
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/ContentItem' } },
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string', example: 'Updated Title' },
+                  topic: { type: 'string', example: 'Updated Topic' },
+                  description: { type: 'string', example: 'Updated Description' },
+                  tags: { type: 'string', example: 'tag1, tag2' },
+                  status: { type: 'string', example: 'uploaded' },
+                  image_file: { type: 'string', format: 'binary', description: 'Override Thumbnail Image File' },
+                  video_file: { type: 'string', format: 'binary', description: 'Override Video Media Asset File' }
+                }
+              }
+            }
+          }
         },
         responses: { 200: { description: 'Item updated' } }
       },

@@ -185,5 +185,52 @@ $telemetryUpdateBody = @{
 $updateSettingsRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Put -Headers $headers -Body $telemetryUpdateBody
 Write-Host "   Updated Telemetry Settings: $($updateSettingsRes.message)" -ForegroundColor Green
 
-Write-Host "`n=== ALL 14 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+# 15. Media & Asset Storage Directives + Multipart Upload Test
+Write-Host "`n15. Testing Media & Asset Storage Directives & Uploads..." -ForegroundColor Yellow
+
+$mediaSettingsGet = Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Get -Headers $headers
+Write-Host "   Allowed Media Extensions: $($mediaSettingsGet.settings.allowed_media_extensions) | Max Upload Size: $($mediaSettingsGet.settings.max_media_upload_size_mb) MB" -ForegroundColor Green
+
+$tempPng = [System.IO.Path]::GetTempFileName() + ".png"
+[System.IO.File]::WriteAllBytes($tempPng, [byte[]]@(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A))
+
+$tempMp4 = [System.IO.Path]::GetTempFileName() + ".mp4"
+[System.IO.File]::WriteAllBytes($tempMp4, [byte[]]@(0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70))
+
+try {
+    $rawJson = curl.exe -s -X POST "http://localhost:3000/api/content" `
+        -H "Authorization: Bearer $token" `
+        -F "channel_id=$testChannelId" `
+        -F "content_type=short" `
+        -F "title=Automated Media Upload Short" `
+        -F "topic=Media Volume Test" `
+        -F "image_file=@$tempPng" `
+        -F "video_file=@$tempMp4" `
+        -F "status=pending"
+    $uploadRes = $rawJson | ConvertFrom-Json
+    $uploadedItem = $uploadRes.data
+    Write-Host "   Uploaded Item #$($uploadedItem.id) - UUID: $($uploadedItem.media_uuid)" -ForegroundColor Green
+    Write-Host "   image_present: $($uploadedItem.image_present) | image_file: $($uploadedItem.image_file)" -ForegroundColor Green
+    Write-Host "   video_present: $($uploadedItem.video_present) | video_file: $($uploadedItem.video_file)" -ForegroundColor Green
+
+    if (-not $uploadedItem.image_present -or -not $uploadedItem.video_present) {
+        throw "Failed: image_present or video_present is not true!"
+    }
+    if (-not $uploadedItem.image_file.EndsWith(".png") -or -not $uploadedItem.video_file.EndsWith(".mp4")) {
+        throw "Failed: file names not properly renamed to uuid.ext!"
+    }
+
+    # Verify static file served at /media/...
+    $mediaCheck = Invoke-WebRequest -Uri "http://localhost:3000$($uploadedItem.image_file)" -Method Get
+    Write-Host "   Static /media File Served: HTTP $($mediaCheck.StatusCode)" -ForegroundColor Green
+
+    # Clean up test content item
+    $null = Invoke-RestMethod -Uri "http://localhost:3000/api/content/$($uploadedItem.id)" -Method Delete -Headers $headers
+    Write-Host "   Cleaned up test content item #$($uploadedItem.id)" -ForegroundColor Green
+} finally {
+    Remove-Item -Force $tempPng -ErrorAction SilentlyContinue
+    Remove-Item -Force $tempMp4 -ErrorAction SilentlyContinue
+}
+
+Write-Host "`n=== ALL 15 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
 

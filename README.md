@@ -101,10 +101,15 @@ Operating multi-channel networks and complex content production pipelines often 
 
 ### 🧙 5-Stage Content Creator Wizard (`#wizard`)
 - **Step 1: Identity & Format**: Target channel selector, format selection (9:16 Shorts vs 16:9 Long Videos vs Podcasts), domain topic, and public title.
-- **Step 2: AI Thumbnails & Prompts**: Built-in prompt engineering generators (Tech Architecture, Futuristic Glow, Minimalist) for Midjourney, DALL-E, and Flux, plus image and video URL coordinates.
+- **Step 2: AI Thumbnails, Prompts & Local Media Asset Uploads**:
+  - Built-in prompt engineering generators (Tech Architecture, Futuristic Glow, Minimalist) for Midjourney, DALL-E, and Flux, plus external URL coordinates.
+  - **Optional Local Media Uploads**: Attach raw thumbnail images (`.png`, etc.) and video files (`.mp4`, etc.) directly from your workstation.
+  - **Dynamic Directive Controls**: Configured via System Settings (`allowed_media_extensions` and `max_media_upload_size_mb`) without hardcoded limitations.
+  - **Automatic UUID Renaming**: Stored in persistent volume (`./media ⇄ /app/media`) renamed automatically to `[media_uuid].[ext]` (e.g. `59cc7864-3270-4c34-ae25-62ec73b4db76.png`).
+  - **Database Presence Tracking**: Automatically flags `image_present = true` and `video_present = true` on `content_items`.
 - **Step 3: Tags & SEO Optimization**: 500-character constrained tag manager with instant quick-tag preset insertion, fast chips, and rich description editor.
 - **Step 4: Lifecycle & Scheduling**: Custom precision interactive date/time coordinates calendar with status selector (`draft`, `scheduled`, `pending`, `uploaded`).
-- **Step 5: Pre-Flight Verification**: Full holographic review before committing directives to PostgreSQL 18.
+- **Step 5: Pre-Flight Verification**: Full holographic review with attached media previews before committing directives to PostgreSQL 18.
 - **Cancel & Close Action**: Dedicated executive "Cancel" button with confirmation safeguard available across all 5 steps to safely exit without loss of state.
 - **Zero Data-Loss Stepper**: Jump freely back and forth across stepper pills without losing entered form fields.
 
@@ -118,11 +123,15 @@ Operating multi-channel networks and complex content production pipelines often 
   - Fast status filter pills (`All`, `🟢 Live / Uploaded`, `🟡 Pending`, `🔵 Scheduled`, `⚪ Draft`, `📦 Archived`).
   - Active filter badge count and 1-click "Clear Filters" action.
 - **Robust Asset Actions**:
-  - 👁️ **View Details**: Full metadata modal with direct YouTube link and creation coordinates.
-  - ✏️ **Edit Metadata**: Comprehensive editing modal for titles, topics, descriptions, tags, and status.
+  - 👁️ **View Details Modal**: Full metadata modal with direct YouTube link, thumbnail image preview, direct "View Image" button (`🖼️ VIEW IMAGE (url)`) situated directly below the YouTube Target Link button, and local video asset link.
+  - ✏️ **Edit Metadata & Media Override**: Comprehensive editing modal for titles, topics, descriptions, tags, and status, with live inspection of attached media and the ability to override/re-upload image or video files at any time.
   - ⚡ **Quick Rename**: Fast title update without opening heavy forms.
   - 📋 **1-Click Duplicate / Clone**: Instant asset replication with fresh UUIDs and `draft` status.
-  - 🗑️ **Delete**: Modal confirmation safeguards preventing accidental catalog deletion.
+  - 🗑️ **Delete**: Modal confirmation safeguards preventing accidental catalog deletion, with automatic cleanup of associated media files in `./media`.
+- **Intelligent YouTube Sync Deduplication & HD Thumbnails**:
+  - Automatically matches existing `pending`, `scheduled`, or `draft` assets during background or manual YouTube sync by `media_uuid`, `video_url`, YouTube video ID, or channel title.
+  - Automatically promotes status from `pending` to `uploaded`, synchronizes lifetime views, likes, and comments, and prevents duplicate records.
+  - Persists high-definition YouTube thumbnail URLs using `maxresdefault.jpg` (with graceful fallback to `hqdefault.jpg`).
 
 ---
 
@@ -220,6 +229,7 @@ Operating multi-channel networks and complex content production pipelines often 
 ---
 
 ### ⚙️ Dynamic Zero-Downtime System Settings & Danger Zone (`#settings`)
+- **Media & Asset Storage Directives Card**: Dedicated card in Settings to configure allowed upload file extensions (`allowed_media_extensions`: `.mp4,.png`, etc.) and maximum upload file size in megabytes (`max_media_upload_size_mb`: 500 MB), displaying Docker volume mapping status (`Host: ./media ⇄ Container: /app/media`).
 - **Console Log Level**: Switch backend Winston log verbosity (`debug`, `info`, `warn`, `error`, `http`) in real time.
 - **Swagger Documentation Toggle**: Instantly enable or disable `/api/docs` without touching Docker Compose.
 - **Automated Background Cron Scheduler**: Adjustable sync cadence (1h, 2h, 6h, 12h, 24h intervals) with dynamic scheduler toggle.
@@ -374,6 +384,7 @@ youtube-channel-manager/
 ├── README.md                         # Comprehensive platform documentation
 ├── FEATURES.md                       # Complete feature index
 ├── LICENSE                           # MIT License
+├── media/                            # Persistent media storage (volume: ./media ⇄ /app/media)
 ├── tests/
 │   └── verify.ps1                    # Automated 12-stage E2E verification test suite
 ├── database/
@@ -390,6 +401,7 @@ youtube-channel-manager/
 │   ├── middleware/
 │   │   ├── auth.js                   # JWT bearer authentication & RBAC checker
 │   │   ├── audit.js                  # Automated audit trail logging
+│   │   ├── upload.js                 # Dynamic Multer multipart file upload engine
 │   │   └── swaggerToggle.js          # Dynamic Swagger enable/disable middleware
 │   ├── routes/
 │   │   ├── auth.routes.js            # Login, sessions, login history

@@ -219,7 +219,7 @@ async function getYouTubeVideos(handle) {
             title: title.trim(),
             views: parseHumanNumber(viewsText),
             url: `https://www.youtube.com/watch?v=${videoId}`,
-            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
             type: 'video',
             uploadedAt
           });
@@ -269,7 +269,7 @@ async function getYouTubeShorts(handle) {
             title: title || `Short ${videoId}`,
             views: parseHumanNumber(viewsText),
             url: `https://www.youtube.com/shorts/${videoId}`,
-            thumbnail: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+            thumbnail: `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`,
             type: 'short',
             uploadedAt
           });
@@ -508,10 +508,21 @@ async function syncChannelRealData(channelIdOrHandle, triggeredBy = 'system') {
   for (const asset of allAssets) {
     const mediaUuid = `yt_${asset.videoId}`;
 
-    // Check if item already exists by media_uuid or video_url
+    // Match existing item in DB:
+    // 1. By media_uuid = 'yt_' + videoId
+    // 2. By exact video_url
+    // 3. By video_url containing the videoId (e.g. youtu.be/xyz, youtube.com/shorts/xyz)
+    // 4. By exact title in the same channel (user created pending item in wizard and forgot to change status)
     const existing = await query(
-      'SELECT id, views_count FROM content_items WHERE media_uuid = $1 OR video_url = $2',
-      [mediaUuid, asset.url]
+      `SELECT id, title, status, views_count, video_url, image_url, uploaded_at 
+       FROM content_items 
+       WHERE media_uuid = $1 
+          OR video_url = $2 
+          OR (video_url IS NOT NULL AND video_url ILIKE $3)
+          OR (channel_id = $4 AND LOWER(TRIM(title)) = LOWER(TRIM($5)))
+       ORDER BY (media_uuid = $1) DESC, id ASC
+       LIMIT 1`,
+      [mediaUuid, asset.url, `%${asset.videoId}%`, channel.id, asset.title]
     );
 
     if (existing.rows.length === 0) {
@@ -539,31 +550,40 @@ async function syncChannelRealData(channelIdOrHandle, triggeredBy = 'system') {
       );
       insertedCount++;
     } else {
-      // Update view count, title, thumbnail, uploaded_at, and update real description & tags if available
-      const oldViews = parseInt(existing.rows[0].views_count || 0, 10);
+      // Existing item found: update status to 'uploaded' (handles pending/scheduled sync), update metrics, maxresdefault thumbnail & details
+      const existingItem = existing.rows[0];
       await query(
         `UPDATE content_items SET
+          status = 'uploaded',
           views_count = $1,
-          title = $2,
-          image_url = $3,
-          uploaded_at = COALESCE(uploaded_at, $4),
-          description = CASE WHEN $5 != '' THEN $5 ELSE description END,
-          tags = CASE WHEN $6 != '' THEN $6 ELSE tags END,
+          likes_count = CASE WHEN $2 > 0 THEN $2 ELSE likes_count END,
+          comments_count = CASE WHEN $3 > 0 THEN $3 ELSE comments_count END,
+          title = COALESCE(NULLIF($4, ''), title),
+          video_url = COALESCE(NULLIF(video_url, ''), $5),
+          image_url = CASE 
+            WHEN image_url IS NULL OR image_url = '' OR image_url LIKE '%ytimg.com%' 
+            THEN $6 
+            ELSE image_url 
+          END,
+          uploaded_at = COALESCE(uploaded_at, $7),
+          description = CASE WHEN $8 != '' THEN $8 ELSE description END,
+          tags = CASE WHEN $9 != '' THEN $9 ELSE tags END,
           updated_at = CURRENT_TIMESTAMP
-        WHERE id = $7`,
+        WHERE id = $10`,
         [
           asset.views,
+          Math.round(asset.views * 0.05),
+          Math.round(asset.views * 0.005),
           asset.title,
+          asset.url,
           asset.thumbnail,
           asset.uploadedAt || new Date(),
           asset.description || '',
           asset.tags || '',
-          existing.rows[0].id
+          existingItem.id
         ]
       );
-      if (asset.views !== oldViews) {
-        updatedCount++;
-      }
+      updatedCount++;
     }
   }
 

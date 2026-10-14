@@ -111,8 +111,8 @@ const API = {
       return API.request(`/api/content?${query}`);
     },
     get: (id) => API.request(`/api/content/${id}`),
-    create: (data) => API.request('/api/content', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id, data) => API.request(`/api/content/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    create: (data) => API.request('/api/content', { method: 'POST', body: (typeof FormData !== 'undefined' && data instanceof FormData) ? data : JSON.stringify(data) }),
+    update: (id, data) => API.request(`/api/content/${id}`, { method: 'PUT', body: (typeof FormData !== 'undefined' && data instanceof FormData) ? data : JSON.stringify(data) }),
     rename: (id, data) => API.request(`/api/content/${id}/rename`, { method: 'PATCH', body: JSON.stringify(data) }),
     setStatus: (id, status) => API.request(`/api/content/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
     duplicate: (id) => API.request(`/api/content/${id}/duplicate`, { method: 'POST' }),

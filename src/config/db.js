@@ -149,8 +149,16 @@ async function initDatabase() {
           ('telemetry_report_custom_notes', '"Daily Automated Creator & Infrastructure Intelligence Digest"', 'telemetry', 'Executive brief directives displayed at the top of the telemetry report'),
           ('telemetry_report_custom_template', '""', 'telemetry', 'Custom HTML template override supporting dynamic placeholders'),
           ('telemetry_report_last_sent_at', 'null', 'telemetry', 'Timestamp of last successfully dispatched telemetry email report'),
-          ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)')
+          ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)'),
+          ('allowed_media_extensions', '".mp4, .png"', 'media', 'Allowed file extensions for video and image media uploads (e.g. .mp4, .png, .jpg, .mov)'),
+          ('max_media_upload_size_mb', '100', 'media', 'Maximum allowed media file upload size in Megabytes (MB)')
         ON CONFLICT (key) DO NOTHING;
+      `);
+
+      // Auto-migrate image_file and video_file columns on content_items
+      await pool.query(`
+        ALTER TABLE content_items ADD COLUMN IF NOT EXISTS image_file VARCHAR(500);
+        ALTER TABLE content_items ADD COLUMN IF NOT EXISTS video_file VARCHAR(500);
       `);
 
       // Ensure initial Administrator user exists with correct password hash

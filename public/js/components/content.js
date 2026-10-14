@@ -718,6 +718,59 @@ const ContentComponent = {
               <textarea id="editImagePrompt" class="cyber-input" rows="3" style="margin-top: 4px; resize: vertical;">${this.escapeHtml(item.image_prompt || '')}</textarea>
             </div>
 
+            <!-- Uploaded Media Assets & Override Section -->
+            <div class="glass-card" style="padding: 14px; border-color: var(--accent-teal); background: rgba(13, 148, 136, 0.05);">
+              <div style="font-size: 11px; font-weight: 800; color: var(--text-main); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <span>📁 ATTACHED MEDIA & RE-UPLOAD OVERRIDE</span>
+                <span class="badge badge-teal" style="font-size: 10px;">STORAGE: ./media</span>
+              </div>
+
+              <!-- Thumbnail Image Asset -->
+              <div style="margin-bottom: 12px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: var(--radius-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">
+                    Thumbnail Image Asset
+                  </label>
+                  <span class="badge ${item.image_file || item.image_url ? 'badge-emerald' : 'badge-amber'}" style="font-size: 9px;">
+                    ${item.image_file ? 'LOCAL ATTACHED' : (item.image_url ? 'EXTERNAL URL' : 'NO IMAGE')}
+                  </span>
+                </div>
+                ${(item.image_file || item.image_url) ? `
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <img src="${item.image_file || item.image_url}" alt="Thumbnail" style="height: 48px; width: 85px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);" onerror="this.style.display='none'" />
+                    <div style="font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); word-break: break-all; flex: 1;">
+                      ${item.image_file || item.image_url}
+                    </div>
+                  </div>
+                ` : ''}
+                <div>
+                  <label style="font-size: 10px; color: var(--text-dim); font-weight: 600;">Override / Re-upload Image File (.png, etc.):</label>
+                  <input type="file" id="editImageFileInput" class="cyber-input" accept="image/*,.png,.jpg,.jpeg,.webp" style="margin-top: 4px; padding: 5px; font-size: 11px;" />
+                </div>
+              </div>
+
+              <!-- Video Asset -->
+              <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: var(--radius-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">
+                    Video Media Asset
+                  </label>
+                  <span class="badge ${item.video_file ? 'badge-emerald' : 'badge-amber'}" style="font-size: 9px;">
+                    ${item.video_file ? 'LOCAL ATTACHED' : (item.video_url ? 'YOUTUBE URL' : 'NO VIDEO')}
+                  </span>
+                </div>
+                ${item.video_file ? `
+                  <div style="font-size: 11px; font-family: var(--font-mono); color: var(--accent-emerald); word-break: break-all; margin-bottom: 8px;">
+                    🎥 ${item.video_file}
+                  </div>
+                ` : ''}
+                <div>
+                  <label style="font-size: 10px; color: var(--text-dim); font-weight: 600;">Override / Re-upload Video File (.mp4, etc.):</label>
+                  <input type="file" id="editVideoFileInput" class="cyber-input" accept="video/*,.mp4,.mov,.mkv" style="margin-top: 4px; padding: 5px; font-size: 11px;" />
+                </div>
+              </div>
+            </div>
+
             <!-- Tags -->
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -807,17 +860,35 @@ const ContentComponent = {
           return;
         }
 
+        const imgOverride = document.getElementById('editImageFileInput')?.files[0];
+        const vidOverride = document.getElementById('editVideoFileInput')?.files[0];
+
         try {
-          await API.content.update(id, {
-            content_type: document.getElementById('editContentType').value,
-            status: document.getElementById('editStatus').value,
-            title,
-            topic: document.getElementById('editTopic').value,
-            video_url: document.getElementById('editVideoUrl').value,
-            description: document.getElementById('editDescription').value,
-            image_prompt: document.getElementById('editImagePrompt').value,
-            tags
-          });
+          if (imgOverride || vidOverride) {
+            const formData = new FormData();
+            formData.append('content_type', document.getElementById('editContentType').value);
+            formData.append('status', document.getElementById('editStatus').value);
+            formData.append('title', title);
+            formData.append('topic', document.getElementById('editTopic').value);
+            formData.append('video_url', document.getElementById('editVideoUrl').value);
+            formData.append('description', document.getElementById('editDescription').value);
+            formData.append('image_prompt', document.getElementById('editImagePrompt').value);
+            formData.append('tags', tags);
+            if (imgOverride) formData.append('image_file', imgOverride);
+            if (vidOverride) formData.append('video_file', vidOverride);
+            await API.content.update(id, formData);
+          } else {
+            await API.content.update(id, {
+              content_type: document.getElementById('editContentType').value,
+              status: document.getElementById('editStatus').value,
+              title,
+              topic: document.getElementById('editTopic').value,
+              video_url: document.getElementById('editVideoUrl').value,
+              description: document.getElementById('editDescription').value,
+              image_prompt: document.getElementById('editImagePrompt').value,
+              tags
+            });
+          }
 
           closeModal();
           Toast.show('Content item updated successfully', 'success');

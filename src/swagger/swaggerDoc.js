@@ -64,6 +64,49 @@ const swaggerDocument = {
           created_at: { type: 'string', format: 'date-time' },
           updated_at: { type: 'string', format: 'date-time' }
         }
+      },
+      N8nWorkflow: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'wf_ai_enrichment' },
+          name: { type: 'string', example: 'AI Metadata & SEO Description Auto-Enricher' },
+          description: { type: 'string', example: 'Generates SEO tags, viral hooks, and YouTube descriptions via LLM' },
+          category: { type: 'string', enum: ['ai_enrichment', 'social', 'assets', 'telemetry', 'automation', 'custom'], example: 'ai_enrichment' },
+          webhook_url: { type: 'string', example: 'http://localhost:5678/webhook/studio-seo-enricher' },
+          test_webhook_url: { type: 'string', example: 'http://localhost:5678/webhook-test/studio-seo-enricher' },
+          http_method: { type: 'string', enum: ['POST', 'GET', 'PUT', 'PATCH'], example: 'POST' },
+          auth_header_name: { type: 'string', example: 'X-Webhook-Token' },
+          auth_header_value: { type: 'string', example: 'secret-token' },
+          payload_template: { type: 'object' },
+          timeout_seconds: { type: 'integer', example: 30 },
+          is_active: { type: 'boolean', example: true },
+          last_executed_at: { type: 'string', format: 'date-time' },
+          last_execution_status: { type: 'string', example: 'success' },
+          total_executions: { type: 'integer', example: 42 },
+          success_rate: { type: 'number', example: 97.6 },
+          avg_duration_ms: { type: 'number', example: 215 }
+        }
+      },
+      N8nExecution: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid', example: '69f10926-7f41-4796-abeb-0a256a297e68' },
+          workflow_id: { type: 'string', example: 'wf_ai_enrichment' },
+          workflow_name: { type: 'string', example: 'AI Metadata & SEO Description Auto-Enricher' },
+          execution_id: { type: 'string', example: 'exec-12345' },
+          trigger_source: { type: 'string', enum: ['manual', 'cron', 'event'], example: 'manual' },
+          status: { type: 'string', enum: ['pending', 'running', 'success', 'failed'], example: 'success' },
+          http_method: { type: 'string', example: 'POST' },
+          request_url: { type: 'string', example: 'http://localhost:5678/webhook/studio-seo-enricher' },
+          request_payload: { type: 'object' },
+          response_payload: { type: 'object' },
+          status_code: { type: 'integer', example: 200 },
+          error_message: { type: 'string', example: null },
+          duration_ms: { type: 'integer', example: 185 },
+          triggered_by: { type: 'string', example: 'admin@ytstudio.local' },
+          created_at: { type: 'string', format: 'date-time' },
+          completed_at: { type: 'string', format: 'date-time' }
+        }
       }
     }
   },
@@ -494,6 +537,258 @@ const swaggerDocument = {
                     success: { type: 'boolean' },
                     count: { type: 'integer' },
                     categories: { type: 'array', items: { type: 'string' } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/n8n/workflows': {
+      get: {
+        summary: 'List Registered n8n Workflows with Execution Telemetry',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'category', in: 'query', schema: { type: 'string' }, description: 'Filter by category' },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'inactive'] }, description: 'Filter by active status' },
+          { name: 'search', in: 'query', schema: { type: 'string' }, description: 'Search name, description, or webhook URL' }
+        ],
+        responses: {
+          200: {
+            description: 'List of workflows with execution aggregates',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    count: { type: 'integer' },
+                    workflows: { type: 'array', items: { $ref: '#/components/schemas/N8nWorkflow' } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        summary: 'Register New n8n Workflow Directive',
+        tags: ['n8n Orchestration'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'webhook_url'],
+                properties: {
+                  name: { type: 'string', example: 'Social Multi-Platform Cross-Poster' },
+                  description: { type: 'string', example: 'Publishes video teasers to X and LinkedIn' },
+                  category: { type: 'string', enum: ['ai_enrichment', 'social', 'assets', 'telemetry', 'automation', 'custom'], default: 'automation' },
+                  webhook_url: { type: 'string', example: 'http://localhost:5678/webhook/social-crosspost' },
+                  test_webhook_url: { type: 'string', example: 'http://localhost:5678/webhook-test/social-crosspost' },
+                  http_method: { type: 'string', enum: ['POST', 'GET', 'PUT', 'PATCH'], default: 'POST' },
+                  auth_header_name: { type: 'string', default: 'X-Webhook-Token' },
+                  auth_header_value: { type: 'string' },
+                  payload_template: { type: 'object' },
+                  timeout_seconds: { type: 'integer', default: 30 },
+                  is_active: { type: 'boolean', default: true }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Workflow registered successfully' },
+          400: { description: 'Validation error' }
+        }
+      }
+    },
+    '/api/n8n/workflows/{id}': {
+      get: {
+        summary: 'Get Specific n8n Workflow Details with Recent Executions',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          200: { description: 'Workflow record with execution history' },
+          404: { description: 'Workflow not found' }
+        }
+      },
+      put: {
+        summary: 'Update Existing n8n Workflow Directive',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  description: { type: 'string' },
+                  category: { type: 'string' },
+                  webhook_url: { type: 'string' },
+                  test_webhook_url: { type: 'string' },
+                  http_method: { type: 'string' },
+                  auth_header_name: { type: 'string' },
+                  auth_header_value: { type: 'string' },
+                  payload_template: { type: 'object' },
+                  timeout_seconds: { type: 'integer' },
+                  is_active: { type: 'boolean' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Workflow updated' },
+          404: { description: 'Workflow not found' }
+        }
+      },
+      delete: {
+        summary: 'Delete n8n Workflow and Cascade Execution Logs',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          200: { description: 'Workflow deleted' },
+          404: { description: 'Workflow not found' }
+        }
+      }
+    },
+    '/api/n8n/workflows/{id}/execute': {
+      post: {
+        summary: 'Execute n8n Webhook Workflow with Dynamic Payload',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  payload: { type: 'object', description: 'Custom dynamic parameters merged into payload_template' },
+                  target: { type: 'string', enum: ['production', 'test'], default: 'production' },
+                  trigger_source: { type: 'string', enum: ['manual', 'cron', 'event'], default: 'manual' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Webhook dispatched and executed',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    message: { type: 'string' },
+                    execution: { $ref: '#/components/schemas/N8nExecution' }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: 'Workflow disabled or invalid target' },
+          404: { description: 'Workflow not found' }
+        }
+      }
+    },
+    '/api/n8n/executions': {
+      get: {
+        summary: 'List Recorded n8n Workflow Executions',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'workflow_id', in: 'query', schema: { type: 'string' }, description: 'Filter by workflow ID' },
+          { name: 'status', in: 'query', schema: { type: 'string', enum: ['pending', 'running', 'success', 'failed'] }, description: 'Filter by execution status' },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } }
+        ],
+        responses: {
+          200: {
+            description: 'Paginated execution history',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    count: { type: 'integer' },
+                    executions: { type: 'array', items: { $ref: '#/components/schemas/N8nExecution' } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      delete: {
+        summary: 'Purge Execution Telemetry Ledger',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'workflow_id', in: 'query', schema: { type: 'string' }, description: 'Optional: purge only for specific workflow' }
+        ],
+        responses: {
+          200: { description: 'Execution logs purged' }
+        }
+      }
+    },
+    '/api/n8n/executions/{id}': {
+      get: {
+        summary: 'Get Specific Execution Telemetry Details',
+        tags: ['n8n Orchestration'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          200: { description: 'Execution telemetry record' },
+          404: { description: 'Execution not found' }
+        }
+      }
+    },
+    '/api/n8n/test-connection': {
+      post: {
+        summary: 'Probe n8n Orchestrator Reachability and Measure Latency',
+        tags: ['n8n Orchestration'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  baseUrl: { type: 'string', example: 'http://localhost:5678' },
+                  apiKey: { type: 'string' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: 'Connection probe test outcome',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    reachable: { type: 'boolean' },
+                    statusCode: { type: 'integer' },
+                    latencyMs: { type: 'integer' },
+                    message: { type: 'string' }
                   }
                 }
               }

@@ -194,6 +194,61 @@ CREATE INDEX IF NOT EXISTS idx_tag_presets_name ON tag_presets(name);
 CREATE INDEX IF NOT EXISTS idx_tag_presets_created_at ON tag_presets(created_at DESC);
 
 -- ------------------------------------------------------------------------------
+-- 12. n8n Workflows Table (Configured n8n Automation Pipelines)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS n8n_workflows (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    description TEXT,
+    category VARCHAR(100) NOT NULL DEFAULT 'Automation', -- 'AI & SEO', 'Publishing', 'Social Media', 'Telemetry', 'Alerts', 'General'
+    webhook_url TEXT NOT NULL,
+    test_webhook_url TEXT,
+    http_method VARCHAR(10) NOT NULL DEFAULT 'POST', -- 'POST', 'GET', 'PUT'
+    auth_header_name VARCHAR(100),
+    auth_header_value TEXT,
+    payload_template JSONB NOT NULL DEFAULT '{}',
+    timeout_seconds INT NOT NULL DEFAULT 30,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_executed_at TIMESTAMPTZ,
+    last_execution_status VARCHAR(20) DEFAULT 'idle', -- 'idle', 'success', 'failed', 'running'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_n8n_workflows_category ON n8n_workflows(category);
+CREATE INDEX IF NOT EXISTS idx_n8n_workflows_name ON n8n_workflows(name);
+CREATE INDEX IF NOT EXISTS idx_n8n_workflows_is_active ON n8n_workflows(is_active);
+CREATE INDEX IF NOT EXISTS idx_n8n_workflows_created_at ON n8n_workflows(created_at DESC);
+
+-- ------------------------------------------------------------------------------
+-- 13. n8n Executions Table (Workflow Run History & Telemetry Tracker)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS n8n_executions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workflow_id VARCHAR(100) NOT NULL REFERENCES n8n_workflows(id) ON DELETE CASCADE,
+    workflow_name VARCHAR(150) NOT NULL,
+    execution_id VARCHAR(100),
+    trigger_source VARCHAR(50) NOT NULL DEFAULT 'manual', -- 'manual', 'webhook', 'cron', 'wizard'
+    status VARCHAR(20) NOT NULL DEFAULT 'running', -- 'running', 'success', 'failed'
+    http_method VARCHAR(10) NOT NULL DEFAULT 'POST',
+    request_url TEXT NOT NULL,
+    request_payload JSONB,
+    response_payload JSONB,
+    status_code INT,
+    error_message TEXT,
+    duration_ms INT DEFAULT 0,
+    triggered_by VARCHAR(100) DEFAULT 'admin',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_n8n_executions_workflow_id ON n8n_executions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_n8n_executions_status ON n8n_executions(status);
+CREATE INDEX IF NOT EXISTS idx_n8n_executions_created_at ON n8n_executions(created_at DESC);
+
+-- ------------------------------------------------------------------------------
 -- Triggers and Validation Functions
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_tags_length_func()
@@ -273,7 +328,12 @@ VALUES
     ('telemetry_report_last_sent_at', 'null', 'telemetry', 'Timestamp of last successfully dispatched telemetry email report'),
     ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)'),
     ('allowed_media_extensions', '".mp4, .png"', 'media', 'Allowed file extensions for video and image media uploads (e.g. .mp4, .png, .jpg, .mov)'),
-    ('max_media_upload_size_mb', '100', 'media', 'Maximum allowed media file upload size in Megabytes (MB)')
+    ('max_media_upload_size_mb', '100', 'media', 'Maximum allowed media file upload size in Megabytes (MB)'),
+    ('n8n_base_url', '"http://localhost:5678"', 'n8n', 'Base endpoint URL of your n8n workflow automation server instance'),
+    ('n8n_api_key', '""', 'n8n', 'API key for authenticating with n8n REST endpoints'),
+    ('n8n_default_webhook_token', '""', 'n8n', 'Default shared bearer authentication token dispatched to n8n webhook headers'),
+    ('n8n_default_timeout_seconds', '30', 'n8n', 'Default timeout threshold in seconds for n8n webhook execution calls'),
+    ('n8n_integration_enabled', 'true', 'n8n', 'Master toggle enabling or disabling external n8n automation webhook triggers')
 ON CONFLICT (key) DO NOTHING;
 
 -- Ensure tag_presets is completely decoupled from system_settings
@@ -294,6 +354,53 @@ VALUES
     ('preset-system-design', 'System Design & Scalability', 'Architecture', 'system design, software architecture, scalability, high availability, cloud native, distributed systems', TRUE),
     ('preset-security', 'Cybersecurity & RBAC', 'Security', 'security, authentication, jwt, rbac, cybersecurity, infosec, access control, devsecops', TRUE),
     ('preset-frontend', 'Modern Web & UI/UX Design', 'Frontend', 'frontend, ui, ux, responsive design, css, javascript, web design, modern web', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+-- ------------------------------------------------------------------------------
+-- Seed Default Curated n8n Workflows
+-- ------------------------------------------------------------------------------
+INSERT INTO n8n_workflows (id, name, category, description, webhook_url, payload_template, timeout_seconds, is_active)
+VALUES
+    (
+        'wf-metadata-enricher',
+        '🤖 AI Metadata & SEO Description Auto-Enricher',
+        'AI & SEO',
+        'Sends video titles and raw topics to an n8n AI agent to generate engaging YouTube descriptions, chapter timestamps, and SEO tags.',
+        'http://localhost:5678/webhook/yt-metadata-enricher',
+        '{"content_type": "short", "title": "Top PostgreSQL 18 Performance Hacks", "topic": "Database Optimization"}',
+        30,
+        TRUE
+    ),
+    (
+        'wf-social-cross-poster',
+        '📢 Social Multi-Platform Cross-Poster',
+        'Publishing',
+        'Dispatches release metadata for newly published videos across X (Twitter), LinkedIn, Discord, and Telegram communities.',
+        'http://localhost:5678/webhook/social-crosspost',
+        '{"title": "New Video Live!", "video_url": "https://youtube.com/shorts/sample", "platforms": ["twitter", "linkedin", "discord"]}',
+        30,
+        TRUE
+    ),
+    (
+        'wf-thumbnail-generator',
+        '🎨 Automated Thumbnail Asset Renderer',
+        'AI & SEO',
+        'Triggers n8n image generation pipeline using Midjourney/DALL-E/Flux nodes to produce 16:9 and 9:16 high-resolution thumbnail graphics.',
+        'http://localhost:5678/webhook/generate-thumbnails',
+        '{"aspect_ratio": "16:9", "prompt": "Futuristic neon cloud server room with vibrant teal illumination", "resolution": "1920x1080"}',
+        45,
+        TRUE
+    ),
+    (
+        'wf-weekly-analytics-digest',
+        '📊 Weekly Telemetry & Audience Growth Pipeline',
+        'Telemetry',
+        'Aggregates rolling 7-day velocity metrics and subscriber milestones and exports them directly into Notion / Google Sheets.',
+        'http://localhost:5678/webhook/weekly-telemetry-digest',
+        '{"range_days": 7, "channel": "all", "notify_slack": true}',
+        30,
+        TRUE
+    )
 ON CONFLICT (id) DO NOTHING;
 
 -- Reset serial sequence for content_items to clean starting state

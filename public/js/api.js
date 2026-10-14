@@ -205,6 +205,45 @@ const API = {
       const q = new URLSearchParams({ format, ...params }).toString();
       return `/api/subscriptions/export?${q}`;
     }
+  },
+  n8n: {
+    workflows: {
+      getAll: (params = {}) => {
+        const q = new URLSearchParams(params).toString();
+        return API.request(`/api/n8n/workflows${q ? '?' + q : ''}`);
+      },
+      getById: (id) => API.request(`/api/n8n/workflows/${id}`),
+      create: (data) => API.request('/api/n8n/workflows', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+      update: (id, data) => API.request(`/api/n8n/workflows/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      }),
+      delete: (id) => API.request(`/api/n8n/workflows/${id}`, {
+        method: 'DELETE'
+      }),
+      execute: (id, payload = {}, options = {}) => API.request(`/api/n8n/workflows/${id}/execute`, {
+        method: 'POST',
+        body: JSON.stringify({ payload, ...options })
+      })
+    },
+    executions: {
+      getAll: (params = {}) => {
+        const q = new URLSearchParams(params).toString();
+        return API.request(`/api/n8n/executions${q ? '?' + q : ''}`);
+      },
+      getById: (id) => API.request(`/api/n8n/executions/${id}`),
+      clear: (workflowId = null) => {
+        const q = workflowId ? `?workflow_id=${workflowId}` : '';
+        return API.request(`/api/n8n/executions${q}`, { method: 'DELETE' });
+      }
+    },
+    testConnection: (options = {}) => API.request('/api/n8n/test-connection', {
+      method: 'POST',
+      body: JSON.stringify(options)
+    })
   }
 };
 

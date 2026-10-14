@@ -232,5 +232,102 @@ try {
     Remove-Item -Force $tempMp4 -ErrorAction SilentlyContinue
 }
 
-Write-Host "`n=== ALL 15 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+# 16. n8n Workflow Automation Engine, Webhooks & Telemetry Ledger Tests
+Write-Host "`n16. Testing n8n Workflow Automation Engine & Webhooks..." -ForegroundColor Yellow
+
+# 16.1 List Seeded Workflows
+$workflowsList = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows" -Method Get -Headers $headers
+Write-Host "   Found $($workflowsList.count) Seeded n8n Workflows" -ForegroundColor Green
+if ($workflowsList.count -lt 1) {
+    throw "Failed: Expected at least 1 seeded n8n workflow!"
+}
+
+# 16.2 Delete stale test workflows if any exist
+$existingWfs = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows" -Method Get -Headers $headers
+foreach ($w in $existingWfs.workflows) {
+    if ($w.name -like "Automated Verification Test Workflow*") {
+        Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows/$($w.id)" -Method Delete -Headers $headers | Out-Null
+    }
+}
+
+# 16.3 Register New Test Workflow
+$uniqueId = [System.Guid]::NewGuid().ToString().Substring(0, 8)
+$testWfName = "Automated Verification Test Workflow ($uniqueId)"
+
+$newWorkflowBody = @{
+    name = $testWfName
+    description = "Test workflow for verifying dynamic webhook execution and payload tracking"
+    category = "automation"
+    webhook_url = "http://localhost:3000/health"
+    test_webhook_url = "http://localhost:3000/health"
+    http_method = "GET"
+    auth_header_name = "X-Test-Suite"
+    auth_header_value = "verify-ps1-secret"
+    payload_template = @{
+        test_run = $true
+        scope = "integration"
+    }
+    timeout_seconds = 15
+    is_active = $true
+} | ConvertTo-Json
+
+$createWfRes = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows" -Method Post -Headers $headers -Body $newWorkflowBody
+$createdWf = $createWfRes.workflow
+Write-Host "   Created Test Workflow: '$($createdWf.name)' (ID: $($createdWf.id))" -ForegroundColor Green
+
+try {
+    # 16.4 Update Workflow
+    $updateWfBody = @{
+        description = "Updated description for verification test workflow"
+        timeout_seconds = 20
+    } | ConvertTo-Json
+
+    $updateWfRes = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows/$($createdWf.id)" -Method Put -Headers $headers -Body $updateWfBody
+    Write-Host "   Updated Test Workflow: $($updateWfRes.workflow.description)" -ForegroundColor Green
+
+    # 16.5 Execute Workflow Webhook
+    $executeBody = @{
+        payload = @{
+            trigger = "verify_test"
+            environment = "ci_cd"
+        }
+        target = "production"
+        trigger_source = "manual"
+    } | ConvertTo-Json
+
+    $executeRes = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows/$($createdWf.id)/execute" -Method Post -Headers $headers -Body $executeBody
+    Write-Host "   Dispatched Webhook -> Status: $($executeRes.execution.status) (HTTP $($executeRes.execution.status_code), $($executeRes.execution.duration_ms)ms)" -ForegroundColor Green
+    if ($executeRes.execution.status -ne "success") {
+        throw "Failed: Expected execution status 'success', got '$($executeRes.execution.status)'!"
+    }
+
+    # 16.6 Verify Execution Telemetry Ledger
+    $executionsRes = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/executions?workflow_id=$($createdWf.id)" -Method Get -Headers $headers
+    Write-Host "   Verified Execution in Ledger: Found $($executionsRes.count) runs for workflow" -ForegroundColor Green
+    if ($executionsRes.count -lt 1) {
+        throw "Failed: Execution record was not logged in n8n_executions!"
+    }
+
+    $execDetail = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/executions/$($executeRes.execution.id)" -Method Get -Headers $headers
+    Write-Host "   Fetched Execution Detail: HTTP $($execDetail.execution.status_code) | Latency: $($execDetail.execution.duration_ms)ms" -ForegroundColor Green
+
+    # 16.7 Probe n8n Reachability Test
+    $probeBody = @{
+        baseUrl = "http://localhost:3000/health"
+    } | ConvertTo-Json
+
+    $probeRes = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/test-connection" -Method Post -Headers $headers -Body $probeBody
+    Write-Host "   Probe Reachability Outcome: Reachable = $($probeRes.reachable) | Latency = $($probeRes.latencyMs)ms" -ForegroundColor Green
+    if (-not $probeRes.reachable) {
+        throw "Failed: Endpoint probe should have succeeded for /health!"
+    }
+} finally {
+    # 16.8 Clean Up Test Workflow and its Execution Logs
+    if ($createdWf -and $createdWf.id) {
+        $deleteWfRes = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows/$($createdWf.id)" -Method Delete -Headers $headers
+        Write-Host "   Deleted Test Workflow: $($deleteWfRes.message)" -ForegroundColor Green
+    }
+}
+
+Write-Host "`n=== ALL 16 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
 

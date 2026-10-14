@@ -76,6 +76,13 @@ const SettingsComponent = {
       const allowedMediaExtensions = parseVal(settings.allowed_media_extensions, '.mp4,.png');
       const maxMediaUploadSizeMb = parseVal(settings.max_media_upload_size_mb, '500');
 
+      // n8n Workflow Automation Engine Directives
+      const n8nBaseUrl = parseVal(settings.n8n_base_url, 'http://localhost:5678');
+      const n8nApiKey = parseVal(settings.n8n_api_key, '');
+      const n8nDefaultWebhookToken = parseVal(settings.n8n_default_webhook_token, '');
+      const n8nDefaultTimeout = parseVal(settings.n8n_default_timeout_seconds, '30');
+      const n8nEnabled = settings.n8n_integration_enabled === undefined || settings.n8n_integration_enabled === true || settings.n8n_integration_enabled === 'true';
+
       // Random 2-digit numbers for Flush Data verification challenge
       const num1 = Math.floor(Math.random() * 80) + 10;
       const num2 = Math.floor(Math.random() * 80) + 10;
@@ -692,7 +699,76 @@ const SettingsComponent = {
             </div>
           </div>
 
-          <!-- Section 6: Color Themes -->
+          <!-- Section 6: n8n Workflow Automation Engine Directives -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 22px; border-color: #8b5cf6;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">⚡</span>
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);">
+                  N8N WORKFLOW AUTOMATION ENGINE DIRECTIVES
+                </h3>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge ${n8nEnabled ? 'badge-indigo' : 'badge-amber'}" id="n8nStatusBadge" style="background: ${n8nEnabled ? 'rgba(139, 92, 246, 0.2)' : ''}; color: ${n8nEnabled ? '#a78bfa' : ''}; border-color: ${n8nEnabled ? '#8b5cf6' : ''};">
+                  ${n8nEnabled ? 'ENGINE ACTIVE' : 'ENGINE DISABLED'}
+                </span>
+                <label style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="settingN8nEnabledToggle" ${n8nEnabled ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: #8b5cf6;" />
+                  <span>ENABLE N8N</span>
+                </label>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+              Connect your self-hosted or cloud n8n orchestrator to execute event-driven workflows, trigger webhooks, pass dynamic JSON payloads, and track real-time execution histories.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">n8n Base Endpoint URL *</label>
+                <input type="url" id="settingN8nBaseUrl" class="cyber-input" placeholder="http://localhost:5678 or https://n8n.yourdomain.com" value="${n8nBaseUrl}" style="margin-top: 6px;" />
+                <span style="font-size: 10px; color: var(--text-dim); margin-top: 4px; display: block;">Base URL where your n8n instance is accessible from the YouTube Studio container.</span>
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Default Timeout (Seconds) *</label>
+                <input type="number" id="settingN8nDefaultTimeout" class="cyber-input" placeholder="30" value="${n8nDefaultTimeout}" min="5" max="300" style="margin-top: 6px;" />
+                <span style="font-size: 10px; color: var(--text-dim); margin-top: 4px; display: block;">Webhook execution HTTP request timeout (5 - 300s).</span>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">n8n Global API Key (Optional)</label>
+                <input type="password" id="settingN8nApiKey" class="cyber-input" placeholder="n8n_api_key_..." value="${n8nApiKey}" autocomplete="off" style="margin-top: 6px;" />
+                <span style="font-size: 10px; color: var(--text-dim); margin-top: 4px; display: block;">Sent as <code>X-N8N-API-KEY</code> for secured administrative probes.</span>
+              </div>
+              <div>
+                <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Default Webhook Shared Secret / Bearer Token (Optional)</label>
+                <input type="password" id="settingN8nDefaultWebhookToken" class="cyber-input" placeholder="Shared token or header secret" value="${n8nDefaultWebhookToken}" autocomplete="off" style="margin-top: 6px;" />
+                <span style="font-size: 10px; color: var(--text-dim); margin-top: 4px; display: block;">Injected as default auth header if individual workflow token is empty.</span>
+              </div>
+            </div>
+
+            <div id="n8nProbeResultContainer" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: var(--radius-sm); font-size: 12px;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn-cyber btn-cyber-secondary" id="testN8nProbeBtn" style="display: flex; align-items: center; gap: 6px;">
+                  <span>🔌</span>
+                  <span>TEST N8N REACHABILITY</span>
+                </button>
+                <button type="button" class="btn-cyber btn-cyber-outline" onclick="window.navigateTo('n8n')" style="display: flex; align-items: center; gap: 6px;">
+                  <span>⚡</span>
+                  <span>OPEN N8N WORKFLOWS STUDIO ↗</span>
+                </button>
+              </div>
+              <button type="button" class="btn-cyber btn-cyber-primary" id="saveN8nSettingsBtn" style="display: flex; align-items: center; gap: 6px;">
+                <span>💾</span>
+                <span>SAVE N8N DIRECTIVES</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 7: Color Themes -->
           <div class="glass-card" style="padding: 24px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
               <span style="font-size: 20px;">🎨</span>
@@ -1339,6 +1415,92 @@ const SettingsComponent = {
         };
       }
 
+      // n8n Directives Handlers
+      const saveN8nSettingsBtn = document.getElementById('saveN8nSettingsBtn');
+      if (saveN8nSettingsBtn) {
+        saveN8nSettingsBtn.onclick = async () => {
+          const baseUrl = document.getElementById('settingN8nBaseUrl').value.trim();
+          const apiKey = document.getElementById('settingN8nApiKey').value.trim();
+          const token = document.getElementById('settingN8nDefaultWebhookToken').value.trim();
+          const timeout = document.getElementById('settingN8nDefaultTimeout').value.trim();
+          const enabled = document.getElementById('settingN8nEnabledToggle').checked;
+
+          if (!baseUrl) {
+            Toast.show('n8n Base URL cannot be empty.', 'warning');
+            return;
+          }
+
+          saveN8nSettingsBtn.disabled = true;
+          saveN8nSettingsBtn.innerHTML = `<span>⏳</span><span>SAVING N8N DIRECTIVES...</span>`;
+          try {
+            await API.settings.bulkUpdate({
+              n8n_base_url: baseUrl,
+              n8n_api_key: apiKey,
+              n8n_default_webhook_token: token,
+              n8n_default_timeout_seconds: timeout || '30',
+              n8n_integration_enabled: enabled
+            });
+            const badge = document.getElementById('n8nStatusBadge');
+            if (badge) {
+              badge.className = enabled ? 'badge badge-indigo' : 'badge badge-amber';
+              badge.textContent = enabled ? 'ENGINE ACTIVE' : 'ENGINE DISABLED';
+              badge.style.background = enabled ? 'rgba(139, 92, 246, 0.2)' : '';
+              badge.style.color = enabled ? '#a78bfa' : '';
+              badge.style.borderColor = enabled ? '#8b5cf6' : '';
+            }
+            Toast.show('n8n integration directives updated successfully!', 'success');
+          } catch (err) {
+            Toast.show(`Failed to save n8n settings: ${err.message}`, 'error');
+          } finally {
+            saveN8nSettingsBtn.disabled = false;
+            saveN8nSettingsBtn.innerHTML = `<span>💾</span><span>SAVE N8N DIRECTIVES</span>`;
+          }
+        };
+      }
+
+      const testN8nProbeBtn = document.getElementById('testN8nProbeBtn');
+      if (testN8nProbeBtn) {
+        testN8nProbeBtn.onclick = async () => {
+          const baseUrl = document.getElementById('settingN8nBaseUrl').value.trim();
+          const apiKey = document.getElementById('settingN8nApiKey').value.trim();
+          const resultDiv = document.getElementById('n8nProbeResultContainer');
+
+          testN8nProbeBtn.disabled = true;
+          testN8nProbeBtn.innerHTML = `<span>⏳</span><span>PROBING N8N ENDPOINT...</span>`;
+          resultDiv.style.display = 'block';
+          resultDiv.style.background = 'rgba(0,0,0,0.3)';
+          resultDiv.style.border = '1px solid var(--border-color)';
+          resultDiv.style.color = 'var(--text-dim)';
+          resultDiv.innerHTML = `Connecting to ${baseUrl}...`;
+
+          try {
+            const res = await API.n8n.testConnection({ baseUrl, apiKey });
+            if (res.reachable) {
+              resultDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+              resultDiv.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+              resultDiv.style.color = '#10b981';
+              resultDiv.innerHTML = `<strong>✓ REACHABLE:</strong> ${res.message} (Status: HTTP ${res.statusCode}, Roundtrip Latency: <strong>${res.latencyMs}ms</strong>)`;
+              Toast.show(`n8n endpoint reached successfully (${res.latencyMs}ms)`, 'success');
+            } else {
+              resultDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+              resultDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+              resultDiv.style.color = '#ef4444';
+              resultDiv.innerHTML = `<strong>✗ UNREACHABLE:</strong> ${res.message} (Roundtrip Probe: ${res.latencyMs}ms)`;
+              Toast.show(`Could not reach n8n endpoint`, 'error');
+            }
+          } catch (err) {
+            resultDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+            resultDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            resultDiv.style.color = '#ef4444';
+            resultDiv.innerHTML = `<strong>✗ ERROR:</strong> ${err.message}`;
+            Toast.show(`Probe failed: ${err.message}`, 'error');
+          } finally {
+            testN8nProbeBtn.disabled = false;
+            testN8nProbeBtn.innerHTML = `<span>🔌</span><span>TEST N8N REACHABILITY</span>`;
+          }
+        };
+      }
+
       document.getElementById('applyLogLevelNowBtn').onclick = async () => {
         const newLevel = document.getElementById('settingLogLevel').value;
         try {
@@ -1444,6 +1606,11 @@ const SettingsComponent = {
           smtp_notifications_enabled: document.getElementById('settingSmtpNotificationsEnabled').checked,
           allowed_media_extensions: document.getElementById('settingAllowedMediaExtensions').value.trim(),
           max_media_upload_size_mb: document.getElementById('settingMaxMediaUploadSizeMb').value.trim(),
+          n8n_base_url: document.getElementById('settingN8nBaseUrl').value.trim(),
+          n8n_api_key: document.getElementById('settingN8nApiKey').value.trim(),
+          n8n_default_webhook_token: document.getElementById('settingN8nDefaultWebhookToken').value.trim(),
+          n8n_default_timeout_seconds: document.getElementById('settingN8nDefaultTimeout').value.trim(),
+          n8n_integration_enabled: document.getElementById('settingN8nEnabledToggle').checked,
           ...getTelemetryPayload()
         };
 

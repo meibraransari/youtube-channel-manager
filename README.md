@@ -238,6 +238,40 @@ Operating multi-channel networks and complex content production pipelines often 
 
 ---
 
+### ⚡ n8n Automated Workflow Engine & Webhook Orchestrator (`#n8n`)
+- **Dedicated Relational Database Architecture (`n8n_workflows` & `n8n_executions`)**:
+  - `n8n_workflows`: Persists registered automation pipelines with fields: `id`, `name`, `description`, `category` (`ai_enrichment`, `social`, `assets`, `telemetry`, `automation`, `custom`), `webhook_url`, `test_webhook_url`, `http_method` (`POST`, `GET`, `PUT`, `PATCH`), `auth_header_name`, `auth_header_value`, `payload_template` (JSONB), `timeout_seconds` (5 - 300s), `is_active`, `last_executed_at`, and `last_execution_status`.
+  - `n8n_executions`: Immutable telemetry ledger capturing each run: `id` (UUID), `workflow_id` (FK), `workflow_name`, `execution_id`, `trigger_source` (`manual`, `cron`, `event`), `status` (`pending`, `running`, `success`, `failed`), `http_method`, `request_url`, `request_payload` (JSONB), `response_payload` (JSONB), `status_code` (e.g. `200`), `error_message`, `duration_ms` (latency roundtrip), `triggered_by`, `created_at`, and `completed_at`.
+- **Pre-Seeded Curated Automation Workflows**:
+  - 🧠 **AI Metadata & SEO Description Auto-Enricher**: Generates SEO tags, viral hooks, and YouTube descriptions via LLM.
+  - 📣 **Social Multi-Platform Cross-Poster**: Publishes video teasers to X (Twitter), LinkedIn, and Bluesky upon upload.
+  - 🎨 **Automated Thumbnail Asset Renderer**: Triggers cloud sidecars or ComfyUI/Flux rendering engines with dynamic prompt parameters.
+  - 📊 **Weekly Telemetry & Audience Growth Pipeline**: Compiles weekly subscriber and view velocity digest and transmits executive alerts.
+- **Dedicated Executive SaaS Interface (`#n8n`)**:
+  - **Real-Time KPI Metric Strip**: Instant calculation of Total Workflows, Executions Dispatched, Success Rate % (colored by threshold), and Average Latency (ms).
+  - **Live Orchestrator Engine Badge**: Real-time heartbeat probe displaying online status and HTTP roundtrip latency (`ORCHESTRATOR ONLINE (28ms)`).
+  - **Dual-View Navigation**: Seamless switching between **Workflows Catalog Grid** and **Execution Ledger Table**.
+  - **Executive Filter Toolbar**: Instant search across workflow names and webhooks, category filter dropdown, and active/disabled status selectors.
+  - **Live Webhook Execution Dialog**: Modal with production vs test webhook target selector, interactive JSON payload editor with format validator (`✨ Format JSON`), dynamic variable interpolation (`{{channel_id}}`, `{{timestamp}}`), automatic `_studio_context` injection, and syntax-highlighted response body viewer.
+  - **Execution Telemetry Inspector**: Modal displaying full request URL, HTTP status codes, latency duration, dispatched payload JSON, response payload JSON, error traces, and 1-click clipboard copy.
+  - **Workflow Configuration Modal**: Full CRUD form to add, update, pause, or delete n8n workflow directives with custom auth headers and configurable timeouts.
+- **Dynamic Directives in System Settings (`#settings`)**:
+  - Direct configuration card for `n8n_base_url` (default `http://localhost:5678`), `n8n_api_key`, `n8n_default_webhook_token`, `n8n_default_timeout_seconds`, and `n8n_integration_enabled`.
+  - Built-in "Test n8n Reachability" probe button to verify network routing and latency without leaving the console.
+- **Comprehensive REST API Suite (`/api/n8n/*`)**:
+  - `GET /api/n8n/workflows`: Query workflows with execution counts, success rates, and average latency metrics.
+  - `POST /api/n8n/workflows`: Register a new workflow directive with validation and audit trail logging.
+  - `GET /api/n8n/workflows/:id`: Fetch specific workflow details with its 15 most recent executions.
+  - `PUT /api/n8n/workflows/:id`: Update workflow parameters, webhook endpoints, or payload templates.
+  - `DELETE /api/n8n/workflows/:id`: Delete a workflow directive with cascading cleanup of execution telemetry.
+  - `POST /api/n8n/workflows/:id/execute`: Dispatch webhook with native `fetch` and `AbortController` timeout, merge dynamic custom payload with default template, inject `_studio_context`, measure roundtrip latency, and record execution record in `n8n_executions`.
+  - `GET /api/n8n/executions`: Paginated execution ledger with workflow and status filtering.
+  - `GET /api/n8n/executions/:id`: Deep telemetry inspection for a specific execution run.
+  - `DELETE /api/n8n/executions`: Purge execution history with audit logging.
+  - `POST /api/n8n/test-connection`: Probe n8n orchestrator reachability and benchmark ping latency.
+
+---
+
 ### 🔒 Secret Admin Migration Portal (`#secret-migration`)
 - **Admin-Only Ingestion Console**: Hidden, confidential tool accessible exclusively to the administrator at `#secret-migration`.
 - **Flexible SQL Ingestion**: 1-click test migration from custom SQL dumps with real-time feedback.
@@ -364,9 +398,11 @@ flowchart TD
         DBEngine --> T5["tag_presets (Centralized SEO Tag Presets)"]
         DBEngine --> T6["users (RBAC Permissions & Bcrypt Hashes)"]
         DBEngine --> T7["system_settings (Zero-Downtime Dynamic Config & SMTP)"]
-        DBEngine --> T8["audit_logs (Immutable Action Trail)"]
-        DBEngine --> T9["user_login_logs (Security Access Tracker)"]
-        DBEngine --> T10["migration_history (Dump Ingestion Records)"]
+        DBEngine --> T8["n8n_workflows (Workflow Pipelines & Webhooks)"]
+        DBEngine --> T9["n8n_executions (Dispatched Execution Ledger & Telemetry)"]
+        DBEngine --> T10["audit_logs (Immutable Action Trail)"]
+        DBEngine --> T11["user_login_logs (Security Access Tracker)"]
+        DBEngine --> T12["migration_history (Dump Ingestion Records)"]
     end
 ```
 
@@ -386,7 +422,7 @@ youtube-channel-manager/
 ├── LICENSE                           # MIT License
 ├── media/                            # Persistent media storage (volume: ./media ⇄ /app/media)
 ├── tests/
-│   └── verify.ps1                    # Automated 12-stage E2E verification test suite
+│   └── verify.ps1                    # Automated 16-stage E2E verification test suite
 ├── database/
 │   ├── init.sql                      # PostgreSQL 18 schema, triggers & seed data
 │   └── migrations/                   # Migration scripts (002_multi_channel...)
@@ -397,7 +433,8 @@ youtube-channel-manager/
 │   │   └── logger.js                 # Winston dynamic logging system
 │   ├── services/
 │   │   ├── cronSync.js               # Background metric sync service
-│   │   └── smtp.service.js           # Production SMTP transport & test mailer
+│   │   ├── smtp.service.js           # Production SMTP transport & test mailer
+│   │   └── telemetryReport.service.js # Automated daily telemetry email digest
 │   ├── middleware/
 │   │   ├── auth.js                   # JWT bearer authentication & RBAC checker
 │   │   ├── audit.js                  # Automated audit trail logging
@@ -412,6 +449,7 @@ youtube-channel-manager/
 │   │   ├── settings.routes.js        # Dynamic database settings, log level & SMTP
 │   │   ├── tags.routes.js            # Tag preset registry & CRUD operations
 │   │   ├── subscriptions.routes.js   # Subscribed channels, takeout import & API sync
+│   │   ├── n8n.routes.js             # n8n workflows, execution triggers & probe
 │   │   ├── audit.routes.js           # Audit trail queries & JSON export
 │   │   ├── migration.routes.js       # MySQL dump parser & ingestion
 │   │   └── health.routes.js          # Comprehensive health check & ping benchmark
@@ -420,7 +458,7 @@ youtube-channel-manager/
 │   └── utils/
 │       └── mysqlToPostgresParser.js  # MySQL tuple parsing engine
 └── public/
-    ├── index.html                    # Single-Page Application entry point (v=2.7.4)
+    ├── index.html                    # Single-Page Application entry point (v=2.9.0)
     ├── css/
     │   ├── futuristic.css            # Executive design variables & palettes
     │   └── components.css            # Custom UI controls, filter toolbars & health suite
@@ -434,6 +472,7 @@ youtube-channel-manager/
             ├── dashboard.js          # Overview metrics, green bar charts & heatmap
             ├── tracker.js            # Channel Tracker, snapshots & growth curves
             ├── subscriptions.js      # Subscribed channels, takeout import & CSV/JSON export
+            ├── n8n.js                # n8n workflows studio, live executor & ledger
             ├── content.js            # Video/Shorts tables & action delegation
             ├── tagManager.js         # Centralized Tag Preset Registry overlay
             ├── wizard.js             # 5-step Content Creator Wizard & quick tags
@@ -466,6 +505,10 @@ powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
 10. **Zero-Downtime Settings**: Updates Winston console log level dynamically.
 11. **MySQL Reference Migration**: Ingests reference SQL dump with idempotent conflict handling.
 12. **Audit Trail Verification**: Ensures all operational actions are immutably recorded in `audit_logs`.
+13. **Centralized Tag Preset Registry**: Tests CRUD operations and category filters on `tag_presets`.
+14. **Daily Telemetry Report & Email Alerts**: Tests automated report schedule presets, metric selections, and dispatch.
+15. **Media & Asset Storage Directives & Uploads**: Validates multipart uploads, volume mapping (`./media`), and UUID file renaming.
+16. **n8n Workflow Automation Engine & Webhooks**: Validates workflow registration, parameter updates, webhook triggers with dynamic payloads, execution telemetry ledger, latency benchmarks, reachability probes, and cascade cleanup.
 
 ---
 
@@ -514,7 +557,10 @@ powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
 - [x] Subscribed channels registry with Google Takeout import, YouTube API pagination sync, and RFC 4180 CSV/JSON export.
 - [x] Centralized Tag Preset Registry and fast quick-tag insertion in Content Creator Wizard.
 - [x] Production SMTP email configuration with diagnostic test transmission engine.
+- [x] Daily telemetry report & email alerts based on cron job.
 - [x] High-Performance Server Health & Enterprise Diagnostics Suite with ping benchmark.
+- [x] Media & asset storage directives with volume mapping (`./media`) and UUID renaming.
+- [x] n8n workflow execution engine, webhook triggers, dynamic payload injection & telemetry ledger.
 - [ ] OAuth2 YouTube Data API publishing automation.
 - [ ] Direct ComfyUI / Stable Diffusion thumbnail generation sidecar.
 

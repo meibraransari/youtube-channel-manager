@@ -68,6 +68,15 @@ const SidebarComponent = {
             <span class="sidebar-badge badge badge-teal" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">PRESETS</span>
           </a>
 
+          <!-- Automation & Orchestration Section -->
+          <div class="sidebar-section-title">AUTOMATION & ORCHESTRATION</div>
+
+          <a href="#n8n" class="sidebar-link ${currentView === 'n8n' ? 'active' : ''}" onclick="window.navigateTo('n8n'); return false;" title="n8n Automated Workflow Engine & Webhooks">
+            <i>⚡</i>
+            <span class="sidebar-text">n8n Workflows</span>
+            <span class="sidebar-badge badge badge-indigo" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">AUTO</span>
+          </a>
+
           <!-- Operations & Data Section -->
           <div class="sidebar-section-title">OPERATIONS & DATA</div>
 

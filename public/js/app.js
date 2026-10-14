@@ -206,6 +206,10 @@ const App = {
         case 'subscriptions':
           SubscriptionsComponent.render(mainArea);
           break;
+        case 'n8n':
+        case 'workflows':
+          N8nComponent.render(mainArea);
+          break;
         case 'secret-migration':
         case 'migration':
           if (this.currentUser && this.currentUser.role === 'admin') {

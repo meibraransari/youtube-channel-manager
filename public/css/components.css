@@ -58,35 +58,71 @@
   filter: drop-shadow(0 2px 6px rgba(0, 245, 255, 0.25));
 }
 
+.nav-left-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .brand-title {
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.2px;
   color: var(--text-main);
+  white-space: nowrap;
 }
 
 /* Channel Dropdown Selector */
 .channel-selector-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  flex-shrink: 0;
+}
+
+.channel-select-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  transition: all var(--trans-fast);
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.channel-select-pill:hover,
+.channel-select-pill:focus-within {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+  background: rgba(6, 182, 212, 0.12);
+}
+
+.channel-select-icon {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .channel-select-dropdown {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
   color: var(--text-main);
-  padding: 6px 12px;
+  padding: 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   outline: none;
-  min-width: 170px;
+  max-width: 175px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.channel-select-dropdown:focus {
-  border-color: var(--accent-teal);
+.channel-select-dropdown option {
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 6px 12px;
 }
 
 /* Pill Navigation Tabs (from user screenshot) */
@@ -98,6 +134,85 @@
   padding: 3px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nav-pill-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Sidebar Channel Switcher Card */
+.sidebar-channel-card {
+  margin: 10px 12px 14px 12px;
+  padding: 10px 12px;
+  background: rgba(6, 182, 212, 0.05);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all var(--trans-normal);
+}
+
+.sidebar.collapsed .sidebar-channel-card {
+  display: none;
+}
+
+.sidebar-channel-card:hover {
+  border-color: rgba(6, 182, 212, 0.4);
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.sidebar-channel-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+}
+
+.sidebar-channel-badge .pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+.sidebar-channel-select-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+}
+
+.sidebar-channel-select {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-channel-select option {
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 6px 12px;
 }
 
 button.nav-pill-item,

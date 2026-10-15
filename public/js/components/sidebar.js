@@ -1,11 +1,51 @@
 /**
- * Collapsible Executive Sidebar Component
+ * Collapsible Executive Sidebar Component with Dedicated Active Channel Context Switcher
  */
 const SidebarComponent = {
-  render(container, currentView = 'dashboard') {
+  channelsList: [],
+
+  async loadChannels() {
+    try {
+      if (window.NavbarComponent && window.NavbarComponent.channelsList && window.NavbarComponent.channelsList.length > 0) {
+        this.channelsList = window.NavbarComponent.channelsList;
+      } else {
+        const res = await API.channels.list();
+        this.channelsList = res.channels || [];
+      }
+    } catch (err) {
+      this.channelsList = [];
+    }
+  },
+
+  async render(container, currentView = 'dashboard') {
+    if (!this.channelsList || this.channelsList.length === 0) {
+      await this.loadChannels();
+    }
+    const activeChannelId = API.getActiveChannelId();
+
     container.innerHTML = `
       <aside class="sidebar" id="appSidebar">
         <div class="sidebar-nav">
+          <!-- Active Channel Context Card in Sidebar -->
+          <div class="sidebar-channel-card" title="Current Active Channel Scope">
+            <div class="sidebar-channel-badge">
+              <span class="pulse-dot"></span>
+              <span>ACTIVE CHANNEL</span>
+            </div>
+            <div class="sidebar-channel-select-box">
+              <span style="font-size: 13px;">📺</span>
+              <select id="sidebarChannelSelect" class="sidebar-channel-select" title="Switch Active Studio Channel">
+                <option value="all" ${activeChannelId === 'all' ? 'selected' : ''}>${this.channelsList.length === 0 ? '🌐 No Channels (0)' : '🌐 All Channels'}</option>
+                ${this.channelsList.map(c => `
+                  <option value="${c.id}" ${activeChannelId === c.id ? 'selected' : ''}>
+                    ${c.name} (${c.handle || '@channel'})
+                  </option>
+                `).join('')}
+                <option value="__manage_channels__">⚙️ Manage Channels...</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Overview Section -->
           <div class="sidebar-section-title">CHANNELS & TELEMETRY</div>
 
@@ -132,6 +172,22 @@ const SidebarComponent = {
         </div>
       </aside>
     `;
+
+    // Bind sidebar channel select change event
+    const sideChSelect = document.getElementById('sidebarChannelSelect');
+    if (sideChSelect) {
+      sideChSelect.onchange = (e) => {
+        const selectedId = e.target.value;
+        if (selectedId === '__manage_channels__') {
+          window.navigateTo('channels');
+          return;
+        }
+        API.setActiveChannelId(selectedId);
+        const navChSelect = document.getElementById('navbarChannelSelect');
+        if (navChSelect) navChSelect.value = selectedId;
+        Toast.show(`Active channel updated: ${sideChSelect.options[sideChSelect.selectedIndex].text}`, 'info', 1800);
+      };
+    }
   }
 };
 

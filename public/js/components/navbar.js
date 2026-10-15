@@ -8,6 +8,9 @@ const NavbarComponent = {
     try {
       const res = await API.channels.list();
       this.channelsList = res.channels || [];
+      if (window.SidebarComponent) {
+        window.SidebarComponent.channelsList = this.channelsList;
+      }
     } catch (err) {
       console.warn('Could not load channels for navbar:', err.message);
     }
@@ -21,8 +24,8 @@ const NavbarComponent = {
 
     container.innerHTML = `
       <header class="top-navbar">
-        <!-- Left: Brand & Sidebar Toggle & Channel Selector -->
-        <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+        <!-- Left: Brand & Sidebar Toggle -->
+        <div class="nav-left-brand">
           ${currentUser ? `
             <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
               <span style="font-size: 15px;">☰</span>
@@ -35,21 +38,6 @@ const NavbarComponent = {
               <div class="brand-title">YOUTUBE STUDIO</div>
             </div>
           </div>
-
-          <!-- Channel Selector Dropdown -->
-          ${currentUser ? `
-            <div class="channel-selector-container">
-              <select id="navbarChannelSelect" class="channel-select-dropdown" title="Select Active Channel">
-                <option value="all" ${activeChannelId === 'all' ? 'selected' : ''}>${this.channelsList.length === 0 ? '🌐 No Channels (0 Registered)' : '🌐 All Channels (Consolidated)'}</option>
-                ${this.channelsList.map(c => `
-                  <option value="${c.id}" ${activeChannelId === c.id ? 'selected' : ''}>
-                    📺 ${c.name} (${c.handle || '@channel'})
-                  </option>
-                `).join('')}
-                <option value="__manage_channels__">⚙️ Manage All Channels...</option>
-              </select>
-            </div>
-          ` : ''}
         </div>
 
         <!-- Center: Pill Navigation Tabs (from design reference screenshot) -->
@@ -104,6 +92,22 @@ const NavbarComponent = {
         <!-- Right: Action Buttons, GitHub, Theme, User Pill, Sign Out -->
         <div class="nav-actions">
           ${currentUser ? `
+            <!-- Global Channel Selector Pill Dropdown -->
+            <div class="channel-selector-container" title="Active Channel Context">
+              <div class="channel-select-pill">
+                <span class="channel-select-icon">📺</span>
+                <select id="navbarChannelSelect" class="channel-select-dropdown" title="Select Active Channel">
+                  <option value="all" ${activeChannelId === 'all' ? 'selected' : ''}>${this.channelsList.length === 0 ? '🌐 No Channels (0)' : '🌐 All Channels'}</option>
+                  ${this.channelsList.map(c => `
+                    <option value="${c.id}" ${activeChannelId === c.id ? 'selected' : ''}>
+                      ${c.name} (${c.handle || '@channel'})
+                    </option>
+                  `).join('')}
+                  <option value="__manage_channels__">⚙️ Manage All Channels...</option>
+                </select>
+              </div>
+            </div>
+
             <!-- Deploy New Content CTA (matches green pill button in screenshot) -->
             <button class="btn-cyber btn-cyber-primary btn-sm" id="navDeployContentBtn" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
               <span>✨</span>
@@ -252,9 +256,20 @@ const NavbarComponent = {
           return;
         }
         API.setActiveChannelId(selectedId);
+        const sideChSelect = document.getElementById('sidebarChannelSelect');
+        if (sideChSelect) sideChSelect.value = selectedId;
         Toast.show(`Active channel updated: ${chSelect.options[chSelect.selectedIndex].text}`, 'info', 1800);
       };
     }
+
+    // Keep dropdowns synchronized whenever channel changes globally
+    window.addEventListener('channel:changed', (e) => {
+      const activeId = e.detail?.channelId || 'all';
+      const navSelect = document.getElementById('navbarChannelSelect');
+      if (navSelect && navSelect.value !== activeId) navSelect.value = activeId;
+      const sideSelect = document.getElementById('sidebarChannelSelect');
+      if (sideSelect && sideSelect.value !== activeId) sideSelect.value = activeId;
+    });
 
     // Direct Event Listener for Deploy Content button
     const navDeployBtn = document.getElementById('navDeployContentBtn');

@@ -115,31 +115,6 @@ async function initDatabase() {
       // Decouple & delete legacy tag_presets row from system_settings
       await pool.query("DELETE FROM system_settings WHERE key = 'tag_presets'");
 
-      // Check initial_setup_done status
-      const setupCheck = await pool.query("SELECT value FROM system_settings WHERE key = 'initial_setup_done'");
-      const isSetupDone = setupCheck.rows.length > 0 && (setupCheck.rows[0].value === true || setupCheck.rows[0].value === 'true');
-
-      // Auto-seed tag_presets if table has 0 rows and setup is marked done
-      const tagCountCheck = await pool.query('SELECT COUNT(*)::int as count FROM tag_presets');
-      if (isSetupDone && tagCountCheck.rows[0].count === 0) {
-        await pool.query(`
-          INSERT INTO tag_presets (id, name, category, tags, is_system)
-          VALUES
-              ('preset-postgres', 'PostgreSQL & Database', 'Database', 'postgresql, database, pg18, sql, rdbms, performance, indexing, backend, data modeling', TRUE),
-              ('preset-kubernetes', 'Kubernetes & Cloud', 'Cloud & DevOps', 'kubernetes, k8s, containers, devops, cloud, microservices, helm, cluster, cloud native', TRUE),
-              ('preset-docker', 'Docker & Microservices', 'DevOps', 'docker, docker compose, microservices, containers, devops, linux, deployment', TRUE),
-              ('preset-automation', 'AI & Automation', 'AI & ML', 'ai, machine learning, automation, llm, artificial intelligence, deep learning, workflow', TRUE),
-              ('preset-nodejs', 'Node.js & Backend Architecture', 'Development', 'nodejs, javascript, backend, express, rest api, web development, fullstack, software', TRUE),
-              ('preset-devops', 'DevOps & CI/CD Pipelines', 'DevOps', 'devops, cicd, github actions, automation, continuous integration, deployment, sre', TRUE),
-              ('preset-shorts', 'YouTube Shorts Growth', 'YouTube', 'shorts, youtube shorts, content creator, viral, trending, algorithm, tech tips, coding', TRUE),
-              ('preset-system-design', 'System Design & Scalability', 'Architecture', 'system design, software architecture, scalability, high availability, cloud native, distributed systems', TRUE),
-              ('preset-security', 'Cybersecurity & RBAC', 'Security', 'security, authentication, jwt, rbac, cybersecurity, infosec, access control, devsecops', TRUE),
-              ('preset-frontend', 'Modern Web & UI/UX Design', 'Frontend', 'frontend, ui, ux, responsive design, css, javascript, web design, modern web', TRUE)
-          ON CONFLICT (id) DO NOTHING;
-        `);
-        console.log('[DB] Seeded 10 curated default tag presets into tag_presets table.');
-      }
-
       // Auto-seed default Telemetry Report settings into system_settings if not present
       await pool.query(`
         INSERT INTO system_settings (key, value, category, description)
@@ -221,56 +196,6 @@ async function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_n8n_executions_created_at ON n8n_executions(created_at DESC);
       `);
 
-      // Seed curated default n8n workflows if table has 0 rows and setup is marked done
-      const wfCountCheck = await pool.query('SELECT COUNT(*)::int as count FROM n8n_workflows');
-      if (isSetupDone && wfCountCheck.rows[0].count === 0) {
-        await pool.query(`
-          INSERT INTO n8n_workflows (id, name, category, description, webhook_url, payload_template, timeout_seconds, is_active)
-          VALUES
-            (
-                'wf-metadata-enricher',
-                '🤖 AI Metadata & SEO Description Auto-Enricher',
-                'AI & SEO',
-                'Sends video titles and raw topics to an n8n AI agent to generate engaging YouTube descriptions, chapter timestamps, and SEO tags.',
-                'http://localhost:5678/webhook/yt-metadata-enricher',
-                '{"content_type": "short", "title": "Top PostgreSQL 18 Performance Hacks", "topic": "Database Optimization"}',
-                30,
-                TRUE
-            ),
-            (
-                'wf-social-cross-poster',
-                '📢 Social Multi-Platform Cross-Poster',
-                'Publishing',
-                'Dispatches release metadata for newly published videos across X (Twitter), LinkedIn, Discord, and Telegram communities.',
-                'http://localhost:5678/webhook/social-crosspost',
-                '{"title": "New Video Live!", "video_url": "https://youtube.com/shorts/sample", "platforms": ["twitter", "linkedin", "discord"]}',
-                30,
-                TRUE
-            ),
-            (
-                'wf-thumbnail-generator',
-                '🎨 Automated Thumbnail Asset Renderer',
-                'AI & SEO',
-                'Triggers n8n image generation pipeline using Midjourney/DALL-E/Flux nodes to produce 16:9 and 9:16 high-resolution thumbnail graphics.',
-                'http://localhost:5678/webhook/generate-thumbnails',
-                '{"aspect_ratio": "16:9", "prompt": "Futuristic neon cloud server room with vibrant teal illumination", "resolution": "1920x1080"}',
-                45,
-                TRUE
-            ),
-            (
-                'wf-weekly-analytics-digest',
-                '📊 Weekly Telemetry & Audience Growth Pipeline',
-                'Telemetry',
-                'Aggregates rolling 7-day velocity metrics and subscriber milestones and exports them directly into Notion / Google Sheets.',
-                'http://localhost:5678/webhook/weekly-telemetry-digest',
-                '{"range_days": 7, "channel": "all", "notify_slack": true}',
-                30,
-                TRUE
-            )
-          ON CONFLICT (id) DO NOTHING;
-        `);
-        console.log('[DB] Seeded 4 curated default n8n workflows into n8n_workflows table.');
-      }
 
       // Runtime Migration: Ensure notes table and indexes exist
       await pool.query(`
@@ -299,66 +224,7 @@ async function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_notes_channel_id ON notes(channel_id);
       `);
 
-      // Seed curated default studio notes if table has 0 rows and setup is marked done
-      const notesCountCheck = await pool.query('SELECT COUNT(*)::int as count FROM notes');
-      if (isSetupDone && notesCountCheck.rows[0].count === 0) {
-        await pool.query(`
-          INSERT INTO notes (id, title, topic, category, content, tags, color, is_pinned)
-          VALUES
-            (
-                'a1000000-0000-0000-0000-000000000001',
-                '🚀 YouTube Shorts Viral Algorithm & Retention Playbook',
-                'YouTube Strategy',
-                'guideline',
-                '# 🚀 YouTube Shorts Viral Algorithm & Retention Playbook\n\n> **Executive Rule of Thumb:** In vertical short-form video (9:16), the first **1.8 seconds** determine 80% of your reach. If the viewer does not commit immediately, the recommendation engine ceases distribution.\n\n---\n\n## ⏱️ The 3-Phase Retention Framework\n\n\`\`\`\nPhase 1: Visual Shock / Paradox (0:00 - 0:02)\n   └── Break expectation, fast zoom, or high-contrast caption.\nPhase 2: High-Velocity Knowledge Delivery (0:02 - 0:45)\n   └── Rapid problem/solution steps. Zero filler phrases like "welcome back".\nPhase 3: The Seamless Infinite Loop (End -> Beginning)\n   └── Connect final sentence seamlessly back into the opening hook.\n\`\`\`\n\n---\n\n## 🎯 Target Benchmarks for Viral Distribution\n\n| Metric | Minimum Baseline | Viral Velocity Tier | Action Directive |\n| :--- | :--- | :--- | :--- |\n| **Viewed vs Swiped Away** | \`> 72%\` | \`> 85%\` | Test tighter opening hooks and motion graphics |\n| **Average Percentage Viewed (APV)** | \`> 100%\` | \`> 135%\` | Script seamless loopback endings |\n| **Audience Engagement Ratio** | \`> 6.5%\` | \`> 12%\` | Pin engaging curiosity questions in top comment |\n\n---\n\n## 📋 Pre-Publishing Checklist\n\n- [x] Video formatted strictly as vertical 9:16 (\`1080x1920\` minimum resolution).\n- [x] Safe zones respected (no critical text covered by like/comment UI overlays).\n- [x] High-contrast dynamic captions enabled with active word highlighting.\n- [x] 3 to 5 hyper-targeted niche tags applied (e.g. \`#DevOps #Docker #PostgreSQL\`).\n- [x] Pinned comment ready with a community discussion trigger.',
-                'algorithm, viral, shorts, retention, youtube',
-                '#a855f7',
-                TRUE
-            ),
-            (
-                'a1000000-0000-0000-0000-000000000002',
-                '🐳 Production Docker Compose & PostgreSQL 18 Deployment SOP',
-                'DevOps & Cloud',
-                'instruction',
-                '# 🐳 Production Docker Compose & PostgreSQL 18 Deployment SOP\n\nStandard Operating Procedure for deploying and maintaining containerized PostgreSQL 18 and Node.js microservices in hardened production environments.\n\n---\n\n## 🛡️ Pre-Flight Environment Sanity Checks\n\n1. **Verify Volume Mount Permissions**: Ensure \`./media\` and \`./database\` host directories are properly owned by non-root daemon users.\n2. **Environment Variable Parity**: Audit \`.env\` against \`.env.example\` before triggering container initialization:\n   \`\`\`bash\n   # Validate environment configuration\n   docker compose config --quiet\n   \`\`\`\n\n---\n\n## 🚀 Zero-Downtime Deployment Lifecycle\n\nExecute sequential rolling updates to maintain 99.98% uptime:\n\n\`\`\`bash\n# 1. Pull base runtime layers & build production artifact\ndocker compose build --pull yt-manager\n\n# 2. Verify PostgreSQL container health status\ndocker inspect --format="{{.State.Health.Status}}" postgres18\n\n# 3. Apply schema migrations idempotently\ndocker exec -i postgres18 psql -U postgres -d youtube_channel_manager_db -f /docker-entrypoint-initdb.d/init.sql\n\n# 4. Recreate application container with zero-cache assets\ndocker compose up -d --no-deps yt-manager\n\`\`\`\n\n---\n\n## 🩺 Post-Deployment Observability Checklist\n\n- [ ] Check \`/health\` endpoint reports \`status: "pass"\` and PostgreSQL latency \`< 5ms\`.\n- [ ] Verify Winston logging is capturing at \`INFO\` or \`DEBUG\` level.\n- [ ] Inspect memory consumption: \`docker stats --no-stream\`.\n- [ ] Confirm persistent \`./media\` directory volume mount is writable.',
-                'docker, postgres, deployment, sop, devops',
-                '#06b6d4',
-                TRUE
-            ),
-            (
-                'a1000000-0000-0000-0000-000000000003',
-                '🎨 High-CTR Thumbnail Design Directives & Midjourney Prompt Templates',
-                'Thumbnails & Graphics',
-                'instruction',
-                '# 🎨 High-CTR Thumbnail Directives & Prompt Templates\n\n> **Core Philosophy:** A YouTube thumbnail is not an illustration of your video; it is a **billboard advertising an irresistible question**.\n\n---\n\n## 👁️ Visual Hierarchy Rule of Thirds\n\n1. **Primary Focal Point (Left 60%)**: High-emotion human expression, glowing 3D asset, or dramatic contrast element.\n2. **Complementary Text (Right 40%)**: Maximum 3 to 4 punchy words. Never repeat the exact video title.\n3. **Lighting & Contrast**: Deep background (\`#070913\`) with electric cyan (\`#06b6d4\`) and neon amber (\`#f59e0b\`) rim lighting.\n\n---\n\n## 🤖 Curated Midjourney / Flux Prompt Templates\n\n### Prompt Preset 1: Cyber DevOps Architecture\n\`\`\`\nFuturistic server blade glowing with electric cyan neon light, sleek obsidian glass textures, volumetric mist, depth of field, hyper-detailed 3D octane render, cinematic lighting --ar 16:9 --style raw --v 6.0\n\`\`\`\n\n### Prompt Preset 2: Data Stream Velocity\n\`\`\`\nVibrant holographic data streams accelerating through a dark digital tunnel, purple and emerald laser pulses, clean executive tech aesthetic, ultra-sharp focus --ar 16:9 --stylize 250\n\`\`\`\n\n---\n\n## 🛠️ Export Guidelines\n- Format: \`.png\` or high-quality \`.webp\`\n- Native Dimensions: \`1920x1080\` (16:9) or \`1080x1920\` (9:16)\n- File Size Constraint: Under \`2 MB\` for rapid browser pre-fetching.',
-                'thumbnails, midjourney, design, ctr, graphics',
-                '#10b981',
-                FALSE
-            ),
-            (
-                'a1000000-0000-0000-0000-000000000004',
-                '🐘 PostgreSQL 18 Indexing, Vacuuming & Performance Directives',
-                'Database & Architecture',
-                'note',
-                '# 🐘 PostgreSQL 18 Indexing & Performance Directives\n\nTechnical notes and query optimization guidelines for high-cardinality YouTube telemetry snapshot tables.\n\n---\n\n## ⚡ Index Strategy for Telemetry Timeseries\n\nFor high-throughput snapshot tables (\`channel_snapshots\` and \`n8n_executions\`):\n\n\`\`\`sql\n-- Composite index for rapid channel telemetry trajectory queries\nCREATE INDEX CONCURRENTLY IF NOT EXISTS idx_snapshots_channel_recorded \nON channel_snapshots (channel_id, recorded_at DESC);\n\n-- Partial index for active workflow executions only\nCREATE INDEX CONCURRENTLY IF NOT EXISTS idx_active_executions \nON n8n_executions (workflow_id, created_at DESC) \nWHERE status = ''running'';\n\`\`\`\n\n---\n\n## 🧹 Autovacuum Hardening for Docker Volumes\n\nAdd to PostgreSQL configuration when snapshot volume exceeds 500k rows:\n\n\`\`\`ini\nautovacuum_vacuum_scale_factor = 0.05\nautovacuum_analyze_scale_factor = 0.02\nautovacuum_vacuum_cost_limit = 2000\n\`\`\`\n\n---\n\n## 📊 Quick Performance Diagnostic Queries\n\n\`\`\`sql\n-- Check connection pool saturation\nSELECT count(*), state FROM pg_stat_activity GROUP BY state;\n\n-- Identify slowest query statements\nSELECT query, calls, total_exec_time, mean_exec_time \nFROM pg_stat_statements \nORDER BY total_exec_time DESC LIMIT 5;\n\`\`\`',
-                'postgresql, indexing, optimization, database, sql',
-                '#3b82f6',
-                FALSE
-            ),
-            (
-                'a1000000-0000-0000-0000-000000000005',
-                '✅ Studio Video Release Pre-Flight Verification Checklist',
-                'Content Production',
-                'checklist',
-                '# ✅ Studio Video Release Pre-Flight Verification Checklist\n\nComprehensive quality assurance gate before scheduling or deploying any video, short, or podcast episode.\n\n---\n\n## 🔍 Stage 1: Audio & Visual Fidelity\n- [ ] Audio normalized to \`-14 LUFS\` standard YouTube integrated loudness.\n- [ ] No clipping or digital distortion in vocal track peaks.\n- [ ] Color grading verified in Rec.709 color space across both OLED and LCD displays.\n- [ ] End-screen cards positioned with zero interference with active content.\n\n---\n\n## 🏷️ Stage 2: Metadata & SEO Optimization\n- [ ] Title tested with emotional hook and keyword placed in first 40 characters.\n- [ ] Description includes summary, chapter timestamps, and official repository link.\n- [ ] 500-character tag limit fully populated using curated Studio Tag Presets.\n- [ ] Associated playlist assigned.\n\n---\n\n## 🌐 Stage 3: Community & Multi-Platform Distribution\n- [ ] First comment drafted with discussion question and pinned.\n- [ ] Teaser clip exported for social cross-posting via n8n automation pipeline.\n- [ ] Community tab poll or behind-the-scenes teaser scheduled.\n- [ ] Metrics snapshot captured baseline at \`T+0\`.',
-                'checklist, release, quality, production, youtube',
-                '#f59e0b',
-                FALSE
-            )
-          ON CONFLICT (id) DO NOTHING;
-        `);
-        console.log('[DB] Seeded 5 curated default topic notes & instructions into notes table.');
-      }
+
 
       // Ensure initial Administrator user exists with correct password hash
       const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin';

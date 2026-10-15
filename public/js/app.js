@@ -104,9 +104,10 @@ const App = {
 
   async checkInitialSetupStatus() {
     if (!this.currentUser) return;
+    if (document.getElementById('initialSetupModal')) return;
     try {
       const res = await API.settings.getInitialSetupStatus();
-      if (res && res.success && res.initial_setup_done === false) {
+      if (res && res.success && (res.initial_setup_done === false || res.initial_setup_done === 'false')) {
         this.openInitialSetupModal();
       }
     } catch (err) {
@@ -115,21 +116,17 @@ const App = {
   },
 
   openInitialSetupModal() {
+    const modalRoot = document.getElementById('modalRoot') || document.body;
     let existing = document.getElementById('initialSetupModal');
     if (existing) existing.remove();
 
     const modal = document.createElement('div');
     modal.id = 'initialSetupModal';
-    modal.className = 'cyber-modal-overlay';
-    modal.style.display = 'flex';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
-    modal.style.zIndex = '99999';
-    modal.style.background = 'rgba(0, 0, 0, 0.85)';
-    modal.style.backdropFilter = 'blur(12px)';
+    modal.className = 'modal-overlay cyber-modal open';
+    modal.style.cssText = 'position: fixed; inset: 0; z-index: 999999; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); padding: 20px; overflow-y: auto; opacity: 1; pointer-events: auto;';
 
     modal.innerHTML = `
-      <div class="glass-card" style="max-width: 820px; width: 95%; border: 1.5px solid rgba(6, 182, 212, 0.45); box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(6, 182, 212, 0.25); border-radius: 20px; overflow: hidden; padding: 0; background: var(--bg-surface);">
+      <div class="glass-card" style="max-width: 820px; width: 95%; max-height: 90vh; overflow-y: auto; border: 1.5px solid rgba(6, 182, 212, 0.5); box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95), 0 0 50px rgba(6, 182, 212, 0.3); border-radius: 20px; padding: 0; background: var(--bg-surface);">
         
         <!-- Header -->
         <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(16, 185, 129, 0.16) 50%, rgba(168, 85, 247, 0.16) 100%); padding: 26px 30px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 16px;">
@@ -138,7 +135,7 @@ const App = {
               🛸
             </div>
             <div>
-              <div style="font-family: var(--font-tech); font-size: 19px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-main); display: flex; align-items: center; gap: 10px;">
+              <div style="font-family: var(--font-tech); font-size: 19px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-main); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 INITIALIZE STUDIO WORKSPACE
                 <span class="badge badge-cyan" style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase;">First-Time Setup</span>
               </div>
@@ -147,6 +144,7 @@ const App = {
               </div>
             </div>
           </div>
+          <button id="btnCloseInitialSetupModalX" style="background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-muted); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.2s;" onmouseover="this.style.color='#fff'; this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.color='var(--text-muted)'; this.style.borderColor='var(--border-color)'" title="Dismiss (reopen anytime in Settings)">✕</button>
         </div>
 
         <!-- Options Cards Grid -->
@@ -215,10 +213,10 @@ const App = {
                   <span style="color: var(--accent-cyan);">✔</span> Zero channels & zero dummy content items
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="color: var(--accent-cyan);">✔</span> Ready for Rapid YouTube Channel Ingestion
+                  <span style="color: var(--accent-cyan);">✔</span> Zero tag presets, zero notes & zero workflows
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="color: var(--accent-cyan);">✔</span> Clean database for production operations
+                  <span style="color: var(--accent-cyan);">✔</span> Ready for Rapid YouTube Channel Ingestion
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 11px;">
                   <span>ℹ️</span> You can load demo data later from System Settings
@@ -246,7 +244,15 @@ const App = {
       </div>
     `;
 
-    document.body.appendChild(modal);
+    modalRoot.appendChild(modal);
+
+    const closeBtn = document.getElementById('btnCloseInitialSetupModalX');
+    if (closeBtn) {
+      closeBtn.onclick = () => {
+        modal.remove();
+        if (modalRoot.id === 'modalRoot') modalRoot.innerHTML = '';
+      };
+    }
 
     const demoBtn = document.getElementById('btnInitLoadDemo');
     const prodBtn = document.getElementById('btnInitCleanProd');
@@ -260,6 +266,7 @@ const App = {
         const res = await API.settings.initialSetup({ mode: 'demo' });
         Toast.show(res.message || 'Demo data loaded successfully!', 'success', 5000);
         modal.remove();
+        if (modalRoot.id === 'modalRoot') modalRoot.innerHTML = '';
 
         // Refresh channels in navbar and active view
         if (window.NavbarComponent) {
@@ -287,6 +294,7 @@ const App = {
         const res = await API.settings.initialSetup({ mode: 'production' });
         Toast.show(res.message || 'Clean production mode initialized.', 'success', 4000);
         modal.remove();
+        if (modalRoot.id === 'modalRoot') modalRoot.innerHTML = '';
 
         if (window.NavbarComponent) {
           await window.NavbarComponent.loadChannels();
@@ -343,6 +351,9 @@ const App = {
     }
 
     this.render();
+    if (this.currentUser) {
+      this.checkInitialSetupStatus();
+    }
   },
 
   render() {

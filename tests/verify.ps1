@@ -14,6 +14,36 @@ $token = $authRes.token
 $headers = @{ "Authorization" = "Bearer $token"; "Content-Type" = "application/json" }
 Write-Host "   JWT Acquired for user: $($authRes.user.username) (role: $($authRes.user.role))" -ForegroundColor Green
 
+# 2.5 Verify Initial Setup State & Pre-Seed Hygiene
+Write-Host "`n2.5 Testing Clean Uninitialized State & Pre-Seed Hygiene..." -ForegroundColor Yellow
+$flushBody = @{
+    answer = 42
+    expected = 42
+    confirmed = $true
+} | ConvertTo-Json
+$flushRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/flush-all" -Method Post -Headers $headers -Body $flushBody
+Write-Host "   System reset via flush-all: $($flushRes.message)" -ForegroundColor Green
+
+# Verify initial setup status is false
+$preSetupStatus = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup-status" -Method Get -Headers $headers
+if ($preSetupStatus.initial_setup_done -ne $false) {
+    throw "Initial setup done must be false before user choice!"
+}
+
+# Verify tag_presets, notes, and n8n_workflows have 0 records prior to setup
+$preTags = Invoke-RestMethod -Uri "http://localhost:3000/api/tags/presets" -Method Get -Headers $headers
+$preNotes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes" -Method Get -Headers $headers
+$preWorkflows = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows" -Method Get -Headers $headers
+
+if ($preTags.presets.Count -ne 0) { throw "Hygiene violation: tag_presets has $($preTags.presets.Count) records prior to onboarding!" }
+if ($preNotes.notes.Count -ne 0) { throw "Hygiene violation: notes has $($preNotes.notes.Count) records prior to onboarding!" }
+if ($preWorkflows.workflows.Count -ne 0) { throw "Hygiene violation: n8n_workflows has $($preWorkflows.workflows.Count) records prior to onboarding!" }
+Write-Host "   Hygiene verified: Tag Presets=0, Notes=0, Workflows=0, InitialSetupDone=false" -ForegroundColor Green
+
+# Now initialize with Demo Mode to populate baseline data for downstream stages 3-17
+$demoInitRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup" -Method Post -Headers $headers -Body (@{ mode = "demo" } | ConvertTo-Json)
+Write-Host "   Loaded Demo Data for Verification Suite: $($demoInitRes.message)" -ForegroundColor Green
+
 # 3. Channels API
 Write-Host "`n3. Testing Channels API..." -ForegroundColor Yellow
 $channelsRes = Invoke-RestMethod -Uri "http://localhost:3000/api/channels" -Method Get -Headers $headers
@@ -465,9 +495,8 @@ if ($notesAfterFlush.notes.Count -ne 0) { throw "Failed: notes not purged on flu
 if ($workflowsAfterFlush.workflows.Count -ne 0) { throw "Failed: n8n_workflows not purged on flush-all!" }
 if ($statusAfterFlush.initial_setup_done -ne $false) { throw "Failed: initial_setup_done should be false after flush-all!" }
 
-# 18.5 Re-seed Sample Demo Data so application is left fully ready and functional
-$reseedRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup" -Method Post -Headers $headers -Body $demoInitBody
-Write-Host "   Re-seeded Demo Data for Studio Operations: $($reseedRes.message)" -ForegroundColor Green
+Write-Host "   System successfully left in pristine un-initialized state (initial_setup_done = false, 0 records) for manual UI onboarding verification." -ForegroundColor Green
 
 Write-Host "`n=== ALL 18 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+
 

@@ -249,6 +249,33 @@ CREATE INDEX IF NOT EXISTS idx_n8n_executions_status ON n8n_executions(status);
 CREATE INDEX IF NOT EXISTS idx_n8n_executions_created_at ON n8n_executions(created_at DESC);
 
 -- ------------------------------------------------------------------------------
+-- 14. Topic Notes & Instructions Table (Knowledge Base, SOPs & Markdown Vault)
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    topic VARCHAR(150) NOT NULL DEFAULT 'General',
+    category VARCHAR(50) NOT NULL DEFAULT 'instruction', -- 'instruction', 'note', 'script', 'checklist', 'guideline', 'snippet'
+    content TEXT NOT NULL DEFAULT '',
+    tags TEXT,
+    color VARCHAR(30) DEFAULT '#06b6d4',
+    is_pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    channel_id UUID REFERENCES channels(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    updated_by UUID REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_notes_topic ON notes(topic);
+CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(category);
+CREATE INDEX IF NOT EXISTS idx_notes_is_pinned ON notes(is_pinned);
+CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notes_channel_id ON notes(channel_id);
+
+-- ------------------------------------------------------------------------------
 -- Triggers and Validation Functions
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_tags_length_func()
@@ -400,6 +427,242 @@ VALUES
         '{"range_days": 7, "channel": "all", "notify_slack": true}',
         30,
         TRUE
+    )
+ON CONFLICT (id) DO NOTHING;
+
+-- ------------------------------------------------------------------------------
+-- Seed Default Curated Studio Topic Notes & Instructions
+-- ------------------------------------------------------------------------------
+INSERT INTO notes (id, title, topic, category, content, tags, color, is_pinned)
+VALUES
+    (
+        'a1000000-0000-0000-0000-000000000001',
+        '🚀 YouTube Shorts Viral Algorithm & Retention Playbook',
+        'YouTube Strategy',
+        'guideline',
+        '# 🚀 YouTube Shorts Viral Algorithm & Retention Playbook
+
+> **Executive Rule of Thumb:** In vertical short-form video (9:16), the first **1.8 seconds** determine 80% of your reach. If the viewer does not commit immediately, the recommendation engine ceases distribution.
+
+---
+
+## ⏱️ The 3-Phase Retention Framework
+
+```
+Phase 1: Visual Shock / Paradox (0:00 - 0:02)
+   └── Break expectation, fast zoom, or high-contrast caption.
+Phase 2: High-Velocity Knowledge Delivery (0:02 - 0:45)
+   └── Rapid problem/solution steps. Zero filler phrases like "welcome back".
+Phase 3: The Seamless Infinite Loop (End -> Beginning)
+   └── Connect final sentence seamlessly back into the opening hook.
+```
+
+---
+
+## 🎯 Target Benchmarks for Viral Distribution
+
+| Metric | Minimum Baseline | Viral Velocity Tier | Action Directive |
+| :--- | :--- | :--- | :--- |
+| **Viewed vs Swiped Away** | `> 72%` | `> 85%` | Test tighter opening hooks and motion graphics |
+| **Average Percentage Viewed (APV)** | `> 100%` | `> 135%` | Script seamless loopback endings |
+| **Audience Engagement Ratio** | `> 6.5%` | `> 12%` | Pin engaging curiosity questions in top comment |
+
+---
+
+## 📋 Pre-Publishing Checklist
+
+- [x] Video formatted strictly as vertical 9:16 (`1080x1920` minimum resolution).
+- [x] Safe zones respected (no critical text covered by like/comment UI overlays).
+- [x] High-contrast dynamic captions enabled with active word highlighting.
+- [x] 3 to 5 hyper-targeted niche tags applied (e.g. `#DevOps #Docker #PostgreSQL`).
+- [x] Pinned comment ready with a community discussion trigger.',
+        'algorithm, viral, shorts, retention, youtube',
+        '#a855f7',
+        TRUE
+    ),
+    (
+        'a1000000-0000-0000-0000-000000000002',
+        '🐳 Production Docker Compose & PostgreSQL 18 Deployment SOP',
+        'DevOps & Cloud',
+        'instruction',
+        '# 🐳 Production Docker Compose & PostgreSQL 18 Deployment SOP
+
+Standard Operating Procedure for deploying and maintaining containerized PostgreSQL 18 and Node.js microservices in hardened production environments.
+
+---
+
+## 🛡️ Pre-Flight Environment Sanity Checks
+
+1. **Verify Volume Mount Permissions**: Ensure `./media` and `./database` host directories are properly owned by non-root daemon users.
+2. **Environment Variable Parity**: Audit `.env` against `.env.example` before triggering container initialization:
+   ```bash
+   # Validate environment configuration
+   docker compose config --quiet
+   ```
+
+---
+
+## 🚀 Zero-Downtime Deployment Lifecycle
+
+Execute sequential rolling updates to maintain 99.98% uptime:
+
+```bash
+# 1. Pull base runtime layers & build production artifact
+docker compose build --pull yt-manager
+
+# 2. Verify PostgreSQL container health status
+docker inspect --format="{{.State.Health.Status}}" postgres18
+
+# 3. Apply schema migrations idempotently
+docker exec -i postgres18 psql -U postgres -d youtube_channel_manager_db -f /docker-entrypoint-initdb.d/init.sql
+
+# 4. Recreate application container with zero-cache assets
+docker compose up -d --no-deps yt-manager
+```
+
+---
+
+## 🩺 Post-Deployment Observability Checklist
+
+- [ ] Check `/health` endpoint reports `status: "pass"` and PostgreSQL latency `< 5ms`.
+- [ ] Verify Winston logging is capturing at `INFO` or `DEBUG` level.
+- [ ] Inspect memory consumption: `docker stats --no-stream`.
+- [ ] Confirm persistent `./media` directory volume mount is writable.',
+        'docker, postgres, deployment, sop, devops',
+        '#06b6d4',
+        TRUE
+    ),
+    (
+        'a1000000-0000-0000-0000-000000000003',
+        '🎨 High-CTR Thumbnail Design Directives & Midjourney Prompt Templates',
+        'Thumbnails & Graphics',
+        'instruction',
+        '# 🎨 High-CTR Thumbnail Directives & Prompt Templates
+
+> **Core Philosophy:** A YouTube thumbnail is not an illustration of your video; it is a **billboard advertising an irresistible question**.
+
+---
+
+## 👁️ Visual Hierarchy Rule of Thirds
+
+1. **Primary Focal Point (Left 60%)**: High-emotion human expression, glowing 3D asset, or dramatic contrast element.
+2. **Complementary Text (Right 40%)**: Maximum 3 to 4 punchy words. Never repeat the exact video title.
+3. **Lighting & Contrast**: Deep background (`#070913`) with electric cyan (`#06b6d4`) and neon amber (`#f59e0b`) rim lighting.
+
+---
+
+## 🤖 Curated Midjourney / Flux Prompt Templates
+
+### Prompt Preset 1: Cyber DevOps Architecture
+```
+Futuristic server blade glowing with electric cyan neon light, sleek obsidian glass textures, volumetric mist, depth of field, hyper-detailed 3D octane render, cinematic lighting --ar 16:9 --style raw --v 6.0
+```
+
+### Prompt Preset 2: Data Stream Velocity
+```
+Vibrant holographic data streams accelerating through a dark digital tunnel, purple and emerald laser pulses, clean executive tech aesthetic, ultra-sharp focus --ar 16:9 --stylize 250
+```
+
+---
+
+## 🛠️ Export Guidelines
+- Format: `.png` or high-quality `.webp`
+- Native Dimensions: `1920x1080` (16:9) or `1080x1920` (9:16)
+- File Size Constraint: Under `2 MB` for rapid browser pre-fetching.',
+        'thumbnails, midjourney, design, ctr, graphics',
+        '#10b981',
+        FALSE
+    ),
+    (
+        'a1000000-0000-0000-0000-000000000004',
+        '🐘 PostgreSQL 18 Indexing, Vacuuming & Performance Directives',
+        'Database & Architecture',
+        'note',
+        '# 🐘 PostgreSQL 18 Indexing & Performance Directives
+
+Technical notes and query optimization guidelines for high-cardinality YouTube telemetry snapshot tables.
+
+---
+
+## ⚡ Index Strategy for Telemetry Timeseries
+
+For high-throughput snapshot tables (`channel_snapshots` and `n8n_executions`):
+
+```sql
+-- Composite index for rapid channel telemetry trajectory queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_snapshots_channel_recorded 
+ON channel_snapshots (channel_id, recorded_at DESC);
+
+-- Partial index for active workflow executions only
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_active_executions 
+ON n8n_executions (workflow_id, created_at DESC) 
+WHERE status = ''running'';
+```
+
+---
+
+## 🧹 Autovacuum Hardening for Docker Volumes
+
+Add to PostgreSQL configuration when snapshot volume exceeds 500k rows:
+
+```ini
+autovacuum_vacuum_scale_factor = 0.05
+autovacuum_analyze_scale_factor = 0.02
+autovacuum_vacuum_cost_limit = 2000
+```
+
+---
+
+## 📊 Quick Performance Diagnostic Queries
+
+```sql
+-- Check connection pool saturation
+SELECT count(*), state FROM pg_stat_activity GROUP BY state;
+
+-- Identify slowest query statements
+SELECT query, calls, total_exec_time, mean_exec_time 
+FROM pg_stat_statements 
+ORDER BY total_exec_time DESC LIMIT 5;
+```',
+        'postgresql, indexing, optimization, database, sql',
+        '#3b82f6',
+        FALSE
+    ),
+    (
+        'a1000000-0000-0000-0000-000000000005',
+        '✅ Studio Video Release Pre-Flight Verification Checklist',
+        'Content Production',
+        'checklist',
+        '# ✅ Studio Video Release Pre-Flight Verification Checklist
+
+Comprehensive quality assurance gate before scheduling or deploying any video, short, or podcast episode.
+
+---
+
+## 🔍 Stage 1: Audio & Visual Fidelity
+- [ ] Audio normalized to `-14 LUFS` standard YouTube integrated loudness.
+- [ ] No clipping or digital distortion in vocal track peaks.
+- [ ] Color grading verified in Rec.709 color space across both OLED and LCD displays.
+- [ ] End-screen cards positioned with zero interference with active content.
+
+---
+
+## 🏷️ Stage 2: Metadata & SEO Optimization
+- [ ] Title tested with emotional hook and keyword placed in first 40 characters.
+- [ ] Description includes summary, chapter timestamps, and official repository link.
+- [ ] 500-character tag limit fully populated using curated Studio Tag Presets.
+- [ ] Associated playlist assigned.
+
+---
+
+## 🌐 Stage 3: Community & Multi-Platform Distribution
+- [ ] First comment drafted with discussion question and pinned.
+- [ ] Teaser clip exported for social cross-posting via n8n automation pipeline.
+- [ ] Community tab poll or behind-the-scenes teaser scheduled.
+- [ ] Metrics snapshot captured baseline at `T+0`.',
+        'checklist, release, quality, production, youtube',
+        '#f59e0b',
+        FALSE
     )
 ON CONFLICT (id) DO NOTHING;
 

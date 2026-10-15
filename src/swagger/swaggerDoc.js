@@ -107,6 +107,26 @@ const swaggerDocument = {
           created_at: { type: 'string', format: 'date-time' },
           completed_at: { type: 'string', format: 'date-time' }
         }
+      },
+      Note: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid', example: '9f8e7d6c-5b4a-3210-fedc-ba9876543210' },
+          title: { type: 'string', example: 'YouTube Shorts High-Retention Playbook' },
+          topic: { type: 'string', example: 'Shorts Strategy' },
+          category: { type: 'string', enum: ['instruction', 'checklist', 'script', 'sop', 'idea', 'reference'], example: 'instruction' },
+          content: { type: 'string', example: '# YouTube Shorts High-Retention Playbook\n\nHigh-yield tips...' },
+          tags: { type: 'string', example: 'shorts, algorithm, pacing, retention' },
+          color: { type: 'string', example: '#f59e0b' },
+          is_pinned: { type: 'boolean', example: true },
+          is_archived: { type: 'boolean', example: false },
+          channel_id: { type: 'integer', nullable: true, example: 1 },
+          channel_name: { type: 'string', nullable: true, example: 'Tech Explorers' },
+          channel_handle: { type: 'string', nullable: true, example: '@TechExplorers' },
+          author_username: { type: 'string', nullable: true, example: 'admin' },
+          created_at: { type: 'string', format: 'date-time' },
+          updated_at: { type: 'string', format: 'date-time' }
+        }
       }
     }
   },
@@ -794,6 +814,209 @@ const swaggerDocument = {
               }
             }
           }
+        }
+      }
+    },
+    '/api/notes': {
+      get: {
+        summary: 'List Notes & Instructions with Multi-Facet Filtering',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'topic', in: 'query', schema: { type: 'string' }, description: 'Filter by specific topic' },
+          { name: 'category', in: 'query', schema: { type: 'string' }, description: 'Filter by note category (instruction, checklist, script, sop, idea, reference)' },
+          { name: 'search', in: 'query', schema: { type: 'string' }, description: 'Full-text search in title, topic, content, and tags' },
+          { name: 'channel_id', in: 'query', schema: { type: 'string' }, description: 'Filter by associated channel ID' },
+          { name: 'is_pinned', in: 'query', schema: { type: 'string', enum: ['true', 'false'] }, description: 'Filter pinned notes' },
+          { name: 'is_archived', in: 'query', schema: { type: 'string', enum: ['true', 'false', 'all'] }, description: 'Filter archived status' },
+          { name: 'sort_by', in: 'query', schema: { type: 'string', enum: ['updated_at', 'created_at', 'title', 'topic'], default: 'updated_at' } },
+          { name: 'order', in: 'query', schema: { type: 'string', enum: ['ASC', 'DESC'], default: 'DESC' } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', default: 100 } },
+          { name: 'offset', in: 'query', schema: { type: 'integer', default: 0 } }
+        ],
+        responses: {
+          200: {
+            description: 'List of matching notes with topic aggregates and summary',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    count: { type: 'integer' },
+                    notes: { type: 'array', items: { $ref: '#/components/schemas/Note' } },
+                    topics: { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, count: { type: 'integer' } } } },
+                    summary: { type: 'object' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      post: {
+        summary: 'Create a New Note / Instruction Document',
+        tags: ['Topic Notes & Instructions'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['title'],
+                properties: {
+                  title: { type: 'string', example: 'YouTube Shorts Retention Playbook' },
+                  topic: { type: 'string', example: 'Shorts Strategy' },
+                  category: { type: 'string', enum: ['instruction', 'checklist', 'script', 'sop', 'idea', 'reference'], default: 'instruction' },
+                  content: { type: 'string', example: '# Strategy Document\n\n1. Hook in 3s\n2. High-energy cuts' },
+                  tags: { type: 'string', example: 'shorts, algorithm, pacing' },
+                  color: { type: 'string', example: '#06b6d4' },
+                  is_pinned: { type: 'boolean', default: false },
+                  channel_id: { type: 'integer', nullable: true }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Note created successfully' },
+          400: { description: 'Validation error (e.g. missing title)' }
+        }
+      }
+    },
+    '/api/notes/topics': {
+      get: {
+        summary: 'Get Topic Aggregates with Note Counts',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'channel_id', in: 'query', schema: { type: 'string' }, description: 'Optional channel filter' }
+        ],
+        responses: {
+          200: {
+            description: 'List of unique topics and note counts',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    count: { type: 'integer' },
+                    topics: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          topic: { type: 'string' },
+                          count: { type: 'integer' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/notes/{id}': {
+      get: {
+        summary: 'Get Note by ID',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          200: { description: 'Note details', content: { 'application/json': { schema: { type: 'object', properties: { success: { type: 'boolean' }, note: { $ref: '#/components/schemas/Note' } } } } } },
+          404: { description: 'Note not found' }
+        }
+      },
+      put: {
+        summary: 'Update Note / Instruction',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  topic: { type: 'string' },
+                  category: { type: 'string' },
+                  content: { type: 'string' },
+                  tags: { type: 'string' },
+                  color: { type: 'string' },
+                  is_pinned: { type: 'boolean' },
+                  is_archived: { type: 'boolean' },
+                  channel_id: { type: 'integer', nullable: true }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Note updated successfully' },
+          404: { description: 'Note not found' }
+        }
+      },
+      delete: {
+        summary: 'Delete Note Permanently',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          200: { description: 'Note deleted successfully' },
+          404: { description: 'Note not found' }
+        }
+      }
+    },
+    '/api/notes/{id}/pin': {
+      patch: {
+        summary: 'Toggle or Set Note Pinned Status',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  is_pinned: { type: 'boolean', description: 'Explicit boolean pin status; if omitted, toggles current value' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Pin status updated' },
+          404: { description: 'Note not found' }
+        }
+      }
+    },
+    '/api/notes/{id}/export': {
+      get: {
+        summary: 'Download Raw Markdown File',
+        tags: ['Topic Notes & Instructions'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string' } }
+        ],
+        responses: {
+          200: {
+            description: 'Raw markdown document download',
+            content: {
+              'text/markdown': {
+                schema: { type: 'string' }
+              }
+            }
+          },
+          404: { description: 'Note not found' }
         }
       }
     }

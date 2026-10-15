@@ -244,6 +244,33 @@ const API = {
       method: 'POST',
       body: JSON.stringify(options)
     })
+  },
+  notes: {
+    list: (params = {}) => {
+      const q = new URLSearchParams(params).toString();
+      return API.request(`/api/notes${q ? '?' + q : ''}`);
+    },
+    get: (id) => API.request(`/api/notes/${id}`),
+    getTopics: (channelId = null) => {
+      const q = channelId ? `?channel_id=${channelId}` : '';
+      return API.request(`/api/notes/topics${q}`);
+    },
+    create: (data) => API.request('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+    update: (id, data) => API.request(`/api/notes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+    togglePin: (id, isPinned = undefined) => API.request(`/api/notes/${id}/pin`, {
+      method: 'PATCH',
+      body: JSON.stringify(isPinned !== undefined ? { is_pinned: isPinned } : {})
+    }),
+    delete: (id) => API.request(`/api/notes/${id}`, {
+      method: 'DELETE'
+    }),
+    getExportUrl: (id) => `/api/notes/${id}/export`
   }
 };
 

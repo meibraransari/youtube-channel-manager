@@ -68,6 +68,12 @@ const SidebarComponent = {
             <span class="sidebar-badge badge badge-teal" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">PRESETS</span>
           </a>
 
+          <a href="#notes" class="sidebar-link ${currentView === 'notes' ? 'active' : ''}" onclick="window.navigateTo('notes'); return false;" title="Topic-Based Notes, Instructions & SOPs">
+            <i>📝</i>
+            <span class="sidebar-text">Notes & Instructions</span>
+            <span class="sidebar-badge badge badge-cyan" style="margin-left: auto; font-size: 9px; padding: 1px 6px;">DOCS</span>
+          </a>
+
           <!-- Automation & Orchestration Section -->
           <div class="sidebar-section-title">AUTOMATION & ORCHESTRATION</div>
 

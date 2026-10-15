@@ -25,6 +25,7 @@ const channelsRoutes = require('./routes/channels.routes');
 const tagsRoutes = require('./routes/tags.routes');
 const subscriptionsRoutes = require('./routes/subscriptions.routes');
 const n8nRoutes = require('./routes/n8n.routes');
+const notesRoutes = require('./routes/notes.routes');
 const { initCronScheduler } = require('./services/cronSync');
 const { initTelemetryReportScheduler } = require('./services/telemetryReport.service');
 
@@ -102,6 +103,7 @@ app.use('/api/channels', channelsRoutes);
 app.use('/api/tags', tagsRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/n8n', n8nRoutes);
+app.use('/api/notes', notesRoutes);
 
 // Static frontend assets with zero-cache headers to prevent stale browser caching
 const publicDir = path.join(__dirname, '../public');

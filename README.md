@@ -16,7 +16,7 @@
 
 **YouTube Channel Manager** is a high-performance, containerized studio operations hub designed to manage multiple YouTube channels from a single unified control plane.
 
-Built with an executive SaaS aesthetic featuring deep dark modes, frosted pearlescent light modes, rounded metrics charts, and a GitHub-style 365-day cadence heatmap, the platform brings enterprise-grade management to YouTube Shorts / Reels (9:16), long-form tutorials (16:9), and podcasts. It features rapid YouTube channel onboarding, telemetry snapshots, an automated cron sync engine for metrics (views, likes, comments, subscribers), granular RBAC permissions, live immutable audit trails, dynamic zero-downtime database settings, an interactive 5-stage Content Creator Wizard, a production SMTP alerting subsystem, a centralized Tag Preset Registry, and a full-spectrum Server Health & Diagnostics observability suite.
+Built with an executive SaaS aesthetic featuring deep dark modes, frosted pearlescent light modes, rounded metrics charts, and a GitHub-style 365-day cadence heatmap, the platform brings enterprise-grade management to YouTube Shorts / Reels (9:16), long-form tutorials (16:9), and podcasts. It features rapid YouTube channel onboarding, telemetry snapshots, an automated cron sync engine for metrics (views, likes, comments, subscribers), granular RBAC permissions, live immutable audit trails, dynamic zero-downtime database settings, an interactive 5-stage Content Creator Wizard, a production SMTP alerting subsystem, a centralized Tag Preset Registry, a full-spectrum Server Health & Diagnostics observability suite, an n8n webhook orchestrator, and a topic-based Markdown Notes & Instructions Manager.
 
 ---
 
@@ -272,6 +272,42 @@ Operating multi-channel networks and complex content production pipelines often 
 
 ---
 
+### 📝 Topic Notes & Instructions Manager (`#notes`)
+- **Dedicated Relational Database Architecture (`notes`)**:
+  - Independent PostgreSQL 18 table with columns: `id` (UUID), `title`, `topic`, `category` (`instruction`, `checklist`, `script`, `sop`, `idea`, `reference`), `content` (TEXT), `tags`, `color`, `is_pinned` (Boolean), `is_archived` (Boolean), `channel_id` (FK), `created_at`, `updated_at`, `created_by` (FK), and `updated_by` (FK).
+  - Backed by 6 performance indexes: `idx_notes_topic`, `idx_notes_category`, `idx_notes_is_pinned`, `idx_notes_created_at`, `idx_notes_updated_at`, `idx_notes_channel_id`.
+- **Pre-Seeded Curated Studio Knowledge Directives**:
+  - ⚡ **YouTube Shorts High-Retention Playbook**: Pacing rules, 3-second hook structure, and loop optimization directives.
+  - 🐳 **PostgreSQL 18 & Docker Deployment SOP**: Zero-downtime maintenance, container health verification, and rollback protocols.
+  - 🎨 **High-CTR Video Thumbnail & Visual Hook Formula**: Color contrast, rule-of-thirds composition, and typography guidelines.
+  - 🗄️ **PostgreSQL Query Optimization & Indexing Reference**: Composite indexes, partial indexing, and query plan diagnosis.
+  - 🎬 **YouTube Video Pre-Release Checklist**: Verification steps for tags, descriptions, cards, end screens, and social scheduling.
+- **Feature-Rich Markdown Editor & Live Previewer**:
+  - Split-pane / tabbed editing experience with immediate live markdown rendering.
+  - Formatting helper toolbar for Headings (`H1`-`H3`), Bold, Italic, Code, Blockquotes, Lists, Tables, and Callout Alerts (`[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!CAUTION]`).
+  - Real-time word and character counter.
+  - Topic auto-completion via datalist with custom topic creation support.
+  - Category dropdown selector, custom accent color picker, channel scope association, and sticky pin toggle.
+- **Fullscreen Markdown Reader Modal**:
+  - Executive reader modal with GitHub Flavored Markdown styling, syntax code blocks with 1-click clipboard copy, interactive task checklists, and responsive data tables.
+  - Quick action toolbar: 1-click Copy Markdown, Export Raw `.md` file, Edit Note, and Close.
+- **Universal Multi-Facet Filter Toolbar (`.filter-toolbar-premium`)**:
+  - Instant debounce search across title, topic, content, and tags.
+  - Micro-labeled dropdown filters for Topic, Type/Category, Channel Scope, and Sorting (`Recently Updated`, `Creation Date`, `Title A-Z`, `Topic A-Z`).
+  - Interactive Fast Topic Pills with live note count badges.
+  - Dual view toggle: **Cards Grid View** (with color accents and sticky pin badges) and **Table Ledger View**.
+- **Complete REST API Suite (`/api/notes/*`)**:
+  - `GET /api/notes`: Multi-faceted search and filter with topic aggregates and summary statistics.
+  - `GET /api/notes/topics`: Aggregated distinct topics with note counts.
+  - `GET /api/notes/:id`: Fetch single note with author and channel metadata.
+  - `POST /api/notes`: Create new note with audit logging (`NOTE_CREATE`).
+  - `PUT /api/notes/:id`: Update note with audit logging (`NOTE_UPDATE`).
+  - `PATCH /api/notes/:id/pin`: Toggle or set sticky pin status (`NOTE_PIN_TOGGLE`).
+  - `GET /api/notes/:id/export`: Raw `.md` markdown file download.
+  - `DELETE /api/notes/:id`: Safe permanent deletion with audit logging (`NOTE_DELETE`).
+
+---
+
 ### 🔒 Secret Admin Migration Portal (`#secret-migration`)
 - **Admin-Only Ingestion Console**: Hidden, confidential tool accessible exclusively to the administrator at `#secret-migration`.
 - **Flexible SQL Ingestion**: 1-click test migration from custom SQL dumps with real-time feedback.
@@ -403,6 +439,7 @@ flowchart TD
         DBEngine --> T10["audit_logs (Immutable Action Trail)"]
         DBEngine --> T11["user_login_logs (Security Access Tracker)"]
         DBEngine --> T12["migration_history (Dump Ingestion Records)"]
+        DBEngine --> T13["notes (Topic Knowledge Base, SOPs & Instructions)"]
     end
 ```
 
@@ -422,7 +459,7 @@ youtube-channel-manager/
 ├── LICENSE                           # MIT License
 ├── media/                            # Persistent media storage (volume: ./media ⇄ /app/media)
 ├── tests/
-│   └── verify.ps1                    # Automated 16-stage E2E verification test suite
+│   └── verify.ps1                    # Automated 17-stage E2E verification test suite
 ├── database/
 │   ├── init.sql                      # PostgreSQL 18 schema, triggers & seed data
 │   └── migrations/                   # Migration scripts (002_multi_channel...)
@@ -448,6 +485,7 @@ youtube-channel-manager/
 │   │   ├── users.routes.js           # RBAC user management & passwords
 │   │   ├── settings.routes.js        # Dynamic database settings, log level & SMTP
 │   │   ├── tags.routes.js            # Tag preset registry & CRUD operations
+│   │   ├── notes.routes.js           # Topic notes, Markdown export & pin toggles
 │   │   ├── subscriptions.routes.js   # Subscribed channels, takeout import & API sync
 │   │   ├── n8n.routes.js             # n8n workflows, execution triggers & probe
 │   │   ├── audit.routes.js           # Audit trail queries & JSON export
@@ -458,7 +496,7 @@ youtube-channel-manager/
 │   └── utils/
 │       └── mysqlToPostgresParser.js  # MySQL tuple parsing engine
 └── public/
-    ├── index.html                    # Single-Page Application entry point (v=2.9.0)
+    ├── index.html                    # Single-Page Application entry point (v=2.10.0)
     ├── css/
     │   ├── futuristic.css            # Executive design variables & palettes
     │   └── components.css            # Custom UI controls, filter toolbars & health suite
@@ -473,6 +511,7 @@ youtube-channel-manager/
             ├── tracker.js            # Channel Tracker, snapshots & growth curves
             ├── subscriptions.js      # Subscribed channels, takeout import & CSV/JSON export
             ├── n8n.js                # n8n workflows studio, live executor & ledger
+            ├── notes.js              # Topic Notes & Instructions with live Markdown editor
             ├── content.js            # Video/Shorts tables & action delegation
             ├── tagManager.js         # Centralized Tag Preset Registry overlay
             ├── wizard.js             # 5-step Content Creator Wizard & quick tags
@@ -486,7 +525,7 @@ youtube-channel-manager/
 
 ## 🧪 Automated Verification Test Suite
 
-The platform includes a 12-stage automated PowerShell verification test suite (`tests/verify.ps1`):
+The platform includes a 17-stage automated PowerShell verification test suite (`tests/verify.ps1`):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
@@ -509,6 +548,7 @@ powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
 14. **Daily Telemetry Report & Email Alerts**: Tests automated report schedule presets, metric selections, and dispatch.
 15. **Media & Asset Storage Directives & Uploads**: Validates multipart uploads, volume mapping (`./media`), and UUID file renaming.
 16. **n8n Workflow Automation Engine & Webhooks**: Validates workflow registration, parameter updates, webhook triggers with dynamic payloads, execution telemetry ledger, latency benchmarks, reachability probes, and cascade cleanup.
+17. **Topic Notes & Instructions Manager API**: Validates seeded directives, topic aggregation, custom note creation, full-text & topic search, markdown editing, sticky pin toggling, raw .md export, and permanent deletion cleanup.
 
 ---
 
@@ -561,6 +601,7 @@ powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
 - [x] High-Performance Server Health & Enterprise Diagnostics Suite with ping benchmark.
 - [x] Media & asset storage directives with volume mapping (`./media`) and UUID renaming.
 - [x] n8n workflow execution engine, webhook triggers, dynamic payload injection & telemetry ledger.
+- [x] Topic Notes & Instructions Manager with feature-rich Markdown editor, live preview, topic grouping & raw .md export.
 - [ ] OAuth2 YouTube Data API publishing automation.
 - [ ] Direct ComfyUI / Stable Diffusion thumbnail generation sidecar.
 

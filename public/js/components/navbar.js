@@ -85,6 +85,10 @@ const NavbarComponent = {
               <span>⚡</span>
               <span>n8n</span>
             </a>
+            <a href="#notes" class="nav-pill-item ${currentHash === 'notes' ? 'active' : ''}" onclick="window.navigateTo('notes'); return false;">
+              <span>📝</span>
+              <span>Notes</span>
+            </a>
             <a href="#users" class="nav-pill-item ${currentHash === 'users' ? 'active' : ''}" onclick="window.navigateTo('users'); return false;">
               <span>👥</span>
               <span>Users</span>

@@ -160,6 +160,25 @@
 
 ---
 
+### 📝 Topic Notes & Instructions Manager (`#notes`)
+- **Dedicated Relational Database Architecture (`notes`)**: Independent table with columns: `id` (UUID), `title`, `topic`, `category` (`instruction`, `checklist`, `script`, `sop`, `idea`, `reference`), `content` (TEXT), `tags`, `color`, `is_pinned`, `is_archived`, `channel_id`, `created_at`, `updated_at`, `created_by`, `updated_by`. Backed by 6 performance indexes.
+- **Pre-Seeded Curated Studio Directives**: Seeded with 5 production guides: YouTube Shorts Retention Playbook, Docker/PostgreSQL 18 Deployment SOP, Thumbnail Formula, PostgreSQL Indexing Reference, Video Release Checklist.
+- **Feature-Rich Markdown Editor & Live Previewer**: Split/live preview mode, formatting helper toolbar (Headings, Bold, Italic, Code, Tables, Callouts), live word/character counters, topic auto-completion datalist, color picker, and pin toggles.
+- **Fullscreen Markdown Reader Modal**: Executive reader modal with syntax copy blocks, task lists, tables, callout alerts, quick copy, and raw `.md` file export.
+- **Universal Multi-Facet Filter Toolbar**: Fast debounce search across title/topic/content/tags, topic dropdown, type dropdown, channel scope, sorting, and fast interactive topic pills with counter badges.
+- **Dual View Modes**: Switch between Grid Cards View and Table Ledger View.
+- **Complete REST API**: Full CRUD, topic counts aggregation (`/api/notes/topics`), pin toggling (`/api/notes/:id/pin`), and raw markdown file download (`/api/notes/:id/export`).
+
+---
+
+### ⚡ n8n Automated Workflow Engine & Webhook Orchestrator (`#n8n`)
+- **Dedicated Relational Database Tables**: `n8n_workflows` (workflow metadata, webhooks, auth headers, payload templates) and `n8n_executions` (run history, payloads, latency, HTTP status codes).
+- **Pre-Seeded Automation Workflows**: AI Metadata & SEO Description Auto-Enricher, Social Multi-Platform Cross-Poster, Automated Thumbnail Asset Renderer, Weekly Telemetry & Growth Pipeline.
+- **Interactive Live Execution & Testing**: Modal with test/production URL selection, JSON payload editor with format validator, dynamic variable interpolation, and syntax-highlighted response viewer.
+- **Telemetry Ledger & Reachability Probes**: Dispatched webhook history, latency metrics, and orchestrator heartbeat ping tests.
+
+---
+
 ## ⚙️ Zero-Downtime System Settings & Danger Zone (`#settings`)
 - **Live Console Log Level**: Adjust Winston logger between `debug`, `info`, `warn`, `error`, and `http` without restarting containers.
 - **Swagger Documentation Toggle**: Turn `/api/docs` on or off dynamically via system settings in PostgreSQL.

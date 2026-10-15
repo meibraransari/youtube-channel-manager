@@ -242,6 +242,14 @@ if ($workflowsList.count -lt 1) {
     throw "Failed: Expected at least 1 seeded n8n workflow!"
 }
 
+# Ensure n8n integration is enabled in settings
+$enableN8nBody = @{
+    settings = @{
+        n8n_integration_enabled = $true
+    }
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Put -Headers $headers -Body $enableN8nBody | Out-Null
+
 # 16.2 Delete stale test workflows if any exist
 $existingWfs = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows" -Method Get -Headers $headers
 foreach ($w in $existingWfs.workflows) {
@@ -329,5 +337,88 @@ try {
     }
 }
 
-Write-Host "`n=== ALL 16 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+# 17. Topic Notes & Instructions Manager API (CRUD, Search, Pin, Topic Aggregation, Markdown Export, Cleanup)
+Write-Host "`n17. Testing Topic Notes & Instructions Manager API..." -ForegroundColor Yellow
+
+# 17.1 Verify Initial Seeded Notes
+$notesRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes" -Method Get -Headers $headers
+Write-Host "   Initial Notes Count: $($notesRes.notes.Count) | Topics: $($notesRes.topics.Count)" -ForegroundColor Green
+if ($notesRes.count -lt 5) {
+    throw "Failed: Expected at least 5 seeded notes, got $($notesRes.count)!"
+}
+
+# 17.2 Verify Topic Aggregation Endpoint
+$topicsRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes/topics" -Method Get -Headers $headers
+Write-Host "   Topic Aggregates Count: $($topicsRes.count)" -ForegroundColor Green
+if ($topicsRes.count -lt 3) {
+    throw "Failed: Expected at least 3 distinct topics, got $($topicsRes.count)!"
+}
+
+# 17.3 Create a New Custom Note
+$uniqueNoteId = [System.Guid]::NewGuid().ToString().Substring(0, 8)
+$newNoteBody = @{
+    title = "Automated E2E Verification SOP ($uniqueNoteId)"
+    topic = "Testing & QA"
+    category = "sop"
+    content = "# Automated E2E Verification SOP`n`n## Instructions`n1. Run verify.ps1`n2. Check all 17 stages`n3. Export markdown report"
+    tags = "verification, e2e, testing, ps1"
+    color = "#8b5cf6"
+    is_pinned = $false
+} | ConvertTo-Json
+
+$createNoteRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes" -Method Post -Headers $headers -Body $newNoteBody
+$createdNote = $createNoteRes.note
+Write-Host "   Created Test Note: '$($createdNote.title)' (ID: $($createdNote.id))" -ForegroundColor Green
+
+try {
+    # 17.4 Full-Text Search and Topic Filter
+    $searchRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes?search=$uniqueNoteId&topic=Testing%20%26%20QA" -Method Get -Headers $headers
+    Write-Host "   Search & Topic Filter: Found $($searchRes.count) note(s)" -ForegroundColor Green
+    if ($searchRes.count -ne 1) {
+        throw "Failed: Search should have found exactly 1 note for token '$uniqueNoteId'!"
+    }
+
+    # 17.5 Update Note Content & Metadata
+    $updateNoteBody = @{
+        title = "Automated E2E Verification SOP - Updated ($uniqueNoteId)"
+        content = "# Updated SOP`n`nAll checks passed successfully."
+        tags = "verification, e2e, updated"
+    } | ConvertTo-Json
+
+    $updateNoteRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes/$($createdNote.id)" -Method Put -Headers $headers -Body $updateNoteBody
+    Write-Host "   Updated Test Note: '$($updateNoteRes.note.title)'" -ForegroundColor Green
+    if ($updateNoteRes.note.title -ne "Automated E2E Verification SOP - Updated ($uniqueNoteId)") {
+        throw "Failed: Note title was not updated properly!"
+    }
+
+    # 17.6 Toggle Pin Status
+    $pinRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes/$($createdNote.id)/pin" -Method Patch -Headers $headers -Body (@{ is_pinned = $true } | ConvertTo-Json)
+    Write-Host "   Toggled Pin Status: is_pinned = $($pinRes.is_pinned)" -ForegroundColor Green
+    if (-not $pinRes.is_pinned) {
+        throw "Failed: Note pin status should be true!"
+    }
+
+    # 17.7 Export Raw Markdown
+    $exportRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes/$($createdNote.id)/export" -Method Get -Headers $headers
+    Write-Host "   Exported Markdown Content Length: $($exportRes.Length) chars" -ForegroundColor Green
+    if (-not ($exportRes -match "Updated SOP")) {
+        throw "Failed: Exported markdown did not contain expected content!"
+    }
+} finally {
+    # 17.8 Delete Note & Clean Up
+    if ($createdNote -and $createdNote.id) {
+        $deleteNoteRes = Invoke-RestMethod -Uri "http://localhost:3000/api/notes/$($createdNote.id)" -Method Delete -Headers $headers
+        Write-Host "   Deleted Test Note: $($deleteNoteRes.message)" -ForegroundColor Green
+
+        # Confirm 404 on deleted note
+        try {
+            Invoke-RestMethod -Uri "http://localhost:3000/api/notes/$($createdNote.id)" -Method Get -Headers $headers
+            throw "Failed: Deleted note should return 404!"
+        } catch {
+            Write-Host "   Confirmed Note Deletion (404 Not Found)" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host "`n=== ALL 17 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
 

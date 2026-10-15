@@ -210,6 +210,10 @@ const App = {
         case 'workflows':
           N8nComponent.render(mainArea);
           break;
+        case 'notes':
+        case 'instructions':
+          NotesComponent.render(mainArea);
+          break;
         case 'secret-migration':
         case 'migration':
           if (this.currentUser && this.currentUser.role === 'admin') {

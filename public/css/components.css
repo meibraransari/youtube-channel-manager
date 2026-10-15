@@ -265,25 +265,27 @@ a.nav-pill-item,
   flex-shrink: 0;
 }
 
-/* GitHub Top Corner Link */
+/* GitHub Top Corner Link (Single Icon Button matching Theme Switcher) */
 .github-link-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   text-decoration: none;
-  font-size: 12px;
-  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all var(--trans-fast);
+  flex-shrink: 0;
 }
 
 .github-link-btn:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-highlight);
+  color: var(--accent-cyan);
 }
 
 /* Theme Switcher Button */

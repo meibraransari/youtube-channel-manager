@@ -89,25 +89,9 @@ const NavbarComponent = {
           </nav>
         ` : ''}
 
-        <!-- Right: Action Buttons, GitHub, Theme, User Pill, Sign Out -->
+        <!-- Right: Action Buttons, GitHub, Theme, User Profile -->
         <div class="nav-actions">
           ${currentUser ? `
-            <!-- Global Channel Selector Pill Dropdown -->
-            <div class="channel-selector-container" title="Active Channel Context">
-              <div class="channel-select-pill">
-                <span class="channel-select-icon">📺</span>
-                <select id="navbarChannelSelect" class="channel-select-dropdown" title="Select Active Channel">
-                  <option value="all" ${activeChannelId === 'all' ? 'selected' : ''}>${this.channelsList.length === 0 ? '🌐 No Channels (0)' : '🌐 All Channels'}</option>
-                  ${this.channelsList.map(c => `
-                    <option value="${c.id}" ${activeChannelId === c.id ? 'selected' : ''}>
-                      ${c.name} (${c.handle || '@channel'})
-                    </option>
-                  `).join('')}
-                  <option value="__manage_channels__">⚙️ Manage All Channels...</option>
-                </select>
-              </div>
-            </div>
-
             <!-- Deploy New Content CTA (matches green pill button in screenshot) -->
             <button class="btn-cyber btn-cyber-primary btn-sm" id="navDeployContentBtn" onclick="window.navigateTo('wizard', 'short')" style="display: flex; align-items: center; gap: 6px; font-weight: 700;">
               <span>✨</span>
@@ -115,7 +99,7 @@ const NavbarComponent = {
             </button>
           ` : ''}
 
-          <!-- GitHub Repo Link (Always visible before and after login) -->
+          <!-- GitHub Repo Link (Single Icon Button matching Theme Switcher) -->
           <a 
             href="https://github.com/meibraransari/youtube-channel-manager" 
             target="_blank" 
@@ -123,24 +107,15 @@ const NavbarComponent = {
             class="github-link-btn"
             title="Official GitHub Repository"
           >
-            <svg height="15" width="15" viewBox="0 0 16 16" fill="currentColor">
+            <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
             </svg>
-            <span>GitHub ↗</span>
           </a>
 
           <!-- Light/Dark Theme Switcher on Top Right -->
           <button class="theme-switch-btn" id="themeSwitchBtn" title="Switch Light/Dark Theme">
             <span id="themeIcon">${(document.documentElement.getAttribute('data-theme') || 'dark') === 'dark' ? '☀️' : '🌙'}</span>
           </button>
-
-          <!-- Direct Sign Out Button (Always visible on header when authenticated) -->
-          ${currentUser ? `
-            <button class="btn-cyber btn-cyber-outline btn-sm signout-trigger-btn" id="navDirectSignoutBtn" title="Sign Out of Studio Console" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4); padding: 5px 12px; display: flex; align-items: center; gap: 6px; font-weight: 700; cursor: pointer;">
-              <span>🚪</span>
-              <span>Sign Out</span>
-            </button>
-          ` : ''}
 
           <!-- User Profile Dropdown (If authenticated) -->
           ${currentUser ? `
@@ -246,27 +221,9 @@ const NavbarComponent = {
     const dropdownSignout = document.getElementById('navDropdownSignoutBtn');
     if (dropdownSignout) dropdownSignout.onclick = () => window.logout();
 
-    // Channel Selector Change Handler
-    const chSelect = document.getElementById('navbarChannelSelect');
-    if (chSelect) {
-      chSelect.onchange = (e) => {
-        const selectedId = e.target.value;
-        if (selectedId === '__manage_channels__') {
-          window.navigateTo('channels');
-          return;
-        }
-        API.setActiveChannelId(selectedId);
-        const sideChSelect = document.getElementById('sidebarChannelSelect');
-        if (sideChSelect) sideChSelect.value = selectedId;
-        Toast.show(`Active channel updated: ${chSelect.options[chSelect.selectedIndex].text}`, 'info', 1800);
-      };
-    }
-
-    // Keep dropdowns synchronized whenever channel changes globally
+    // Keep sidebar channel dropdown synchronized whenever channel changes globally
     window.addEventListener('channel:changed', (e) => {
       const activeId = e.detail?.channelId || 'all';
-      const navSelect = document.getElementById('navbarChannelSelect');
-      if (navSelect && navSelect.value !== activeId) navSelect.value = activeId;
       const sideSelect = document.getElementById('sidebarChannelSelect');
       if (sideSelect && sideSelect.value !== activeId) sideSelect.value = activeId;
     });

@@ -30,7 +30,7 @@ const NavbarComponent = {
           ` : ''}
 
           <div class="nav-brand" style="cursor: pointer;" onclick="window.navigateTo('dashboard')">
-            <div class="brand-icon">YT</div>
+            <div class="brand-icon"><img src="/favicon.svg" alt="YT" onerror="this.src='/favicon-32x32.png'" /></div>
             <div class="nav-brand-text">
               <div class="brand-title">YOUTUBE STUDIO</div>
             </div>

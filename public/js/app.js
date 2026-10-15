@@ -470,7 +470,7 @@ const App = {
     container.innerHTML = `
       <header class="top-navbar">
         <div class="nav-brand">
-          <div class="brand-icon">YT</div>
+          <div class="brand-icon"><img src="/favicon.svg" alt="YT" onerror="this.src='/favicon-32x32.png'" /></div>
           <div>
             <div class="brand-title">YOUTUBE CHANNEL MANAGER</div>
             <div class="brand-subtitle">Multi-Channel Studio & Operations • PostgreSQL 18</div>

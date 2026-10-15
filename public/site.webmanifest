@@ -1,6 +1,6 @@
 {
-  "name": "YouTube Channel Manager",
-  "short_name": "YT Studio",
+  "name": "YT-Manager",
+  "short_name": "YT-Manager",
   "icons": [
     {
       "src": "/favicon-192x192.png",

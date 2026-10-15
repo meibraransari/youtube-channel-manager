@@ -229,12 +229,17 @@ Operating multi-channel networks and complex content production pipelines often 
 ---
 
 ### ⚙️ Dynamic Zero-Downtime System Settings & Danger Zone (`#settings`)
+- **Studio Workspace & Demo Data Management**:
+  - `initial_setup_done` keyword in `system_settings`: tracks whether first-time studio onboarding has completed.
+  - Interactive First-Time Setup Dialog: prompts operators on first login to either populate comprehensive sample/demo data across all tables (channels, 14-day snapshots, 10 content assets, 6 subscriptions, 10 tag presets, 4 workflows, 5 notes) or initialize Clean Production Mode with an empty database.
+  - Once initial setup is marked complete (`initial_setup_done = true`), the onboarding prompt is suppressed and operators are taken straight to the studio dashboard.
+  - Dedicated "Load Sample Demo Data" action in Settings allows repopulating demo data anytime.
 - **Media & Asset Storage Directives Card**: Dedicated card in Settings to configure allowed upload file extensions (`allowed_media_extensions`: `.mp4,.png`, etc.) and maximum upload file size in megabytes (`max_media_upload_size_mb`: 500 MB), displaying Docker volume mapping status (`Host: ./media ⇄ Container: /app/media`).
 - **Console Log Level**: Switch backend Winston log verbosity (`debug`, `info`, `warn`, `error`, `http`) in real time.
 - **Swagger Documentation Toggle**: Instantly enable or disable `/api/docs` without touching Docker Compose.
 - **Automated Background Cron Scheduler**: Adjustable sync cadence (1h, 2h, 6h, 12h, 24h intervals) with dynamic scheduler toggle.
 - **Dynamic Studio Branding**: Fully customizable studio display name, handle, creator name, and repository coordinates.
-- **⚠️ Danger Zone - Flush All Data**: Math challenge verification (`2-digit sum: X + Y = ?`) and mandatory confirmation checkbox to permanently reset all content, channels, and extra accounts to a zero-data baseline.
+- **⚠️ Danger Zone - Flush All System Data**: Math challenge verification (`2-digit sum: X + Y = ?`) and mandatory confirmation checkbox to permanently purge ALL 14 tables (`channels`, `content_items`, `channel_snapshots`, `channel_subscriptions`, `tag_presets`, `n8n_workflows`, `n8n_executions`, `notes`, `migration_history`, `user_login_logs`, `server_configs`, and extra accounts). Automatically purges uploaded media files in `./media` and resets `initial_setup_done` back to `false`.
 
 ---
 
@@ -471,7 +476,8 @@ youtube-channel-manager/
 │   ├── services/
 │   │   ├── cronSync.js               # Background metric sync service
 │   │   ├── smtp.service.js           # Production SMTP transport & test mailer
-│   │   └── telemetryReport.service.js # Automated daily telemetry email digest
+│   │   ├── telemetryReport.service.js # Automated daily telemetry email digest
+│   │   └── demoData.service.js       # Studio onboarding demo seeder & setup manager
 │   ├── middleware/
 │   │   ├── auth.js                   # JWT bearer authentication & RBAC checker
 │   │   ├── audit.js                  # Automated audit trail logging
@@ -496,7 +502,7 @@ youtube-channel-manager/
 │   └── utils/
 │       └── mysqlToPostgresParser.js  # MySQL tuple parsing engine
 └── public/
-    ├── index.html                    # Single-Page Application entry point (v=2.10.0)
+    ├── index.html                    # Single-Page Application entry point (v=2.11.0)
     ├── css/
     │   ├── futuristic.css            # Executive design variables & palettes
     │   └── components.css            # Custom UI controls, filter toolbars & health suite
@@ -525,7 +531,7 @@ youtube-channel-manager/
 
 ## 🧪 Automated Verification Test Suite
 
-The platform includes a 17-stage automated PowerShell verification test suite (`tests/verify.ps1`):
+The platform includes an 18-stage automated PowerShell verification test suite (`tests/verify.ps1`):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
@@ -549,6 +555,7 @@ powershell -ExecutionPolicy Bypass -File .\tests\verify.ps1
 15. **Media & Asset Storage Directives & Uploads**: Validates multipart uploads, volume mapping (`./media`), and UUID file renaming.
 16. **n8n Workflow Automation Engine & Webhooks**: Validates workflow registration, parameter updates, webhook triggers with dynamic payloads, execution telemetry ledger, latency benchmarks, reachability probes, and cascade cleanup.
 17. **Topic Notes & Instructions Manager API**: Validates seeded directives, topic aggregation, custom note creation, full-text & topic search, markdown editing, sticky pin toggling, raw .md export, and permanent deletion cleanup.
+18. **Initial Setup & Danger Zone Full System Flush**: Tests initial setup status API, sample demo data seeder across all tables, comprehensive system flush purging all tables and media files, post-flush zero-data verification, and re-seeding.
 
 ---
 

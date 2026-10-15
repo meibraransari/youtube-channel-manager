@@ -360,7 +360,8 @@ VALUES
     ('n8n_api_key', '""', 'n8n', 'API key for authenticating with n8n REST endpoints'),
     ('n8n_default_webhook_token', '""', 'n8n', 'Default shared bearer authentication token dispatched to n8n webhook headers'),
     ('n8n_default_timeout_seconds', '30', 'n8n', 'Default timeout threshold in seconds for n8n webhook execution calls'),
-    ('n8n_integration_enabled', 'true', 'n8n', 'Master toggle enabling or disabling external n8n automation webhook triggers')
+    ('n8n_integration_enabled', 'true', 'n8n', 'Master toggle enabling or disabling external n8n automation webhook triggers'),
+    ('initial_setup_done', 'false', 'general', 'Indicates whether initial studio onboarding setup has been completed (demo data loaded or production mode chosen)')
 ON CONFLICT (key) DO NOTHING;
 
 -- Ensure tag_presets is completely decoupled from system_settings

@@ -109,6 +109,36 @@ function normalizeHandle(input) {
 }
 
 /**
+ * Robustly extract ytInitialData JSON object from raw YouTube HTML
+ */
+function extractInitialData(html) {
+  if (!html) return null;
+  const markers = ['var ytInitialData = ', 'window["ytInitialData"] = ', 'ytInitialData = ', 'ytInitialData='];
+  for (const marker of markers) {
+    const startIdx = html.indexOf(marker);
+    if (startIdx !== -1) {
+      const jsonStart = startIdx + marker.length;
+      let endIdx = html.indexOf(';</script>', jsonStart);
+      if (endIdx === -1) endIdx = html.indexOf('</script>', jsonStart);
+      if (endIdx !== -1) {
+        let rawStr = html.substring(jsonStart, endIdx).trim();
+        if (rawStr.endsWith(';')) rawStr = rawStr.slice(0, -1).trim();
+        try {
+          return JSON.parse(rawStr);
+        } catch (_) {}
+      }
+    }
+  }
+  const match = html.match(/ytInitialData\s*=\s*({.+?});\s*<\/script>/s);
+  if (match) {
+    try {
+      return JSON.parse(match[1]);
+    } catch (_) {}
+  }
+  return null;
+}
+
+/**
  * Fetch Channel Metadata from YouTube (Real live data)
  */
 async function getYouTubeChannelInfo(channelUrlOrHandle) {
@@ -118,16 +148,9 @@ async function getYouTubeChannelInfo(channelUrlOrHandle) {
   logger.info(`[YT-SERVICE] Scraping live channel profile: ${targetUrl}`);
   const html = await fetchHttp(targetUrl);
 
-  const match = html.match(/ytInitialData\s*=\s*({.+?});<\/script>/);
-  if (!match) {
+  const data = extractInitialData(html);
+  if (!data) {
     throw new Error(`Could not parse YouTube initial data for ${handle}. Please check the handle or URL.`);
-  }
-
-  let data;
-  try {
-    data = JSON.parse(match[1]);
-  } catch (err) {
-    throw new Error(`Failed to parse ytInitialData JSON for ${handle}: ${err.message}`);
   }
 
   const meta = data.metadata?.channelMetadataRenderer || {};
@@ -183,10 +206,8 @@ async function getYouTubeVideos(handle) {
 
   try {
     const html = await fetchHttp(url);
-    const match = html.match(/ytInitialData\s*=\s*({.+?});<\/script>/);
-    if (!match) return [];
-
-    const data = JSON.parse(match[1]);
+    const data = extractInitialData(html);
+    if (!data) return [];
     const tabs = data.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
     const videoTab = tabs.find(t => t.tabRenderer?.title === 'Videos' || t.tabRenderer?.selected);
     const contents = videoTab?.tabRenderer?.content?.richGridRenderer?.contents || [];
@@ -242,10 +263,8 @@ async function getYouTubeShorts(handle) {
 
   try {
     const html = await fetchHttp(url);
-    const match = html.match(/ytInitialData\s*=\s*({.+?});<\/script>/);
-    if (!match) return [];
-
-    const data = JSON.parse(match[1]);
+    const data = extractInitialData(html);
+    if (!data) return [];
     const tabs = data.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
     const shortsTab = tabs.find(t => t.tabRenderer?.title === 'Shorts' || t.tabRenderer?.selected);
     const contents = shortsTab?.tabRenderer?.content?.richGridRenderer?.contents || [];

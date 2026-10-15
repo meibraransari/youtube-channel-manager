@@ -428,6 +428,78 @@ const swaggerDocument = {
         }
       }
     },
+    '/api/settings/initial-setup-status': {
+      get: {
+        summary: 'Check Whether Initial Studio Setup Has Been Completed',
+        tags: ['Settings'],
+        responses: {
+          200: {
+            description: 'Setup status response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    initial_setup_done: { type: 'boolean' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    '/api/settings/initial-setup': {
+      post: {
+        summary: 'Execute Initial Workspace Setup (Demo Data or Clean Production Mode)',
+        tags: ['Settings'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['mode'],
+                properties: {
+                  mode: { type: 'string', enum: ['demo', 'production'], example: 'demo' }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'Workspace initialized successfully' },
+          500: { description: 'Initialization error' }
+        }
+      }
+    },
+    '/api/settings/flush-all': {
+      post: {
+        summary: 'Danger Zone: Permanently Flush ALL Data Across All Tables & Reset Initial Setup',
+        tags: ['Settings'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['confirmed', 'answer', 'expected'],
+                properties: {
+                  confirmed: { type: 'boolean', example: true },
+                  answer: { type: 'integer', example: 42 },
+                  expected: { type: 'integer', example: 42 }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          200: { description: 'All database tables and media files successfully purged' },
+          400: { description: 'Invalid challenge answer or unconfirmed' }
+        }
+      }
+    },
     '/api/users': {
       get: {
         summary: 'List All Users',

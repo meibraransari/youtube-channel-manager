@@ -6,6 +6,9 @@ const { recordAudit } = require('../middleware/audit');
 const { logger, setLogLevel } = require('../config/logger');
 const { testSmtpConnection, getSmtpConfig } = require('../services/smtp.service');
 const { reloadCronScheduler } = require('../services/cronSync');
+const fs = require('fs');
+const path = require('path');
+const DemoDataService = require('../services/demoData.service');
 const { 
   sendTelemetryReport, 
   collectTelemetryData, 
@@ -335,9 +338,78 @@ router.post('/telemetry-report/test', authenticateToken, requirePermission('can_
 });
 
 /**
+ * GET /api/settings/initial-setup-status
+ * Check whether initial studio onboarding setup has been completed
+ */
+router.get('/initial-setup-status', authenticateToken, async (req, res) => {
+  try {
+    const isDone = await DemoDataService.isInitialSetupDone();
+    return res.json({
+      success: true,
+      initial_setup_done: isDone
+    });
+  } catch (err) {
+    logger.error(`[INITIAL-SETUP-STATUS-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/settings/initial-setup
+ * Execute initial workspace setup: either load demo sample data or initialize clean production mode
+ */
+router.post('/initial-setup', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { mode } = req.body; // 'demo' or 'production'
+
+    if (mode === 'demo') {
+      const stats = await DemoDataService.seedAllDemoData(req.user.id);
+
+      await recordAudit(req, {
+        action: 'INITIAL_SETUP_DEMO',
+        entity: 'system',
+        entityId: 'initial_setup',
+        details: { mode: 'demo', stats }
+      });
+
+      logger.info(`[INITIAL-SETUP] Loaded comprehensive demo data across all tables by ${req.user.username}`);
+
+      return res.json({
+        success: true,
+        message: 'Sample demo data successfully populated across all tables.',
+        mode: 'demo',
+        stats
+      });
+    } else {
+      // Clean production mode (without any sample data)
+      await DemoDataService.setInitialSetupStatus(true, req.user.id);
+
+      await recordAudit(req, {
+        action: 'INITIAL_SETUP_PRODUCTION',
+        entity: 'system',
+        entityId: 'initial_setup',
+        details: { mode: 'production', message: 'Workspace initialized in clean production mode' }
+      });
+
+      logger.info(`[INITIAL-SETUP] Initialized clean production mode by ${req.user.username}`);
+
+      return res.json({
+        success: true,
+        message: 'Studio workspace initialized in Clean Production Mode (without demo data).',
+        mode: 'production'
+      });
+    }
+  } catch (err) {
+    logger.error(`[INITIAL-SETUP-ERROR] ${err.message}`);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/settings/flush-all
- * DANGER ZONE: Purges all content assets, channel metrics, snapshots, audit history,
- * login records, and non-admin users. Restores a clean, zero-data operational baseline.
+ * DANGER ZONE: Purges ALL data from all tables (channels, content assets, subscriptions,
+ * notes, n8n workflows, n8n executions, tag presets, snapshots, logs, non-admin users, and media files).
+ * Restores a clean, zero-data operational baseline and resets initial_setup_done to false.
  */
 router.post('/flush-all', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
@@ -362,45 +434,80 @@ router.post('/flush-all', authenticateToken, requireRole('admin'), async (req, r
     // 1. Delete all channel snapshots
     await query('DELETE FROM channel_snapshots');
 
-    // 2. Delete all content items
+    // 2. Delete all content items and reset serial ID sequence to clean 1
     await query('DELETE FROM content_items');
-
-    // 3. Reset content items serial ID sequence to clean 1
     await query("SELECT setval('content_items_id_seq', 1, false)");
 
-    // 4. Completely purge all channels (0 channels baseline)
+    // 3. Completely purge all channels (0 channels baseline)
     await query('DELETE FROM channels');
 
-    // 5. Delete migration history
+    // 4. Delete all channel subscriptions
+    await query('DELETE FROM channel_subscriptions');
+
+    // 5. Delete all topic notes & instructions
+    await query('DELETE FROM notes');
+
+    // 6. Delete all n8n execution telemetry logs
+    await query('DELETE FROM n8n_executions');
+
+    // 7. Delete all n8n workflows
+    await query('DELETE FROM n8n_workflows');
+
+    // 8. Delete all tag presets
+    await query('DELETE FROM tag_presets');
+
+    // 9. Delete migration history
     await query('DELETE FROM migration_history');
 
-    // 6. Delete user login logs
+    // 10. Delete user login logs
     await query('DELETE FROM user_login_logs');
 
-    // 7. Delete all server configs
+    // 11. Delete all server configs
     await query('DELETE FROM server_configs');
 
-    // 8. Delete all users except root admin
+    // 12. Delete all users except root admin
     await query("DELETE FROM users WHERE username != 'admin'");
 
-    // 9. Reset channel branding in system_settings
+    // 13. Purge all uploaded media files on disk (preserving folder and .gitkeep)
+    const mediaDir = process.env.MEDIA_DIR || path.resolve(__dirname, '../../media');
+    if (fs.existsSync(mediaDir)) {
+      try {
+        const files = fs.readdirSync(mediaDir);
+        for (const file of files) {
+          if (file !== '.gitkeep') {
+            const filePath = path.join(mediaDir, file);
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+              fs.unlinkSync(filePath);
+            }
+          }
+        }
+      } catch (fileErr) {
+        logger.warn(`[FLUSH-MEDIA-WARN] Could not clean media files: ${fileErr.message}`);
+      }
+    }
+
+    // 14. Reset channel branding and telemetry report status in system_settings, and reset initial_setup_done to false
     await query(`
       UPDATE system_settings SET value = '""'::jsonb 
-      WHERE key IN ('channel_name', 'channel_handle', 'channel_url', 'author_name', 'youtube_api_key')
+      WHERE key IN ('channel_name', 'channel_handle', 'channel_url', 'author_name', 'youtube_api_key');
+      UPDATE system_settings SET value = 'null'::jsonb WHERE key = 'telemetry_report_last_sent_at';
+      UPDATE system_settings SET value = '"idle"'::jsonb WHERE key = 'telemetry_report_last_status';
+      UPDATE system_settings SET value = 'false'::jsonb WHERE key = 'initial_setup_done';
     `);
 
-    // 10. Clear previous audit logs and insert single clean audit event
+    // 15. Clear previous audit logs and insert single clean audit event
     await query('DELETE FROM audit_logs');
     await query(`
       INSERT INTO audit_logs (user_id, username, action, entity, entity_id, details)
-      VALUES ($1, $2, 'FLUSH_ALL', 'system', 'system', '{"message": "Complete system data flush executed: all channels, content assets, snapshots, and logs purged"}')
+      VALUES ($1, $2, 'FLUSH_ALL', 'system', 'system', '{"message": "Complete system data flush executed: all channels, content assets, subscriptions, tag presets, workflows, notes, snapshots, and uploaded media files purged. Initial setup reset to false."}')
     `, [req.user.id, req.user.username]);
 
-    logger.info(`[DANGER-ZONE] FLUSH ALL DATA completed successfully by ${req.user.username}`);
+    logger.info(`[DANGER-ZONE] FLUSH ALL DATA completed successfully by ${req.user.username}. All tables purged.`);
 
     return res.json({
       success: true,
-      message: 'All content assets, channels, historical snapshots, telemetry logs, and extra accounts have been permanently purged.'
+      message: 'All system data (channels, content, snapshots, subscriptions, tag presets, workflows, notes, logs, and media) has been permanently purged. Initial setup reset.',
+      initial_setup_done: false
     });
   } catch (err) {
     logger.error(`[FLUSH-ALL-ERROR] ${err.message}`);

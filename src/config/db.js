@@ -115,9 +115,13 @@ async function initDatabase() {
       // Decouple & delete legacy tag_presets row from system_settings
       await pool.query("DELETE FROM system_settings WHERE key = 'tag_presets'");
 
-      // Auto-seed tag_presets if table has 0 rows
+      // Check initial_setup_done status
+      const setupCheck = await pool.query("SELECT value FROM system_settings WHERE key = 'initial_setup_done'");
+      const isSetupDone = setupCheck.rows.length > 0 && (setupCheck.rows[0].value === true || setupCheck.rows[0].value === 'true');
+
+      // Auto-seed tag_presets if table has 0 rows and setup is marked done
       const tagCountCheck = await pool.query('SELECT COUNT(*)::int as count FROM tag_presets');
-      if (tagCountCheck.rows[0].count === 0) {
+      if (isSetupDone && tagCountCheck.rows[0].count === 0) {
         await pool.query(`
           INSERT INTO tag_presets (id, name, category, tags, is_system)
           VALUES
@@ -156,7 +160,8 @@ async function initDatabase() {
           ('n8n_api_key', '""', 'n8n', 'API key for authenticating with n8n REST endpoints'),
           ('n8n_default_webhook_token', '""', 'n8n', 'Default shared bearer authentication token dispatched to n8n webhook headers'),
           ('n8n_default_timeout_seconds', '30', 'n8n', 'Default timeout threshold in seconds for n8n webhook execution calls'),
-          ('n8n_integration_enabled', 'true', 'n8n', 'Master toggle enabling or disabling external n8n automation webhook triggers')
+          ('n8n_integration_enabled', 'true', 'n8n', 'Master toggle enabling or disabling external n8n automation webhook triggers'),
+          ('initial_setup_done', 'false', 'general', 'Indicates whether initial studio onboarding setup has been completed (demo data loaded or production mode chosen)')
         ON CONFLICT (key) DO NOTHING;
       `);
 
@@ -216,9 +221,9 @@ async function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_n8n_executions_created_at ON n8n_executions(created_at DESC);
       `);
 
-      // Seed curated default n8n workflows if table has 0 rows
+      // Seed curated default n8n workflows if table has 0 rows and setup is marked done
       const wfCountCheck = await pool.query('SELECT COUNT(*)::int as count FROM n8n_workflows');
-      if (wfCountCheck.rows[0].count === 0) {
+      if (isSetupDone && wfCountCheck.rows[0].count === 0) {
         await pool.query(`
           INSERT INTO n8n_workflows (id, name, category, description, webhook_url, payload_template, timeout_seconds, is_active)
           VALUES
@@ -294,9 +299,9 @@ async function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_notes_channel_id ON notes(channel_id);
       `);
 
-      // Seed curated default studio notes if table has 0 rows
+      // Seed curated default studio notes if table has 0 rows and setup is marked done
       const notesCountCheck = await pool.query('SELECT COUNT(*)::int as count FROM notes');
-      if (notesCountCheck.rows[0].count === 0) {
+      if (isSetupDone && notesCountCheck.rows[0].count === 0) {
         await pool.query(`
           INSERT INTO notes (id, title, topic, category, content, tags, color, is_pinned)
           VALUES

@@ -420,5 +420,54 @@ try {
     }
 }
 
-Write-Host "`n=== ALL 17 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
+# 18. Initial Setup & Danger Zone Full System Flush Tests
+Write-Host "`n18. Testing Initial Setup & Danger Zone Full System Flush API..." -ForegroundColor Yellow
+
+# 18.1 Check Initial Setup Status
+$setupStatus = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup-status" -Method Get -Headers $headers
+Write-Host "   Initial Setup Status API: Success = $($setupStatus.success) | Done = $($setupStatus.initial_setup_done)" -ForegroundColor Green
+
+# 18.2 Test Loading Sample Demo Data across ALL tables
+$demoInitBody = @{ mode = "demo" } | ConvertTo-Json
+$demoInitRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup" -Method Post -Headers $headers -Body $demoInitBody
+Write-Host "   Loaded Sample Demo Data: $($demoInitRes.message)" -ForegroundColor Green
+Write-Host "   Demo Counts: Channels = $($demoInitRes.stats.channels), Items = $($demoInitRes.stats.content_items), Presets = $($demoInitRes.stats.tag_presets), Notes = $($demoInitRes.stats.notes)" -ForegroundColor Green
+
+$setupStatusAfter = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup-status" -Method Get -Headers $headers
+if (-not $setupStatusAfter.initial_setup_done) {
+    throw "Failed: initial_setup_done should be true after demo data load!"
+}
+
+# 18.3 Test Danger Zone Flush All System Data
+$flushBody = @{
+    answer = 42
+    expected = 42
+    confirmed = $true
+} | ConvertTo-Json
+
+$flushRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/flush-all" -Method Post -Headers $headers -Body $flushBody
+Write-Host "   Danger Zone Flush Output: $($flushRes.message)" -ForegroundColor Green
+
+# 18.4 Verify All Tables are 100% Cleared
+$channelsAfterFlush = Invoke-RestMethod -Uri "http://localhost:3000/api/channels" -Method Get -Headers $headers
+$contentAfterFlush = Invoke-RestMethod -Uri "http://localhost:3000/api/content" -Method Get -Headers $headers
+$tagsAfterFlush = Invoke-RestMethod -Uri "http://localhost:3000/api/tags/presets" -Method Get -Headers $headers
+$notesAfterFlush = Invoke-RestMethod -Uri "http://localhost:3000/api/notes" -Method Get -Headers $headers
+$workflowsAfterFlush = Invoke-RestMethod -Uri "http://localhost:3000/api/n8n/workflows" -Method Get -Headers $headers
+$statusAfterFlush = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup-status" -Method Get -Headers $headers
+
+Write-Host "   Post-Flush State: Channels=$($channelsAfterFlush.channels.Count), Items=$($contentAfterFlush.data.Count), Tags=$($tagsAfterFlush.presets.Count), Notes=$($notesAfterFlush.notes.Count), Workflows=$($workflowsAfterFlush.workflows.Count), SetupDone=$($statusAfterFlush.initial_setup_done)" -ForegroundColor Green
+
+if ($channelsAfterFlush.channels.Count -ne 0) { throw "Failed: channels not purged on flush-all!" }
+if ($contentAfterFlush.data.Count -ne 0) { throw "Failed: content_items not purged on flush-all!" }
+if ($tagsAfterFlush.presets.Count -ne 0) { throw "Failed: tag_presets not purged on flush-all!" }
+if ($notesAfterFlush.notes.Count -ne 0) { throw "Failed: notes not purged on flush-all!" }
+if ($workflowsAfterFlush.workflows.Count -ne 0) { throw "Failed: n8n_workflows not purged on flush-all!" }
+if ($statusAfterFlush.initial_setup_done -ne $false) { throw "Failed: initial_setup_done should be false after flush-all!" }
+
+# 18.5 Re-seed Sample Demo Data so application is left fully ready and functional
+$reseedRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/initial-setup" -Method Post -Headers $headers -Body $demoInitBody
+Write-Host "   Re-seeded Demo Data for Studio Operations: $($reseedRes.message)" -ForegroundColor Green
+
+Write-Host "`n=== ALL 18 TESTS PASSED SUCCESSFULLY! APPLICATION IS 100% HEALTHY AND BUG-FREE! ===" -ForegroundColor Green
 

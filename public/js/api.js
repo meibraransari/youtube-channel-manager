@@ -156,6 +156,11 @@ const API = {
     previewTelemetryReport: (data) => API.request('/api/settings/telemetry-report/preview', {
       method: 'POST',
       body: JSON.stringify(data)
+    }),
+    getInitialSetupStatus: () => API.request('/api/settings/initial-setup-status'),
+    initialSetup: (data) => API.request('/api/settings/initial-setup', {
+      method: 'POST',
+      body: JSON.stringify(data)
     })
   },
 

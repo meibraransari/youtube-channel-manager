@@ -800,6 +800,45 @@ const SettingsComponent = {
             </div>
           </div>
 
+          <!-- Section 6.5: Studio Workspace & Demo Data Management -->
+          <div class="glass-card" style="padding: 24px; margin-top: 22px; border-color: var(--accent-cyan); background: rgba(6, 182, 212, 0.03);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">🛸</span>
+                <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); letter-spacing: 0.5px;">
+                  STUDIO WORKSPACE & DEMO DATA MANAGEMENT
+                </h3>
+              </div>
+              <span class="badge ${settings.initial_setup_done === true || settings.initial_setup_done === 'true' ? 'badge-emerald' : 'badge-amber'}" id="badgeInitialSetupStatus">
+                ${settings.initial_setup_done === true || settings.initial_setup_done === 'true' ? 'INITIAL SETUP: COMPLETED' : 'INITIAL SETUP: PENDING'}
+              </span>
+            </div>
+
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 18px;">
+              Manage your studio environment mode. Populate realistic sample data (channels, video assets, historical trajectory snapshots, tag presets, n8n workflows, and SOP notes) for testing and evaluation, or re-open the initial setup dialog.
+            </p>
+
+            <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                  <span>🚀</span> Sample Demo Data Seeder
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 3px;">
+                  Loads 2 channels, 14-day snapshots, 10 content assets, 6 subscriptions, 10 tag presets, 4 workflows, and 5 SOP notes.
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <button id="btnLoadDemoFromSettings" class="btn-cyber btn-cyber-primary btn-sm">
+                  <span>🚀</span> LOAD SAMPLE DEMO DATA
+                </button>
+                <button id="btnOpenSetupModalFromSettings" class="btn-cyber btn-cyber-secondary btn-sm">
+                  <span>⚙️</span> ONBOARDING MODAL
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Section 7: Danger Zone (Flush All System Data) -->
           <div class="glass-card" style="padding: 24px; margin-top: 22px; border-color: #ef4444; background: rgba(239, 68, 68, 0.04);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
@@ -815,7 +854,7 @@ const SettingsComponent = {
             </div>
 
             <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 18px;">
-              Permanently purges all content items (videos, reels/shorts, podcasts), channels, historical snapshots, telemetry logs, login history, and extra user accounts. Resets the database to a clean zero-data state with only the root administrator.
+              Permanently purges ALL system data across all tables: channels, content items, snapshots, subscribed channels, tag presets, workflows, notes, logs, uploaded media files, and extra user accounts. Resets the database to a clean zero-data state and sets initial setup to false.
             </p>
 
             <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 18px; display: flex; flex-direction: column; gap: 16px;">
@@ -1657,6 +1696,59 @@ const SettingsComponent = {
         }
       };
 
+      // Studio Workspace Demo Data Buttons
+      const loadDemoSettingsBtn = document.getElementById('btnLoadDemoFromSettings');
+      const openSetupModalBtn = document.getElementById('btnOpenSetupModalFromSettings');
+
+      if (loadDemoSettingsBtn) {
+        loadDemoSettingsBtn.onclick = async () => {
+          const confirmed = await cyberConfirm({
+            title: 'Load Sample Demo Data?',
+            subtitle: 'FULL WORKSPACE POPULATION',
+            message: 'Are you sure you want to populate all tables with rich sample channels, content, snapshots, and directives?',
+            details: 'This will seed sample channels, 14-day trajectory snapshots, content items (Shorts, Videos, Podcasts), tag presets, and SOP notes.',
+            confirmText: 'LOAD DEMO DATA',
+            cancelText: 'CANCEL',
+            type: 'info',
+            icon: '🚀'
+          });
+
+          if (!confirmed) return;
+
+          loadDemoSettingsBtn.disabled = true;
+          loadDemoSettingsBtn.innerHTML = `<span>⏳</span><span>SEEDING ALL TABLES...</span>`;
+
+          try {
+            const res = await API.settings.initialSetup({ mode: 'demo' });
+            Toast.show(res.message || 'Demo data loaded successfully!', 'success', 5000);
+            
+            // Reload channels
+            if (window.NavbarComponent) {
+              await window.NavbarComponent.loadChannels();
+              const navContainer = document.getElementById('navbarContainer') || document.querySelector('header.top-navbar')?.parentElement;
+              if (navContainer && window.NavbarComponent.render) {
+                await window.NavbarComponent.render(navContainer, API.getCurrentUser());
+              }
+            }
+
+            // Re-render settings
+            SettingsComponent.render(container);
+          } catch (err) {
+            Toast.show(`Failed to load demo data: ${err.message}`, 'error');
+            loadDemoSettingsBtn.disabled = false;
+            loadDemoSettingsBtn.innerHTML = `<span>🚀</span><span>LOAD SAMPLE DEMO DATA</span>`;
+          }
+        };
+      }
+
+      if (openSetupModalBtn) {
+        openSetupModalBtn.onclick = () => {
+          if (window.App && typeof window.App.openInitialSetupModal === 'function') {
+            window.App.openInitialSetupModal();
+          }
+        };
+      }
+
       mathInput.oninput = validateFlushInputs;
       confirmCheck.onchange = validateFlushInputs;
 
@@ -1685,9 +1777,14 @@ const SettingsComponent = {
             }
           }
 
-          // Navigate to dashboard cleanly
+          // Navigate to dashboard cleanly and trigger initial setup onboarding prompt
           if (window.App) {
             window.App.navigateTo('dashboard');
+            setTimeout(() => {
+              if (typeof window.App.checkInitialSetupStatus === 'function') {
+                window.App.checkInitialSetupStatus();
+              }
+            }, 300);
           }
         } catch (err) {
           Toast.show(`System Flush Failed: ${err.message}`, 'error');

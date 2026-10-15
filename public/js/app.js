@@ -66,6 +66,12 @@ const App = {
 
     // Render interface
     this.render();
+
+    if (this.currentUser) {
+      setTimeout(() => {
+        this.checkInitialSetupStatus();
+      }, 250);
+    }
   },
 
   setTheme(theme) {
@@ -94,6 +100,209 @@ const App = {
         sidebar.classList.remove('collapsed');
       }
     }
+  },
+
+  async checkInitialSetupStatus() {
+    if (!this.currentUser) return;
+    try {
+      const res = await API.settings.getInitialSetupStatus();
+      if (res && res.success && res.initial_setup_done === false) {
+        this.openInitialSetupModal();
+      }
+    } catch (err) {
+      console.warn('[SETUP-CHECK] Error checking initial setup status:', err.message);
+    }
+  },
+
+  openInitialSetupModal() {
+    let existing = document.getElementById('initialSetupModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'initialSetupModal';
+    modal.className = 'cyber-modal-overlay';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.zIndex = '99999';
+    modal.style.background = 'rgba(0, 0, 0, 0.85)';
+    modal.style.backdropFilter = 'blur(12px)';
+
+    modal.innerHTML = `
+      <div class="glass-card" style="max-width: 820px; width: 95%; border: 1.5px solid rgba(6, 182, 212, 0.45); box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(6, 182, 212, 0.25); border-radius: 20px; overflow: hidden; padding: 0; background: var(--bg-surface);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(16, 185, 129, 0.16) 50%, rgba(168, 85, 247, 0.16) 100%); padding: 26px 30px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald)); display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35);">
+              🛸
+            </div>
+            <div>
+              <div style="font-family: var(--font-tech); font-size: 19px; font-weight: 800; letter-spacing: 0.5px; color: var(--text-main); display: flex; align-items: center; gap: 10px;">
+                INITIALIZE STUDIO WORKSPACE
+                <span class="badge badge-cyan" style="font-size: 10px; font-family: var(--font-mono); text-transform: uppercase;">First-Time Setup</span>
+              </div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 3px;">
+                Welcome to YouTube Channel Manager. Select how you would like to initialize your database environment.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Options Cards Grid -->
+        <div style="padding: 26px 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+          
+          <!-- Card 1: Load Sample Demo Data (Recommended) -->
+          <div class="glass-card" style="padding: 24px; border: 1.5px solid var(--accent-cyan); background: rgba(6, 182, 212, 0.05); display: flex; flex-direction: column; justify-content: space-between; border-radius: 16px; position: relative;">
+            <div style="position: absolute; top: -11px; right: 20px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald)); color: #000; font-weight: 800; font-size: 10px; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase;">
+              ⭐ RECOMMENDED FOR TESTING
+            </div>
+
+            <div>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <span style="font-size: 24px;">🚀</span>
+                <div>
+                  <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-main);">Load Sample Demo Data</h4>
+                  <span style="font-size: 11px; color: var(--accent-cyan); font-weight: 600;">Full Exploration Experience</span>
+                </div>
+              </div>
+
+              <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 16px 0;">
+                Populate rich, realistic sample records across all database tables so you can immediately explore analytics charts, multi-channel switching, video workflows, and SOP notes.
+              </p>
+
+              <div style="background: rgba(0,0,0,0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 20px; font-size: 11.5px; color: var(--text-main); display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--neon-emerald);">✔</span> 2 Connected Channels with 14-day velocity curves
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--neon-emerald);">✔</span> 10 Content Assets (Shorts, Long Videos & Podcasts)
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--neon-emerald);">✔</span> 6 Subscribed Tech Channels & Takeout metrics
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--neon-emerald);">✔</span> 10 Curated SEO Tag Presets & 4 n8n Workflows
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--neon-emerald);">✔</span> 5 Studio Knowledge Base SOP Notes
+                </div>
+              </div>
+            </div>
+
+            <button id="btnInitLoadDemo" class="btn-cyber btn-cyber-primary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 800; font-size: 13px;">
+              <span>🚀</span> LOAD SAMPLE DEMO DATA
+            </button>
+          </div>
+
+          <!-- Card 2: Clean Production Mode -->
+          <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02); display: flex; flex-direction: column; justify-content: space-between; border-radius: 16px; position: relative;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <span style="font-size: 24px;">⚡</span>
+                <div>
+                  <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-main);">Clean Production Mode</h4>
+                  <span style="font-size: 11px; color: var(--text-dim); font-weight: 600;">Zero-Data Baseline</span>
+                </div>
+              </div>
+
+              <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin: 0 0 16px 0;">
+                Start with a completely blank production workspace (without dummy data). Connect your real YouTube channels and import your own catalog.
+              </p>
+
+              <div style="background: rgba(0,0,0,0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 20px; font-size: 11.5px; color: var(--text-main); display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--accent-cyan);">✔</span> Zero channels & zero dummy content items
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--accent-cyan);">✔</span> Ready for Rapid YouTube Channel Ingestion
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: var(--accent-cyan);">✔</span> Clean database for production operations
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--text-dim); font-size: 11px;">
+                  <span>ℹ️</span> You can load demo data later from System Settings
+                </div>
+              </div>
+            </div>
+
+            <button id="btnInitCleanProd" class="btn-cyber btn-cyber-secondary" style="width: 100%; justify-content: center; padding: 12px; font-weight: 700; font-size: 13px;">
+              <span>⚡</span> START CLEAN PRODUCTION MODE
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Footer Info -->
+        <div style="padding: 14px 30px; background: rgba(0, 0, 0, 0.35); border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--text-dim); flex-wrap: wrap; gap: 10px;">
+          <div>
+            <span>🔒 Logged in as: </span>
+            <strong style="color: var(--text-main); font-family: var(--font-mono);">${this.escapeHtml(this.currentUser?.username || 'admin')}</strong>
+          </div>
+          <div>
+            <span>Tip: You can re-trigger this anytime via <strong>Flush All System Data</strong> in Settings.</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const demoBtn = document.getElementById('btnInitLoadDemo');
+    const prodBtn = document.getElementById('btnInitCleanProd');
+
+    demoBtn.onclick = async () => {
+      demoBtn.disabled = true;
+      prodBtn.disabled = true;
+      demoBtn.innerHTML = `<span>⏳</span> POPULATING ALL TABLES...`;
+
+      try {
+        const res = await API.settings.initialSetup({ mode: 'demo' });
+        Toast.show(res.message || 'Demo data loaded successfully!', 'success', 5000);
+        modal.remove();
+
+        // Refresh channels in navbar and active view
+        if (window.NavbarComponent) {
+          await window.NavbarComponent.loadChannels();
+          const navContainer = document.getElementById('navbarContainer') || document.querySelector('header.top-navbar')?.parentElement;
+          if (navContainer && window.NavbarComponent.render) {
+            await window.NavbarComponent.render(navContainer, this.currentUser);
+          }
+        }
+        this.render();
+      } catch (err) {
+        Toast.show(`Failed to load demo data: ${err.message}`, 'error');
+        demoBtn.disabled = false;
+        prodBtn.disabled = false;
+        demoBtn.innerHTML = `<span>🚀</span> LOAD SAMPLE DEMO DATA`;
+      }
+    };
+
+    prodBtn.onclick = async () => {
+      prodBtn.disabled = true;
+      demoBtn.disabled = true;
+      prodBtn.innerHTML = `<span>⏳</span> INITIALIZING CLEAN MODE...`;
+
+      try {
+        const res = await API.settings.initialSetup({ mode: 'production' });
+        Toast.show(res.message || 'Clean production mode initialized.', 'success', 4000);
+        modal.remove();
+
+        if (window.NavbarComponent) {
+          await window.NavbarComponent.loadChannels();
+          const navContainer = document.getElementById('navbarContainer') || document.querySelector('header.top-navbar')?.parentElement;
+          if (navContainer && window.NavbarComponent.render) {
+            await window.NavbarComponent.render(navContainer, this.currentUser);
+          }
+        }
+        this.render();
+      } catch (err) {
+        Toast.show(`Initialization failed: ${err.message}`, 'error');
+        prodBtn.disabled = false;
+        demoBtn.disabled = false;
+        prodBtn.innerHTML = `<span>⚡</span> START CLEAN PRODUCTION MODE`;
+      }
+    };
   },
 
   isNavigating: false,
@@ -335,6 +544,9 @@ const App = {
           Toast.show(`Authentication successful! Welcome, ${res.user.username}.`, 'success');
           this.currentView = 'dashboard';
           this.render();
+          setTimeout(() => {
+            this.checkInitialSetupStatus();
+          }, 250);
         } catch (err) {
           Toast.show(err.message, 'error');
           if (btn) {

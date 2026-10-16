@@ -280,9 +280,26 @@ CREATE INDEX IF NOT EXISTS idx_notes_channel_id ON notes(channel_id);
 -- ------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION check_tags_length_func()
 RETURNS TRIGGER AS $$
+DECLARE
+    limit_val INT := 500;
+    setting_key TEXT;
+    setting_val TEXT;
 BEGIN
-    IF LENGTH(NEW.tags) > 500 THEN
-        RAISE EXCEPTION 'Tags exceed 500 characters limit';
+    IF NEW.tags IS NOT NULL AND NEW.tags <> '' THEN
+        setting_key := 'char_limit_tags_' || LOWER(COALESCE(NEW.content_type, 'video'));
+        SELECT (value #>> '{}') INTO setting_val FROM system_settings WHERE key = setting_key;
+        IF setting_val IS NOT NULL AND setting_val ~ '^\d+$' THEN
+            limit_val := setting_val::INT;
+        ELSE
+            SELECT (value #>> '{}') INTO setting_val FROM system_settings WHERE key = 'max_tags_length';
+            IF setting_val IS NOT NULL AND setting_val ~ '^\d+$' THEN
+                limit_val := setting_val::INT;
+            END IF;
+        END IF;
+
+        IF LENGTH(NEW.tags) > limit_val THEN
+            RAISE EXCEPTION 'Tags exceed % characters limit for %', limit_val, COALESCE(NEW.content_type, 'video');
+        END IF;
     END IF;
     RETURN NEW;
 END;
@@ -342,6 +359,12 @@ VALUES
     ('github_url', '"https://github.com/meibraransari/youtube-channel-manager"', 'general', 'GitHub Project Repository URL'),
     ('auto_audit', 'true', 'security', 'Enable comprehensive audit trail for all user interactions'),
     ('max_tags_length', '500', 'content', 'Maximum allowed character length for tags field'),
+    ('char_limit_desc_short', '5000', 'content', 'Maximum character limit for YouTube Shorts / Reels description'),
+    ('char_limit_tags_short', '500', 'content', 'Maximum character limit for YouTube Shorts / Reels tags'),
+    ('char_limit_desc_video', '5000', 'content', 'Maximum character limit for Long-Form Video description'),
+    ('char_limit_tags_video', '500', 'content', 'Maximum character limit for Long-Form Video tags'),
+    ('char_limit_desc_podcast', '5000', 'content', 'Maximum character limit for Podcast description'),
+    ('char_limit_tags_podcast', '500', 'content', 'Maximum character limit for Podcast tags'),
     ('cron_sync_enabled', 'true', 'automation', 'Background automated YouTube metrics collection cron job'),
     ('cron_sync_interval_hours', '"6"', 'automation', 'Cadence in hours between metric refresh intervals'),
     ('telemetry_report_enabled', 'true', 'telemetry', 'Enable automated daily telemetry email reporting via cron'),

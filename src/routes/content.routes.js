@@ -180,6 +180,42 @@ router.post('/:id/sync-youtube', authenticateToken, requirePermission('can_manag
 });
 
 /**
+ * Helper to fetch dynamic character limits for a specific content_type from system_settings
+ */
+async function getContentLimits(contentType) {
+  const type = (contentType || 'video').toLowerCase();
+  const descKey = `char_limit_desc_${type}`;
+  const tagsKey = `char_limit_tags_${type}`;
+
+  try {
+    const res = await query(
+      "SELECT key, value FROM system_settings WHERE key IN ($1, $2, 'max_tags_length')",
+      [descKey, tagsKey]
+    );
+
+    let maxDesc = 5000;
+    let maxTags = 500;
+
+    for (const row of res.rows) {
+      let val = row.value;
+      if (typeof val === 'string') {
+        val = val.replace(/^"|"$/g, '');
+      }
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num > 0) {
+        if (row.key === descKey) maxDesc = num;
+        else if (row.key === tagsKey) maxTags = num;
+        else if (row.key === 'max_tags_length' && maxTags === 500) maxTags = num;
+      }
+    }
+    return { maxDesc, maxTags };
+  } catch (err) {
+    logger.warn(`[CONTENT-LIMITS] Failed to fetch dynamic limits: ${err.message}. Using defaults.`);
+    return { maxDesc: 5000, maxTags: 500 };
+  }
+}
+
+/**
  * POST /api/content
  * Create new content item (used by Content Creator Wizard & Media Ingestion)
  */
@@ -212,9 +248,21 @@ router.post('/', authenticateToken, requirePermission('can_manage_content'), han
       if (defaultCh.rows.length > 0) targetChannelId = defaultCh.rows[0].id;
     }
 
-    // Validate tags length (500 max)
-    if (tags && tags.length > 500) {
-      return res.status(400).json({ success: false, error: 'Tags length cannot exceed 500 characters' });
+    // Dynamically validate tags and description lengths from system_settings
+    const { maxDesc, maxTags } = await getContentLimits(content_type);
+
+    if (tags && tags.length > maxTags) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Tags length (${tags.length}) exceeds allowed limit of ${maxTags} characters for ${(content_type || 'content').toUpperCase()}` 
+      });
+    }
+
+    if (description && description.length > maxDesc) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Description length (${description.length}) exceeds allowed limit of ${maxDesc} characters for ${(content_type || 'content').toUpperCase()}` 
+      });
     }
 
     const mediaUuid = req.body.media_uuid || crypto.randomUUID();
@@ -338,10 +386,6 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_content'), h
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
 
-    if (tags && tags.length > 500) {
-      return res.status(400).json({ success: false, error: 'Tags length cannot exceed 500 characters' });
-    }
-
     // Check item exists
     const checkRes = await query('SELECT * FROM content_items WHERE id = $1', [id]);
     if (checkRes.rows.length === 0) {
@@ -349,6 +393,23 @@ router.put('/:id', authenticateToken, requirePermission('can_manage_content'), h
     }
 
     const prevItem = checkRes.rows[0];
+    const targetType = content_type || prevItem.content_type || 'short';
+    const { maxDesc, maxTags } = await getContentLimits(targetType);
+
+    if (tags && tags.length > maxTags) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Tags length (${tags.length}) exceeds allowed limit of ${maxTags} characters for ${targetType.toUpperCase()}` 
+      });
+    }
+
+    if (description && description.length > maxDesc) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Description length (${description.length}) exceeds allowed limit of ${maxDesc} characters for ${targetType.toUpperCase()}` 
+      });
+    }
+
     const mediaUuid = prevItem.media_uuid;
 
     let finalUploadedAt = uploaded_at ? new Date(uploaded_at) : prevItem.uploaded_at;

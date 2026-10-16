@@ -107,7 +107,11 @@ Operating multi-channel networks and complex content production pipelines often 
   - **Dynamic Directive Controls**: Configured via System Settings (`allowed_media_extensions` and `max_media_upload_size_mb`) without hardcoded limitations.
   - **Automatic UUID Renaming**: Stored in persistent volume (`./media ⇄ /app/media`) renamed automatically to `[media_uuid].[ext]` (e.g. `59cc7864-3270-4c34-ae25-62ec73b4db76.png`).
   - **Database Presence Tracking**: Automatically flags `image_present = true` and `video_present = true` on `content_items`.
-- **Step 3: Tags & SEO Optimization**: 500-character constrained tag manager with instant quick-tag preset insertion, fast chips, and rich description editor.
+- **Step 3: Description, Tags & Searchable SEO Registry**:
+  - **Comprehensive Description First**: High-capacity description editor (`rows="8"`) placed prominently at the top with live character counter (`X / max`).
+  - **Dynamic Format Limits**: Character thresholds for descriptions and tags (`char_limit_desc_*` and `char_limit_tags_*`) are dynamically retrieved from `system_settings` per format (Shorts, Long-Form Videos, Podcasts) rather than hardcoded.
+  - **Tags Box**: Dedicated tag editor (`rows="3"`) with live real-time character boundary indicators.
+  - **Searchable Quick Tags Combobox**: Real-time keyword search bar filtering tag presets across names, categories, and tag contents, with 1-click append and fast chips.
 - **Step 4: Lifecycle & Scheduling**: Custom precision interactive date/time coordinates calendar with status selector (`draft`, `scheduled`, `pending`, `uploaded`).
 - **Step 5: Pre-Flight Verification**: Full holographic review with attached media previews before committing directives to PostgreSQL 18.
 - **Cancel & Close Action**: Dedicated executive "Cancel" button with confirmation safeguard available across all 5 steps to safely exit without loss of state.
@@ -235,6 +239,11 @@ Operating multi-channel networks and complex content production pipelines often 
   - Once initial setup is marked complete (`initial_setup_done = true`), the onboarding prompt is suppressed and operators are taken straight to the studio dashboard.
   - Dedicated "Load Sample Demo Data" action in Settings allows repopulating demo data anytime.
 - **Media & Asset Storage Directives Card**: Dedicated card in Settings to configure allowed upload file extensions (`allowed_media_extensions`: `.mp4,.png`, etc.) and maximum upload file size in megabytes (`max_media_upload_size_mb`: 500 MB), displaying Docker volume mapping status (`Host: ./media ⇄ Container: /app/media`).
+- **Content Format Character Limits & Constraints Card**: Dedicated card in Settings to define maximum character length constraints for descriptions and tags broken down by format:
+  - **YouTube Shorts & Reels (`short`)**: `char_limit_desc_short` (default: 5000), `char_limit_tags_short` (default: 500)
+  - **Long-Form Videos (`video`)**: `char_limit_desc_video` (default: 5000), `char_limit_tags_video` (default: 500)
+  - **Deep Dive Podcasts (`podcast`)**: `char_limit_desc_podcast` (default: 5000), `char_limit_tags_podcast` (default: 500)
+  - **Zero Hardcoding**: Limits are queried dynamically via `/api/settings` by the Content Creator Wizard and validated on `content_items` inserts/updates.
 - **Console Log Level**: Switch backend Winston log verbosity (`debug`, `info`, `warn`, `error`, `http`) in real time.
 - **Swagger Documentation Toggle**: Instantly enable or disable `/api/docs` without touching Docker Compose.
 - **Automated Background Cron Scheduler**: Adjustable sync cadence (1h, 2h, 6h, 12h, 24h intervals) with dynamic scheduler toggle.

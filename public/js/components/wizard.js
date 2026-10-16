@@ -6,6 +6,8 @@ const WizardComponent = {
   currentStep: 1,
   channels: [],
   tagPresets: [],
+  settings: null,
+  quickTagSearchQuery: '',
   preselectedType: null,
   returnView: 'dashboard',
   _escBound: false,
@@ -132,8 +134,96 @@ const WizardComponent = {
     }
   },
 
+  async initSettings() {
+    try {
+      const res = await API.settings.get();
+      this.settings = res.settings || {};
+    } catch (err) {
+      console.warn('Failed to load system settings for wizard limits:', err.message);
+      this.settings = {};
+    }
+  },
+
+  getContentLimits() {
+    const type = (this.formData.content_type || 'short').toLowerCase();
+    const parseNum = (val, fallback) => {
+      if (val === undefined || val === null) return fallback;
+      if (typeof val === 'string') val = val.replace(/^"|"$/g, '');
+      const num = parseInt(val, 10);
+      return !isNaN(num) && num > 0 ? num : fallback;
+    };
+
+    const maxDesc = parseNum(this.settings?.[`char_limit_desc_${type}`], 5000);
+    const maxTags = parseNum(this.settings?.[`char_limit_tags_${type}`], parseNum(this.settings?.max_tags_length, 500));
+
+    return { maxDesc, maxTags };
+  },
+
+  filterTagPresets(query = '') {
+    if (!this.tagPresets || !Array.isArray(this.tagPresets)) return [];
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return this.tagPresets;
+    return this.tagPresets.filter(p => {
+      const nameMatch = (p.name || '').toLowerCase().includes(q);
+      const catMatch = (p.category || '').toLowerCase().includes(q);
+      const tagsMatch = (p.tags || '').toLowerCase().includes(q);
+      return nameMatch || catMatch || tagsMatch;
+    });
+  },
+
+  renderQuickTagsOptions(query = '') {
+    const dropdown = document.getElementById('wizQuickTagsDropdown');
+    const clearBtn = document.getElementById('wizClearTagSearchBtn');
+    if (clearBtn) clearBtn.style.display = query.trim() ? 'block' : 'none';
+
+    if (!dropdown) return;
+    const filtered = this.filterTagPresets(query);
+
+    if (filtered.length === 0) {
+      dropdown.innerHTML = `<option value="">⚠️ No presets match "${query.trim()}"</option>`;
+      dropdown.disabled = true;
+    } else {
+      dropdown.disabled = false;
+      const countLabel = query.trim() ? ` (${filtered.length} matching "${query.trim()}")` : '';
+      dropdown.innerHTML = `
+        <option value="">⚡ Select Tag Preset from Registry to Append...${countLabel}</option>
+        ${filtered.map(p => `
+          <option value="${p.id}" data-tags="${encodeURIComponent(p.tags)}" data-name="${encodeURIComponent(p.name)}">
+            📁 [${p.category || 'General'}] ${p.name} (${p.tags.split(',').length} tags • ${p.tags.length} chars)
+          </option>
+        `).join('')}
+      `;
+      // If exactly 1 match and search was typed, auto-select it for rapid append
+      if (filtered.length === 1 && query.trim()) {
+        dropdown.selectedIndex = 1;
+      }
+    }
+
+    // Also update fast chips to reflect search results
+    const chipsContainer = document.getElementById('wizQuickTagChipsContainer');
+    if (chipsContainer) {
+      chipsContainer.innerHTML = `
+        <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Fast Chips:</span>
+        ${filtered.slice(0, 8).map(p => `
+          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="WizardComponent.appendTag('${p.tags.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')">
+            + ${p.name}
+          </button>
+        `).join('')}
+        ${filtered.length > 8 ? `
+          <button type="button" class="btn-cyber btn-cyber-secondary btn-sm" style="font-size: 10px; padding: 2px 8px;" onclick="WizardComponent.openTagManager()">
+            +${filtered.length - 8} more in Tag Manager ↗
+          </button>
+        ` : ''}
+        ${filtered.length === 0 ? `
+          <span style="font-size: 11px; color: var(--text-dim); font-style: italic;">No matching presets</span>
+        ` : ''}
+      `;
+    }
+  },
+
   async render(container) {
     this.currentStep = 1;
+    this.quickTagSearchQuery = '';
     const initialType = this.preselectedType || 'short';
     this.preselectedType = null;
     this.formData = {
@@ -150,8 +240,11 @@ const WizardComponent = {
       scheduled_at: null
     };
 
-    await this.initChannels();
-    await this.initTagPresets();
+    await Promise.all([
+      this.initChannels(),
+      this.initTagPresets(),
+      this.initSettings()
+    ]);
 
     if (!container) return;
 
@@ -490,25 +583,42 @@ const WizardComponent = {
         };
       }
     } else if (this.currentStep === 3) {
+      const { maxDesc, maxTags } = this.getContentLimits();
+      const descLen = (this.formData.description || '').length;
+      const tagsLen = (this.formData.tags || '').length;
+
       body.innerHTML = `
-        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--accent-teal);">
-          STEP 3: TAGS & VIDEO DESCRIPTION
+        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--accent-teal); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span>STEP 3: DESCRIPTION, TAGS & SEO REGISTRY</span>
+          <span class="badge badge-teal" style="font-size: 10px; text-transform: uppercase;">FORMAT: ${(this.formData.content_type || 'short').toUpperCase()} (DESC: ${maxDesc} • TAGS: ${maxTags})</span>
         </h3>
 
-        <!-- Tags Field with 500 characters counter -->
+        <!-- Description Field (Card 1: First Position with Real-Time Character Count) -->
+        <div style="margin-bottom: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Comprehensive Description & Links</label>
+            <span id="wizDescCounter" style="font-size: 11px; font-family: var(--font-mono); color: ${descLen > maxDesc ? '#ef4444' : 'var(--text-dim)'}; font-weight: 600;">
+              ${descLen} / ${maxDesc} max
+            </span>
+          </div>
+          <textarea id="wizDescription" class="cyber-input" rows="8" style="margin-top: 6px; resize: vertical; line-height: 1.5;" placeholder="Comprehensive summary, GitHub repo links, step-by-step timestamps, connect links...">${this.formData.description}</textarea>
+          <span style="font-size: 10px; color: var(--text-dim); margin-top: 3px; display: block;">Dynamic format constraint: max ${maxDesc} characters for ${(this.formData.content_type || 'short').toUpperCase()}.</span>
+        </div>
+
+        <!-- Tags Field (Card 2: Below Description with Character Count) -->
         <div style="margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Tags (Comma-Separated) *</label>
-            <span id="wizTagsCounter" style="font-size: 11px; font-family: var(--font-mono); color: ${this.formData.tags.length > 450 ? 'var(--accent-rose)' : 'var(--text-dim)'};">
-              ${this.formData.tags.length} / 500 max
+            <span id="wizTagsCounter" style="font-size: 11px; font-family: var(--font-mono); color: ${tagsLen > maxTags ? '#ef4444' : 'var(--text-dim)'}; font-weight: 600;">
+              ${tagsLen} / ${maxTags} max
             </span>
           </div>
           <textarea id="wizTags" class="cyber-input" rows="3" style="margin-top: 6px; resize: vertical;" placeholder="cloud, postgresql, nodejs, devops, architecture, engineering">${this.formData.tags}</textarea>
         </div>
 
-        <!-- Quick Tags & Tag Manager Section -->
+        <!-- Quick Tags & Tag Manager Section (Card 3: Searchable Registry) -->
         <div class="glass-card" style="padding: 14px 16px; margin-bottom: 18px; border-color: var(--accent-teal); background: rgba(13, 148, 136, 0.05);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 14px;">⚡</span>
               <span style="font-size: 11px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">Quick Tags & Preset Registry:</span>
@@ -519,15 +629,30 @@ const WizardComponent = {
             </button>
           </div>
 
+          <!-- Keyword Search Filter Bar -->
+          <div style="margin-bottom: 10px;">
+            <div style="position: relative; display: flex; align-items: center;">
+              <span style="position: absolute; left: 10px; color: var(--accent-teal); font-size: 12px; pointer-events: none;">🔍</span>
+              <input 
+                type="text" 
+                id="wizQuickTagsSearch" 
+                class="cyber-input" 
+                placeholder="Search presets by title, category, or tag keyword (e.g. postgres, k8s, devops)..." 
+                value="${this.quickTagSearchQuery || ''}" 
+                style="padding-left: 30px; padding-right: 28px; font-size: 11.5px;"
+              />
+              <button 
+                type="button" 
+                id="wizClearTagSearchBtn" 
+                style="position: absolute; right: 8px; background: none; border: none; color: var(--text-dim); cursor: pointer; display: ${this.quickTagSearchQuery ? 'block' : 'none'}; font-size: 12px; padding: 2px 6px;"
+                title="Clear Search"
+              >✕</button>
+            </div>
+          </div>
+
           <!-- Dropdown Selector + Insert Button -->
           <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
             <select id="wizQuickTagsDropdown" class="cyber-input" style="flex: 1; min-width: 240px; font-size: 12px; font-weight: 600;">
-              <option value="">⚡ Select Tag Preset from Registry to Append...</option>
-              ${(this.tagPresets || []).map(p => `
-                <option value="${p.id}" data-tags="${encodeURIComponent(p.tags)}" data-name="${encodeURIComponent(p.name)}">
-                  📁 [${p.category || 'General'}] ${p.name} (${p.tags.split(',').length} tags • ${p.tags.length} chars)
-                </option>
-              `).join('')}
             </select>
             <button type="button" class="btn-cyber btn-cyber-primary btn-sm" id="wizAppendDropdownTagBtn" style="white-space: nowrap; font-weight: 700;">
               <span>+</span>
@@ -537,40 +662,63 @@ const WizardComponent = {
 
           <!-- Quick Pill Chips for 1-Click Access -->
           <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;" id="wizQuickTagChipsContainer">
-            <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Fast Chips:</span>
-            ${(this.tagPresets || []).slice(0, 6).map(p => `
-              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="WizardComponent.appendTag('${p.tags.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')">
-                + ${p.name}
-              </button>
-            `).join('')}
-            ${(this.tagPresets || []).length > 6 ? `
-              <button type="button" class="btn-cyber btn-cyber-secondary btn-sm" style="font-size: 10px; padding: 2px 8px;" onclick="WizardComponent.openTagManager()">
-                +${(this.tagPresets || []).length - 6} more in Tag Manager ↗
-              </button>
-            ` : ''}
           </div>
-        </div>
-
-        <!-- Description -->
-        <div>
-          <label style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Comprehensive Description & Links</label>
-          <textarea id="wizDescription" class="cyber-input" rows="5" style="margin-top: 6px; resize: vertical;" placeholder="Comprehensive summary, GitHub repo links, step-by-step timestamps, connect links...">${this.formData.description}</textarea>
         </div>
       `;
 
-      const tagsInput = document.getElementById('wizTags');
-      const counter = document.getElementById('wizTagsCounter');
-      if (tagsInput && counter) {
-        tagsInput.oninput = () => {
-          counter.textContent = `${tagsInput.value.length} / 500 max`;
-          counter.style.color = tagsInput.value.length > 500 ? '#ef4444' : 'var(--text-dim)';
+      const descInput = document.getElementById('wizDescription');
+      const descCounter = document.getElementById('wizDescCounter');
+      if (descInput && descCounter) {
+        descInput.oninput = () => {
+          const len = descInput.value.length;
+          descCounter.textContent = `${len} / ${maxDesc} max`;
+          descCounter.style.color = len > maxDesc ? '#ef4444' : 'var(--text-dim)';
         };
       }
 
-      // Quick Tags Dropdown & Manager Event Handlers
+      const tagsInput = document.getElementById('wizTags');
+      const tagsCounter = document.getElementById('wizTagsCounter');
+      if (tagsInput && tagsCounter) {
+        tagsInput.oninput = () => {
+          const len = tagsInput.value.length;
+          tagsCounter.textContent = `${len} / ${maxTags} max`;
+          tagsCounter.style.color = len > maxTags ? '#ef4444' : 'var(--text-dim)';
+        };
+      }
+
+      // Populate Quick Tags options & chips based on current search query
+      this.renderQuickTagsOptions(this.quickTagSearchQuery || '');
+
+      // Quick Tags Search, Dropdown & Manager Event Handlers
+      const searchInput = document.getElementById('wizQuickTagsSearch');
+      const clearSearchBtn = document.getElementById('wizClearTagSearchBtn');
       const tagsDropdown = document.getElementById('wizQuickTagsDropdown');
       const appendDropdownBtn = document.getElementById('wizAppendDropdownTagBtn');
       const openTagMgrBtn = document.getElementById('wizOpenTagManagerBtn');
+
+      if (searchInput) {
+        searchInput.oninput = (e) => {
+          this.quickTagSearchQuery = e.target.value;
+          this.renderQuickTagsOptions(this.quickTagSearchQuery);
+        };
+        searchInput.onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (appendDropdownBtn) appendDropdownBtn.click();
+          }
+        };
+      }
+
+      if (clearSearchBtn) {
+        clearSearchBtn.onclick = () => {
+          this.quickTagSearchQuery = '';
+          if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+          }
+          this.renderQuickTagsOptions('');
+        };
+      }
 
       if (tagsDropdown) {
         tagsDropdown.onchange = (e) => {
@@ -588,7 +736,7 @@ const WizardComponent = {
       if (appendDropdownBtn) {
         appendDropdownBtn.onclick = () => {
           if (!tagsDropdown || !tagsDropdown.value) {
-            Toast.show('Please select a tag preset from the dropdown first.', 'info');
+            Toast.show('Please select a tag preset from the registry first.', 'info');
             tagsDropdown?.focus();
             return;
           }
@@ -645,6 +793,7 @@ const WizardComponent = {
     } else if (this.currentStep === 5) {
       // Step 5: Pre-Flight Review
       const targetChannel = this.channels.find(c => c.id === this.formData.channel_id);
+      const { maxDesc, maxTags } = this.getContentLimits();
       body.innerHTML = `
         <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--accent-teal);">
           STEP 5: PRE-FLIGHT VERIFICATION
@@ -699,9 +848,16 @@ const WizardComponent = {
             </div>
           ` : ''}
 
+          ${this.formData.description ? `
+            <div style="margin-top: 12px;">
+              <span style="color: var(--text-dim); font-weight: 700; font-size: 12px;">DESCRIPTION (${this.formData.description.length} / ${maxDesc} chars):</span>
+              <div style="font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px; margin-top: 3px; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;">${this.formData.description}</div>
+            </div>
+          ` : ''}
+
           ${this.formData.tags ? `
             <div style="margin-top: 12px;">
-              <span style="color: var(--text-dim); font-weight: 700; font-size: 12px;">TAGS (${this.formData.tags.length} chars):</span>
+              <span style="color: var(--text-dim); font-weight: 700; font-size: 12px;">TAGS (${this.formData.tags.length} / ${maxTags} chars):</span>
               <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 3px;">
                 ${this.formData.tags}
               </div>
@@ -774,8 +930,13 @@ const WizardComponent = {
     }
 
     if (this.currentStep === 3) {
-      if (this.formData.tags.length > 500) {
-        Toast.show('Tags exceed 500 characters limit. Please shorten.', 'warning');
+      const { maxDesc, maxTags } = this.getContentLimits();
+      if (this.formData.tags && this.formData.tags.length > maxTags) {
+        Toast.show(`Tags exceed ${maxTags} characters limit (${this.formData.tags.length}/${maxTags}). Please shorten tags before proceeding.`, 'warning');
+        return;
+      }
+      if (this.formData.description && this.formData.description.length > maxDesc) {
+        Toast.show(`Description exceeds ${maxDesc} characters limit (${this.formData.description.length}/${maxDesc}). Please shorten description before proceeding.`, 'warning');
         return;
       }
     }
@@ -844,19 +1005,20 @@ const WizardComponent = {
     const mergedList = [...currentTags, ...toAdd];
     let updated = mergedList.join(', ');
 
-    // Enforce 500 characters limit
-    if (updated.length > 500) {
-      Toast.show(`Warning: Tags exceed 500 characters (${updated.length}/500). Please trim tags before submitting.`, 'warning', 3500);
+    // Enforce dynamic limit
+    const { maxTags } = this.getContentLimits();
+    if (updated.length > maxTags) {
+      Toast.show(`Warning: Tags exceed ${maxTags} characters limit (${updated.length}/${maxTags}). Please trim tags before submitting.`, 'warning', 3500);
     } else {
-      Toast.show(`Added ${toAdd.length} tag${toAdd.length === 1 ? '' : 's'}${presetName ? ` from "${presetName}"` : ''} (${updated.length}/500 chars)`, 'success', 2500);
+      Toast.show(`Added ${toAdd.length} tag${toAdd.length === 1 ? '' : 's'}${presetName ? ` from "${presetName}"` : ''} (${updated.length}/${maxTags} chars)`, 'success', 2500);
     }
 
     if (tElem) tElem.value = updated;
     this.formData.tags = updated;
     const counter = document.getElementById('wizTagsCounter');
     if (counter) {
-      counter.textContent = `${updated.length} / 500 max`;
-      counter.style.color = updated.length > 500 ? '#ef4444' : 'var(--text-dim)';
+      counter.textContent = `${updated.length} / ${maxTags} max`;
+      counter.style.color = updated.length > maxTags ? '#ef4444' : 'var(--text-dim)';
     }
   },
 
@@ -872,36 +1034,7 @@ const WizardComponent = {
   },
 
   refreshQuickTagsUI() {
-    const dropdown = document.getElementById('wizQuickTagsDropdown');
-    const chipsContainer = document.getElementById('wizQuickTagChipsContainer');
-
-    if (dropdown) {
-      const currentSelected = dropdown.value;
-      dropdown.innerHTML = `
-        <option value="">⚡ Select Tag Preset from Registry to Append...</option>
-        ${(this.tagPresets || []).map(p => `
-          <option value="${p.id}" data-tags="${encodeURIComponent(p.tags)}" data-name="${encodeURIComponent(p.name)}" ${currentSelected === p.id ? 'selected' : ''}>
-            📁 [${p.category || 'General'}] ${p.name} (${p.tags.split(',').length} tags • ${p.tags.length} chars)
-          </option>
-        `).join('')}
-      `;
-    }
-
-    if (chipsContainer) {
-      chipsContainer.innerHTML = `
-        <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Fast Chips:</span>
-        ${(this.tagPresets || []).slice(0, 6).map(p => `
-          <button type="button" class="btn-cyber btn-cyber-outline btn-sm" style="font-size: 11px; padding: 2px 8px;" onclick="WizardComponent.appendTag('${p.tags.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')">
-            + ${p.name}
-          </button>
-        `).join('')}
-        ${(this.tagPresets || []).length > 6 ? `
-          <button type="button" class="btn-cyber btn-cyber-secondary btn-sm" style="font-size: 10px; padding: 2px 8px;" onclick="WizardComponent.openTagManager()">
-            +${(this.tagPresets || []).length - 6} more in Tag Manager ↗
-          </button>
-        ` : ''}
-      `;
-    }
+    this.renderQuickTagsOptions(this.quickTagSearchQuery || '');
   },
 
   openDatePicker() {

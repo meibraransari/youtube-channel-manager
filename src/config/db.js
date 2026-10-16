@@ -131,6 +131,12 @@ async function initDatabase() {
           ('telemetry_report_last_status', '"idle"', 'telemetry', 'Status of last telemetry email dispatch attempt (idle, success, error)'),
           ('allowed_media_extensions', '".mp4, .png"', 'media', 'Allowed file extensions for video and image media uploads (e.g. .mp4, .png, .jpg, .mov)'),
           ('max_media_upload_size_mb', '100', 'media', 'Maximum allowed media file upload size in Megabytes (MB)'),
+          ('char_limit_desc_short', '5000', 'content', 'Maximum character limit for YouTube Shorts / Reels description'),
+          ('char_limit_tags_short', '500', 'content', 'Maximum character limit for YouTube Shorts / Reels tags'),
+          ('char_limit_desc_video', '5000', 'content', 'Maximum character limit for Long-Form Video description'),
+          ('char_limit_tags_video', '500', 'content', 'Maximum character limit for Long-Form Video tags'),
+          ('char_limit_desc_podcast', '5000', 'content', 'Maximum character limit for Podcast description'),
+          ('char_limit_tags_podcast', '500', 'content', 'Maximum character limit for Podcast tags'),
           ('n8n_base_url', '"http://localhost:5678"', 'n8n', 'Base endpoint URL of your n8n workflow automation server instance'),
           ('n8n_api_key', '""', 'n8n', 'API key for authenticating with n8n REST endpoints'),
           ('n8n_default_webhook_token', '""', 'n8n', 'Default shared bearer authentication token dispatched to n8n webhook headers'),
@@ -222,6 +228,36 @@ async function initDatabase() {
         CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at DESC);
         CREATE INDEX IF NOT EXISTS idx_notes_updated_at ON notes(updated_at DESC);
         CREATE INDEX IF NOT EXISTS idx_notes_channel_id ON notes(channel_id);
+      `);
+
+      // Runtime Migration: Ensure check_tags_length_func trigger dynamically reads format-specific tags limits
+      await pool.query(`
+        CREATE OR REPLACE FUNCTION check_tags_length_func()
+        RETURNS TRIGGER AS $$
+        DECLARE
+            limit_val INT := 500;
+            setting_key TEXT;
+            setting_val TEXT;
+        BEGIN
+            IF NEW.tags IS NOT NULL AND NEW.tags <> '' THEN
+                setting_key := 'char_limit_tags_' || LOWER(COALESCE(NEW.content_type, 'video'));
+                SELECT (value #>> '{}') INTO setting_val FROM system_settings WHERE key = setting_key;
+                IF setting_val IS NOT NULL AND setting_val ~ '^\\d+$' THEN
+                    limit_val := setting_val::INT;
+                ELSE
+                    SELECT (value #>> '{}') INTO setting_val FROM system_settings WHERE key = 'max_tags_length';
+                    IF setting_val IS NOT NULL AND setting_val ~ '^\\d+$' THEN
+                        limit_val := setting_val::INT;
+                    END IF;
+                END IF;
+
+                IF LENGTH(NEW.tags) > limit_val THEN
+                    RAISE EXCEPTION 'Tags exceed % characters limit for %', limit_val, COALESCE(NEW.content_type, 'video');
+                END IF;
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
       `);
 
 

@@ -127,6 +127,24 @@ const swaggerDocument = {
           created_at: { type: 'string', format: 'date-time' },
           updated_at: { type: 'string', format: 'date-time' }
         }
+      },
+      SystemSettings: {
+        type: 'object',
+        properties: {
+          console_log_level: { type: 'string', example: 'info' },
+          swagger_enabled: { type: 'boolean', example: true },
+          char_limit_desc_short: { type: 'integer', example: 5000, description: 'Maximum character limit for Shorts description' },
+          char_limit_tags_short: { type: 'integer', example: 500, description: 'Maximum character limit for Shorts tags' },
+          char_limit_desc_video: { type: 'integer', example: 5000, description: 'Maximum character limit for Long-Form Video description' },
+          char_limit_tags_video: { type: 'integer', example: 500, description: 'Maximum character limit for Long-Form Video tags' },
+          char_limit_desc_podcast: { type: 'integer', example: 5000, description: 'Maximum character limit for Podcast description' },
+          char_limit_tags_podcast: { type: 'integer', example: 500, description: 'Maximum character limit for Podcast tags' },
+          max_tags_length: { type: 'integer', example: 500 },
+          allowed_media_extensions: { type: 'string', example: '.mp4, .png' },
+          max_media_upload_size_mb: { type: 'integer', example: 100 },
+          n8n_integration_enabled: { type: 'boolean', example: true },
+          initial_setup_done: { type: 'boolean', example: false }
+        }
       }
     }
   },

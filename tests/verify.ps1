@@ -140,14 +140,85 @@ Write-Host "`n9. Testing Dashboard Stats API..." -ForegroundColor Yellow
 $dashStats = Invoke-RestMethod -Uri "http://localhost:3000/api/dashboard/stats?channel_id=$testChannelId" -Method Get -Headers $headers
 Write-Host "   Channel: $($dashStats.channel.name) | Total Assets: $($dashStats.metrics.totalItems) | Views: $($dashStats.metrics.totalViews)" -ForegroundColor Green
 
-# 10. Settings API & Swagger Toggle
-Write-Host "`n10. Testing Settings API..." -ForegroundColor Yellow
+# 10. Settings API & Content Format Character Limits
+Write-Host "`n10. Testing Settings API & Content Character Limits..." -ForegroundColor Yellow
 $settingsGet = Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Get -Headers $headers
 Write-Host "   Current Console Log Level: $($settingsGet.settings.console_log_level) | Swagger Enabled: $($settingsGet.settings.swagger_enabled)" -ForegroundColor Green
 
 $updateLogLevel = @{ value = "debug"; description = "Automated test setting" } | ConvertTo-Json
 $logRes = Invoke-RestMethod -Uri "http://localhost:3000/api/settings/console_log_level" -Method Put -Headers $headers -Body $updateLogLevel
 Write-Host "   Dynamic Log Level Set To: $($logRes.value)" -ForegroundColor Green
+
+# 10.1 Verify Content Character Limits exist in settings
+Write-Host "   Checking Content Format Character Limits in Settings..." -ForegroundColor Yellow
+if (-not $settingsGet.settings.char_limit_desc_short -or -not $settingsGet.settings.char_limit_tags_short) {
+    throw "Missing char_limit_desc_short or char_limit_tags_short in settings!"
+}
+if (-not $settingsGet.settings.char_limit_desc_video -or -not $settingsGet.settings.char_limit_tags_video) {
+    throw "Missing char_limit_desc_video or char_limit_tags_video in settings!"
+}
+if (-not $settingsGet.settings.char_limit_desc_podcast -or -not $settingsGet.settings.char_limit_tags_podcast) {
+    throw "Missing char_limit_desc_podcast or char_limit_tags_podcast in settings!"
+}
+Write-Host "   Found Content Limits: Short (Desc: $($settingsGet.settings.char_limit_desc_short), Tags: $($settingsGet.settings.char_limit_tags_short)) | Video (Desc: $($settingsGet.settings.char_limit_desc_video), Tags: $($settingsGet.settings.char_limit_tags_video)) | Podcast (Desc: $($settingsGet.settings.char_limit_desc_podcast), Tags: $($settingsGet.settings.char_limit_tags_podcast))" -ForegroundColor Green
+
+# 10.2 Test Dynamic Constraint Enforcement: Adjust limits and verify API rejects violation
+$customLimitBody = @{
+    settings = @{
+        char_limit_tags_short = "150"
+        char_limit_desc_short = "800"
+    }
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Put -Headers $headers -Body $customLimitBody | Out-Null
+Write-Host "   Updated Short Limits: Tags=150 chars, Desc=800 chars" -ForegroundColor Green
+
+# Attempt creating content with tags exceeding 150 chars (should fail with 400)
+$oversizedTags = "tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12, tag13, tag14, tag15, tag16, tag17, tag18, tag19, tag20, tag21, tag22, tag23, tag24, tag25"
+$failedAsExpected = $false
+try {
+    $badShortBody = @{
+        channel_id = $testChannelId
+        content_type = "short"
+        title = "Should Fail Tag Limit Test"
+        tags = $oversizedTags
+    } | ConvertTo-Json
+    Invoke-RestMethod -Uri "http://localhost:3000/api/content" -Method Post -Headers $headers -Body $badShortBody | Out-Null
+} catch {
+    $failedAsExpected = $true
+    Write-Host "   Correctly Rejected Oversized Tags for Short (>150 chars): $($_.Exception.Message)" -ForegroundColor Green
+}
+if (-not $failedAsExpected) {
+    throw "Failed: API should have rejected tags exceeding dynamic limit of 150 chars!"
+}
+
+# Attempt creating content with description exceeding 800 chars (should fail with 400)
+$oversizedDesc = "D" * 850
+$failedDescAsExpected = $false
+try {
+    $badDescBody = @{
+        channel_id = $testChannelId
+        content_type = "short"
+        title = "Should Fail Description Limit Test"
+        description = $oversizedDesc
+    } | ConvertTo-Json
+    Invoke-RestMethod -Uri "http://localhost:3000/api/content" -Method Post -Headers $headers -Body $badDescBody | Out-Null
+} catch {
+    $failedDescAsExpected = $true
+    Write-Host "   Correctly Rejected Oversized Description for Short (>800 chars): $($_.Exception.Message)" -ForegroundColor Green
+}
+if (-not $failedDescAsExpected) {
+    throw "Failed: API should have rejected description exceeding dynamic limit of 800 chars!"
+}
+
+# Restore default limits
+$restoreLimitsBody = @{
+    settings = @{
+        char_limit_tags_short = "500"
+        char_limit_desc_short = "5000"
+    }
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3000/api/settings" -Method Put -Headers $headers -Body $restoreLimitsBody | Out-Null
+Write-Host "   Restored Short Limits to Defaults (5000 desc / 500 tags)" -ForegroundColor Green
 
 # 11. MySQL Migration API
 Write-Host "`n11. Testing MySQL Reference Migration API..." -ForegroundColor Yellow

@@ -76,6 +76,14 @@ const SettingsComponent = {
       const allowedMediaExtensions = parseVal(settings.allowed_media_extensions, '.mp4,.png');
       const maxMediaUploadSizeMb = parseVal(settings.max_media_upload_size_mb, '500');
 
+      // Content Format Character Limits & Constraints
+      const charLimitDescShort = parseVal(settings.char_limit_desc_short, '5000');
+      const charLimitTagsShort = parseVal(settings.char_limit_tags_short, '500');
+      const charLimitDescVideo = parseVal(settings.char_limit_desc_video, '5000');
+      const charLimitTagsVideo = parseVal(settings.char_limit_tags_video, '500');
+      const charLimitDescPodcast = parseVal(settings.char_limit_desc_podcast, '5000');
+      const charLimitTagsPodcast = parseVal(settings.char_limit_tags_podcast, '500');
+
       // n8n Workflow Automation Engine Directives
       const n8nBaseUrl = parseVal(settings.n8n_base_url, 'http://localhost:5678');
       const n8nApiKey = parseVal(settings.n8n_api_key, '');
@@ -587,6 +595,99 @@ const SettingsComponent = {
               <button type="button" class="btn-cyber btn-cyber-primary" id="saveMediaSettingsBtn" style="display: flex; align-items: center; gap: 8px;">
                 <span>💾</span>
                 <span>SAVE MEDIA DIRECTIVES</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 4.5: Content Format Character Limits & Constraints -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 22px; border-color: var(--accent-teal);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">📏</span>
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main);">
+                  CONTENT FORMAT CHARACTER LIMITS & CONSTRAINTS
+                </h3>
+              </div>
+              <span class="badge badge-teal">DYNAMIC DIRECTIVES</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+              Define maximum allowed character limits for descriptions and tags broken down by content format. The Content Creator Wizard dynamically retrieves these thresholds via API so limits can be adjusted at any time without hardcoded restrictions.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px;">
+              <!-- Format 1: Shorts & Reels -->
+              <div class="glass-card" style="padding: 16px; border-color: rgba(13, 148, 136, 0.35); background: rgba(13, 148, 136, 0.04);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <span style="font-size: 18px;">⚡</span>
+                  <div>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">Reels & Shorts</div>
+                    <div style="font-size: 10px; color: var(--accent-teal); font-family: var(--font-mono);">format: short (9:16)</div>
+                  </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Description Chars *</label>
+                  <input type="number" id="settingCharLimitDescShort" class="cyber-input" value="${charLimitDescShort}" min="100" max="20000" style="margin-top: 4px;" />
+                  <span style="font-size: 9.5px; color: var(--text-dim); margin-top: 2px; display: block;">Default: 5000</span>
+                </div>
+                <div>
+                  <label style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Tags Chars *</label>
+                  <input type="number" id="settingCharLimitTagsShort" class="cyber-input" value="${charLimitTagsShort}" min="50" max="5000" style="margin-top: 4px;" />
+                  <span style="font-size: 9.5px; color: var(--text-dim); margin-top: 2px; display: block;">Default: 500</span>
+                </div>
+              </div>
+
+              <!-- Format 2: Long-Form Videos -->
+              <div class="glass-card" style="padding: 16px; border-color: rgba(13, 148, 136, 0.35); background: rgba(13, 148, 136, 0.04);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <span style="font-size: 18px;">📹</span>
+                  <div>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">Long-Form Videos</div>
+                    <div style="font-size: 10px; color: var(--accent-teal); font-family: var(--font-mono);">format: video (16:9)</div>
+                  </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Description Chars *</label>
+                  <input type="number" id="settingCharLimitDescVideo" class="cyber-input" value="${charLimitDescVideo}" min="100" max="20000" style="margin-top: 4px;" />
+                  <span style="font-size: 9.5px; color: var(--text-dim); margin-top: 2px; display: block;">Default: 5000</span>
+                </div>
+                <div>
+                  <label style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Tags Chars *</label>
+                  <input type="number" id="settingCharLimitTagsVideo" class="cyber-input" value="${charLimitTagsVideo}" min="50" max="5000" style="margin-top: 4px;" />
+                  <span style="font-size: 9.5px; color: var(--text-dim); margin-top: 2px; display: block;">Default: 500</span>
+                </div>
+              </div>
+
+              <!-- Format 3: Deep Dive Podcasts -->
+              <div class="glass-card" style="padding: 16px; border-color: rgba(13, 148, 136, 0.35); background: rgba(13, 148, 136, 0.04);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                  <span style="font-size: 18px;">🎙️</span>
+                  <div>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">Deep Dive Podcasts</div>
+                    <div style="font-size: 10px; color: var(--accent-teal); font-family: var(--font-mono);">format: podcast</div>
+                  </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Description Chars *</label>
+                  <input type="number" id="settingCharLimitDescPodcast" class="cyber-input" value="${charLimitDescPodcast}" min="100" max="20000" style="margin-top: 4px;" />
+                  <span style="font-size: 9.5px; color: var(--text-dim); margin-top: 2px; display: block;">Default: 5000</span>
+                </div>
+                <div>
+                  <label style="font-size: 10.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Max Tags Chars *</label>
+                  <input type="number" id="settingCharLimitTagsPodcast" class="cyber-input" value="${charLimitTagsPodcast}" min="50" max="5000" style="margin-top: 4px;" />
+                  <span style="font-size: 9.5px; color: var(--text-dim); margin-top: 2px; display: block;">Default: 500</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Bottom Action Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+              <button type="button" class="btn-cyber btn-cyber-outline btn-sm" id="btnResetContentLimitsDefaults" style="display: flex; align-items: center; gap: 6px;">
+                <span>🔄</span>
+                <span>RESET TO DEFAULTS (5000 / 500)</span>
+              </button>
+              <button type="button" class="btn-cyber btn-cyber-primary" id="saveContentLimitsBtn" style="display: flex; align-items: center; gap: 8px;">
+                <span>💾</span>
+                <span>SAVE CONTENT LIMITS</span>
               </button>
             </div>
           </div>
@@ -1454,6 +1555,53 @@ const SettingsComponent = {
         };
       }
 
+      // Content Limits Directives Handlers
+      const saveContentLimitsBtn = document.getElementById('saveContentLimitsBtn');
+      if (saveContentLimitsBtn) {
+        saveContentLimitsBtn.onclick = async () => {
+          const descShort = document.getElementById('settingCharLimitDescShort').value.trim() || '5000';
+          const tagsShort = document.getElementById('settingCharLimitTagsShort').value.trim() || '500';
+          const descVideo = document.getElementById('settingCharLimitDescVideo').value.trim() || '5000';
+          const tagsVideo = document.getElementById('settingCharLimitTagsVideo').value.trim() || '500';
+          const descPod = document.getElementById('settingCharLimitDescPodcast').value.trim() || '5000';
+          const tagsPod = document.getElementById('settingCharLimitTagsPodcast').value.trim() || '500';
+
+          saveContentLimitsBtn.disabled = true;
+          saveContentLimitsBtn.innerHTML = `<span>⏳</span><span>SAVING LIMITS...</span>`;
+
+          try {
+            await API.settings.bulkUpdate({
+              char_limit_desc_short: descShort,
+              char_limit_tags_short: tagsShort,
+              char_limit_desc_video: descVideo,
+              char_limit_tags_video: tagsVideo,
+              char_limit_desc_podcast: descPod,
+              char_limit_tags_podcast: tagsPod,
+              max_tags_length: tagsShort
+            });
+            Toast.show('Content format character limits updated successfully!', 'success');
+          } catch (err) {
+            Toast.show(`Failed to save content limits: ${err.message}`, 'error');
+          } finally {
+            saveContentLimitsBtn.disabled = false;
+            saveContentLimitsBtn.innerHTML = `<span>💾</span><span>SAVE CONTENT LIMITS</span>`;
+          }
+        };
+      }
+
+      const resetLimitsBtn = document.getElementById('btnResetContentLimitsDefaults');
+      if (resetLimitsBtn) {
+        resetLimitsBtn.onclick = () => {
+          document.getElementById('settingCharLimitDescShort').value = '5000';
+          document.getElementById('settingCharLimitTagsShort').value = '500';
+          document.getElementById('settingCharLimitDescVideo').value = '5000';
+          document.getElementById('settingCharLimitTagsVideo').value = '500';
+          document.getElementById('settingCharLimitDescPodcast').value = '5000';
+          document.getElementById('settingCharLimitTagsPodcast').value = '500';
+          Toast.show('Reset inputs to defaults (5000 desc / 500 tags). Click Save to commit.', 'info');
+        };
+      }
+
       // n8n Directives Handlers
       const saveN8nSettingsBtn = document.getElementById('saveN8nSettingsBtn');
       if (saveN8nSettingsBtn) {
@@ -1645,6 +1793,12 @@ const SettingsComponent = {
           smtp_notifications_enabled: document.getElementById('settingSmtpNotificationsEnabled').checked,
           allowed_media_extensions: document.getElementById('settingAllowedMediaExtensions').value.trim(),
           max_media_upload_size_mb: document.getElementById('settingMaxMediaUploadSizeMb').value.trim(),
+          char_limit_desc_short: document.getElementById('settingCharLimitDescShort')?.value.trim() || '5000',
+          char_limit_tags_short: document.getElementById('settingCharLimitTagsShort')?.value.trim() || '500',
+          char_limit_desc_video: document.getElementById('settingCharLimitDescVideo')?.value.trim() || '5000',
+          char_limit_tags_video: document.getElementById('settingCharLimitTagsVideo')?.value.trim() || '500',
+          char_limit_desc_podcast: document.getElementById('settingCharLimitDescPodcast')?.value.trim() || '5000',
+          char_limit_tags_podcast: document.getElementById('settingCharLimitTagsPodcast')?.value.trim() || '500',
           n8n_base_url: document.getElementById('settingN8nBaseUrl').value.trim(),
           n8n_api_key: document.getElementById('settingN8nApiKey').value.trim(),
           n8n_default_webhook_token: document.getElementById('settingN8nDefaultWebhookToken').value.trim(),
